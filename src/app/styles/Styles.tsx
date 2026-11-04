@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useState } from "react";
+import { ConfirmDialog, useDraftGuard, withDraftGuard } from "@/components/ConfirmDialog";
+import { Thumb } from "@/components/Thumb";
+import { textToTokens } from "@/lib/store/validation";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
 import { hexToRgb, rgbToHex } from "@/lib/color/convert";
 import { newId } from "@/lib/store/db";
 import { download, fileSlug, styleToCss, styleToJson } from "@/lib/review/report";
-import { deleteStyle, listReferences, listStyles, saveStyle } from "@/lib/store/repo";
-import type { InspirationRef, StyleSystem, StyleToken } from "@/lib/store/models";
+import { deleteStyle, listAssets, listReferences, listStyles, saveStyle } from "@/lib/store/repo";
+import type { Asset, InspirationRef, StyleSystem, StyleToken } from "@/lib/store/models";
 
 const lines = (s: string) =>
   s
@@ -18,13 +20,10 @@ const lines = (s: string) =>
     .map((l) => l.trim())
     .filter(Boolean);
 const tokensToText = (t: StyleToken[]) => t.map((x) => `${x.name}: ${x.value}`).join("\n");
-function textToTokens(s: string): StyleToken[] {
-  return lines(s)
-    .map((l) => {
-      const i = l.indexOf(":");
-      return i > 0 ? { name: l.slice(0, i).trim(), value: l.slice(i + 1).trim() } : null;
-    })
-    .filter((x): x is StyleToken => !!x && !!x.name && !!x.value && /^[-\w.%() ]+$/.test(x.value));
+
+function parseTokens(label: string, text: string): StyleToken[] {
+  try { return textToTokens(text); }
+  catch (error) { throw new Error(`${label}, ${(error as Error).message}`); }
 }
 
 function blank(): StyleSystem {
@@ -49,7 +48,7 @@ function blank(): StyleSystem {
   };
 }
 
-function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] }) {
+function Editor({ style, refs, assets }: { style: StyleSystem; refs: InspirationRef[]; assets: Asset[] }) {
   const router = useRouter();
   const [s, setS] = useState(style);
   const [layout, setLayout] = useState(style.layoutPrinciples.join("\n"));
@@ -58,13 +57,14 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
   const [motion, setMotion] = useState(style.motion.join("\n"));
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const guard = useDraftGuard(dirty);
   const touch = () => setDirty(true);
 
   const compose = (): StyleSystem => ({
     ...s,
     layoutPrinciples: lines(layout),
-    spacing: textToTokens(spacing),
-    radius: textToTokens(radius),
+    spacing: parseTokens("Spacing tokens", spacing),
+    radius: parseTokens("Radius tokens", radius),
     motion: lines(motion),
   });
 
@@ -72,18 +72,13 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
     const bad = s.palette.find((c) => !hexToRgb(c.hex));
     if (bad) return setError(`"${bad.hex}" isn't a hex colour. Use a value like #C65A42.`);
     setError(null);
+    try {
     const saved = await saveStyle({ ...compose(), palette: s.palette.map((c) => ({ ...c, hex: rgbToHex(hexToRgb(c.hex)!) })) });
     setS(saved);
     setDirty(false);
     toast("Style saved");
+    } catch (e) { setError(e instanceof Error ? e.message : "The style couldn’t be saved."); }
   };
-
-  useEffect(() => {
-    if (!dirty) return;
-    const h = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", h);
-    return () => window.removeEventListener("beforeunload", h);
-  }, [dirty]);
 
   const setColor = (i: number, patch: Partial<StyleSystem["palette"][number]>) => {
     touch();
@@ -95,6 +90,7 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
 
   return (
     <div style={{ display: "grid", gap: "2rem" }}>
+      {guard.dialog}
       <div className="field" style={{ maxWidth: "32rem" }}>
         <label htmlFor="s-name">Name</label>
         <input id="s-name" className="input" value={s.name} onChange={(e) => (touch(), setS({ ...s, name: e.target.value.slice(0, 120) }))} />
@@ -248,9 +244,10 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
             />
           </div>
         </div>
-        <p className="t-small">Token values accept letters, numbers, %, dots, brackets and dashes; anything else is dropped on save.</p>
+        <p className="t-small">Token values accept letters, numbers, %, dots, brackets and dashes; correct invalid lines before saving.</p>
       </section>
 
+      {s.sourceAssetId ? <ReferenceAsset asset={assets.find(a => a.id === s.sourceAssetId)} /> : null}
       <section aria-labelledby="refs-h" style={{ display: "grid", gap: "0.6rem" }}>
         <h2 id="refs-h" className="t-heading">
           References
@@ -269,6 +266,7 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
           >
             {refs.map((r) => (
               <li key={r.id}>
+                {s.referenceIds.includes(r.id) ? (r.assetId ? <ReferenceAsset asset={assets.find(a => a.id === r.assetId)} /> : /^https?:\/\//i.test(r.url) ? <a className="link" href={r.url} target="_blank" rel="noopener noreferrer">Open {r.title}</a> : null) : null}
                 <label style={{ display: "flex", gap: "0.5rem", alignItems: "baseline" }}>
                   <input
                     type="checkbox"
@@ -304,10 +302,10 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
           {dirty ? "Unsaved changes" : "Saved"}
         </span>
         <span style={{ flex: 1 }} />
-        <button type="button" className="btn btn-sm" onClick={() => download(`${fileSlug(s.name)}.tokens.json`, styleToJson(compose()), "application/json")}>
+        <button type="button" className="btn btn-sm" onClick={() => { try { download(`${fileSlug(s.name)}.tokens.json`, styleToJson(compose()), "application/json"); } catch (e) { setError((e as Error).message); } }}>
           Export JSON
         </button>
-        <button type="button" className="btn btn-sm" onClick={() => download(`${fileSlug(s.name)}.css`, styleToCss(compose()), "text/css")}>
+        <button type="button" className="btn btn-sm" onClick={() => { try { download(`${fileSlug(s.name)}.css`, styleToCss(compose()), "text/css"); } catch (e) { setError((e as Error).message); } }}>
           Export CSS variables
         </button>
         <ConfirmDialog
@@ -322,6 +320,7 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
           onConfirm={async () => {
             await deleteStyle(s.id);
             toast("Style deleted");
+            setDirty(false);
             router.push("/styles");
           }}
         />
@@ -333,7 +332,8 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
 export function Styles() {
   const router = useRouter();
   const id = useSearchParams().get("id");
-  const data = useStore(async () => ({ styles: await listStyles(), refs: await listReferences() }), ["styles", "references"]);
+  const [error, setError] = useState<string | null>(null);
+  const data = useStore(async () => ({ styles: await listStyles(), refs: await listReferences(), assets: await listAssets() }), ["styles", "references", "assets"]);
   const styles = data.status === "ready" ? data.data.styles : [];
   const selected = styles.find((s) => s.id === id) ?? null;
 
@@ -344,18 +344,21 @@ export function Styles() {
         <button
           type="button"
           className="btn btn-primary"
-          onClick={async () => {
+          onClick={() => withDraftGuard(() => { void (async () => {
+            try {
             const s = await saveStyle(blank());
             router.push(`/styles?id=${s.id}`);
-          }}
+            } catch (e) { setError(e instanceof Error ? e.message : "The style couldn’t be saved."); }
+            })(); })}
         >
           New style
         </button>
       </div>
+      {error || data.status === "error" ? <p role="alert" className="error-text">{error ?? (data.status === "error" ? data.message : "")}</p> : null}
       <div className="spread" style={{ gridTemplateColumns: "minmax(0,1fr) 18rem" }}>
         <div style={{ minWidth: 0 }}>
           {selected && data.status === "ready" ? (
-            <Editor key={selected.id} style={selected} refs={data.data.refs} />
+            <Editor key={selected.id} style={selected} refs={data.data.refs} assets={data.data.assets} />
           ) : data.status === "ready" ? (
             <div style={{ display: "grid", gap: "1rem", maxWidth: "40rem" }}>
               <p className="prose-serif">A style records the decisions behind a look — palette, type, spacing, motion — so the next piece starts from them.</p>
@@ -403,4 +406,8 @@ export function Styles() {
       </div>
     </div>
   );
+}
+
+function ReferenceAsset({ asset }: { asset?: Asset }) {
+  return asset ? <Link className="link" href={`/analyze?asset=${asset.id}`} style={{ display: "grid", gap: "0.5rem" }}><Thumb blob={asset.thumb} alt={asset.name} style={{ maxWidth: "12rem", maxHeight: "10rem", objectFit: "contain" }} />Open {asset.name}</Link> : <p className="t-small">The linked image is unavailable in this browser.</p>;
 }

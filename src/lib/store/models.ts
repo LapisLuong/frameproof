@@ -26,6 +26,7 @@ export type Project = {
   currentAssetId: string | null;
   createdAt: number;
   updatedAt: number;
+  lastOpenedAt?: number;
   sample?: boolean;
 };
 

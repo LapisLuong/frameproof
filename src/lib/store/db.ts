@@ -98,6 +98,7 @@ export async function remove(store: StoreName, ids: string[]): Promise<void> {
     for (const id of ids) tx.objectStore(store).delete(id);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error ?? new StorageUnavailableError("The change couldn’t be saved. Try again."));
   });
 }
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { useDraftGuard, withDraftGuard } from "@/components/ConfirmDialog";
 import { Thumb } from "@/components/Thumb";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
@@ -28,6 +29,7 @@ function NewProjectForm({ inputRef }: { inputRef: React.RefObject<HTMLInputEleme
   const router = useRouter();
   const [name, setName] = useState("");
   const [brief, setBrief] = useState("");
+  const guard = useDraftGuard(!!name || !!brief);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
@@ -43,6 +45,7 @@ function NewProjectForm({ inputRef }: { inputRef: React.RefObject<HTMLInputEleme
         setBusy(true);
         try {
           const p = await createProject(name, brief);
+          setName(""); setBrief("");
           toast("Project created");
           router.push(`/project?id=${p.id}`);
         } catch (err) {
@@ -52,6 +55,7 @@ function NewProjectForm({ inputRef }: { inputRef: React.RefObject<HTMLInputEleme
       }}
       style={{ display: "grid", gap: "0.9rem" }}
     >
+      {guard.dialog}
       <h2 id="new-h" className="t-heading">
         New project
       </h2>
@@ -150,7 +154,7 @@ export function Desk() {
                 brief you can act on.
               </p>
               <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-                <button className="btn" type="button" onClick={openSample} disabled={sampleBusy}>
+                <button className="btn" type="button" onClick={() => withDraftGuard(() => { void openSample(); })} disabled={sampleBusy}>
                   {sampleBusy ? "Preparing the sample…" : "Open the sample project"}
                 </button>
               </div>
@@ -202,7 +206,7 @@ export function Desk() {
           {projects.length > 0 && !hasSample ? (
             <p className="t-small" style={{ marginTop: "1.5rem" }}>
               Want to see a finished review first?{" "}
-              <button type="button" className="btn-quiet btn" onClick={openSample} disabled={sampleBusy} style={{ padding: 0, minHeight: 0 }}>
+              <button type="button" className="btn-quiet btn" onClick={() => withDraftGuard(() => { void openSample(); })} disabled={sampleBusy} style={{ padding: 0, minHeight: 0 }}>
                 Open the sample project
               </button>
             </p>

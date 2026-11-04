@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { Dialog } from "radix-ui";
-import { useMemo, useState } from "react";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useMemo, useState, useRef, useEffect } from "react";
+import { ConfirmDialog, useDraftGuard } from "@/components/ConfirmDialog";
 import { Dropzone } from "@/components/Dropzone";
 import { PaletteList } from "@/components/Measurements";
 import { Thumb } from "@/components/Thumb";
@@ -37,11 +37,13 @@ type Draft = {
 };
 const EMPTY: Draft = { title: "", url: "", attribution: "", category: "Editorial", tags: "", collection: "", notes: "", assetId: null };
 
-function Editor({ initial, collections, onDone }: { initial: Draft; collections: string[]; onDone: () => void }) {
+function Editor({ initial, collections, onDone, closeRef }: { initial: Draft; collections: string[]; onDone: () => void; closeRef: React.RefObject<(() => void) | null> }) {
   const [d, setD] = useState<Draft>(initial);
   const [img, setImg] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const guard = useDraftGuard(JSON.stringify(d) !== JSON.stringify(initial) || !!img);
+  useEffect(() => { closeRef.current = () => { if (!busy) guard.request(onDone); }; return () => { closeRef.current = null; }; }, [busy, guard, onDone, closeRef]);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((x) => ({ ...x, [k]: v }));
 
   return (
@@ -76,6 +78,7 @@ function Editor({ initial, collections, onDone }: { initial: Draft; collections:
         }
       }}
     >
+      {guard.dialog}
       <div className="field">
         <label htmlFor="r-title">Title</label>
         <input id="r-title" className="input" value={d.title} onChange={(e) => set("title", e.target.value)} maxLength={160} />
@@ -148,11 +151,10 @@ function Editor({ initial, collections, onDone }: { initial: Draft; collections:
         </p>
       ) : null}
       <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-        <Dialog.Close asChild>
-          <button type="button" className="btn">
+          <button type="button" className="btn" disabled={busy} onClick={() => guard.request(onDone)}>
             Cancel
           </button>
-        </Dialog.Close>
+
         <button type="submit" className="btn btn-primary" disabled={busy}>
           {busy ? "Saving…" : d.id ? "Save changes" : "Save reference"}
         </button>
@@ -225,6 +227,7 @@ export function Library() {
     const [refs, assets] = await Promise.all([listReferences(), listAssets()]);
     return { refs, assets: new Map(assets.map((a) => [a.id, a])) };
   }, ["references", "assets"]);
+  const closeRef = useRef<(() => void) | null>(null);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<ReferenceCategory | "All">("All");
   const [col, setCol] = useState("");
@@ -322,16 +325,17 @@ export function Library() {
         })}
       </ul>
 
-      <Dialog.Root open={!!dialog} onOpenChange={(o) => !o && setDialog(null)}>
+      <Dialog.Root open={!!dialog} onOpenChange={(o) => { if (!o) { if (dialog?.mode === "new" || dialog?.mode === "edit") closeRef.current?.(); else setDialog(null); } }}>
         <Dialog.Portal>
           <Dialog.Overlay className="overlay" />
           <Dialog.Content className="dialog" aria-describedby={undefined}>
             <Dialog.Title className="t-heading">
               {dialog?.mode === "new" ? "Add reference" : dialog?.mode === "edit" ? "Edit reference" : (active?.title ?? "Reference")}
             </Dialog.Title>
-            {dialog?.mode === "new" ? <Editor initial={EMPTY} collections={collections} onDone={() => setDialog(null)} /> : null}
+            {dialog?.mode === "new" ? <Editor closeRef={closeRef} initial={EMPTY} collections={collections} onDone={() => setDialog(null)} /> : null}
             {dialog?.mode === "edit" && active ? (
               <Editor
+                closeRef={closeRef}
                 initial={{
                   id: active.id,
                   title: active.title,
