@@ -29,9 +29,15 @@ import {
 } from "@/lib/store/repo";
 import type { Asset, Project, Review } from "@/lib/store/models";
 
-type Data = { project: Project; reference: Asset | null; current: Asset | null; reviews: Review[] };
+type Pair = { reference: Asset; current: Asset };
+type Data = { project: Project; reference: Asset | null; current: Asset | null; reviews: Review[]; reviewed: Pair | null };
 
-async function load(id: string): Promise<Data | null> {
+/** The selected review, or the latest one. */
+function pickReview(reviews: Review[], selected: string | null): Review | null {
+  return reviews.find((r) => r.id === selected) ?? reviews[0] ?? null;
+}
+
+async function load(id: string, selected: string | null): Promise<Data | null> {
   const project = await getProject(id);
   if (!project) return null;
   const [reference, current, reviews] = await Promise.all([
@@ -39,7 +45,17 @@ async function load(id: string): Promise<Data | null> {
     project.currentAssetId ? getAsset(project.currentAssetId) : Promise.resolve(undefined),
     listReviews(id),
   ]);
-  return { project, reference: reference ?? null, current: current ?? null, reviews };
+  // An earlier review keeps the image pair it measured, so its findings can be shown on those images.
+  const review = pickReview(reviews, selected);
+  let reviewed: Pair | null = null;
+  if (review) {
+    const [ref, cur] = await Promise.all([
+      review.referenceAssetId === reference?.id ? reference : getAsset(review.referenceAssetId),
+      review.currentAssetId === current?.id ? current : getAsset(review.currentAssetId),
+    ]);
+    if (ref && cur) reviewed = { reference: ref, current: cur };
+  }
+  return { project, reference: reference ?? null, current: current ?? null, reviews, reviewed };
 }
 
 function ImageSlot({ role, asset, projectId }: { role: "reference" | "current"; asset: Asset | null; projectId: string }) {
@@ -131,12 +147,15 @@ function ReviewControls({
   onSelect,
   selection,
   onShowOnArtwork,
+  showingReviewed,
 }: {
   data: Data;
   review: Review | null;
   onSelect: (id: string) => void;
   selection: NoteSelection;
   onShowOnArtwork: (issue: ReviewIssue) => void;
+  /** The stage shows the image pair this review measured (an earlier pair when it is stale). */
+  showingReviewed: boolean;
 }) {
   const ai = useAiStatus();
   const [busy, setBusy] = useState<"local" | "ai" | null>(null);
@@ -247,8 +266,10 @@ function ReviewControls({
   const exportAs = (kind: "md" | "json") => {
     if (!review) return;
     const name = `${fileSlug(data.project.name)}-review-${review.version}`;
-    if (kind === "md") download(`${name}.md`, reviewToMarkdown(data.project, review), "text/markdown;charset=utf-8");
-    else download(`${name}.json`, reviewToJson(data.project, review), "application/json");
+    // Export what's on screen, including notes typed but not saved yet.
+    const shown = { ...review, notes };
+    if (kind === "md") download(`${name}.md`, reviewToMarkdown(data.project, shown), "text/markdown;charset=utf-8");
+    else download(`${name}.json`, reviewToJson(data.project, shown), "application/json");
     toast(kind === "md" ? "Revision brief exported" : "Review JSON exported");
   };
 
@@ -270,7 +291,9 @@ function ReviewControls({
 
       {stale ? (
         <p className="notice" role="status">
-          The images changed after review {review.version}. Run a new review to measure the current pair; this one is kept for history.
+          {showingReviewed
+            ? `The images changed after review ${review.version}. The artwork shows the pair it measured; run a new review to measure the latest images.`
+            : `The images changed after review ${review.version}. Run a new review to measure the current pair; this one is kept for history.`}
         </p>
       ) : null}
 
@@ -321,7 +344,7 @@ function ReviewControls({
             onToggle={toggle}
             busyId={togglingId}
             selection={selection}
-            onShowOnArtwork={stale ? undefined : onShowOnArtwork}
+            onShowOnArtwork={!stale || showingReviewed ? onShowOnArtwork : undefined}
           />
 
           <div className="field">
@@ -414,8 +437,8 @@ function EditProject({ project }: { project: Project }) {
 export function ProjectWorkspace({ id }: { id: string }) {
   const router = useRouter();
   const params = useSearchParams();
-  const data = useStore(() => load(id), ["projects", "assets", "reviews"], [id]);
   const [selected, setSelected] = useState<string | null>(params.get("review"));
+  const data = useStore(() => load(id, selected), ["projects", "assets", "reviews"], [id, selected]);
   const [noteSelection, setNoteSelection] = useState<NoteSelection>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const autoRan = useRef(false);
@@ -467,9 +490,15 @@ export function ProjectWorkspace({ id }: { id: string }) {
     );
 
   const d = data.data;
-  const review = d.reviews.find((r) => r.id === selected) ?? d.reviews[0] ?? null;
+  const review = pickReview(d.reviews, selected);
+  // The stage shows the pair the review measured when it is current or an earlier version was picked. Right after
+  // an upload (latest review now stale) it shows the new images, so the upload is visible.
   const fresh = !!(review && d.reference && d.current && review.referenceAssetId === d.reference.id && review.currentAssetId === d.current.id);
-  const marks = marksFor(review, fresh);
+  const historic = !!review && review.id !== d.reviews[0]?.id;
+  const reviewed =
+    review && (fresh || historic) && d.reviewed?.reference.id === review.referenceAssetId && d.reviewed.current.id === review.currentAssetId ? d.reviewed : null;
+  const pair: Pair | null = reviewed ?? (d.reference && d.current ? { reference: d.reference, current: d.current } : null);
+  const marks = marksFor(review, !!reviewed);
 
   return (
     <div className="page">
@@ -510,11 +539,12 @@ export function ProjectWorkspace({ id }: { id: string }) {
       </div>
 
       <div className="spread spread-review">
-        {d.reference && d.current ? (
+        {pair ? (
           <div className="area-stage" ref={stageRef}>
             <CompareStage
-              reference={d.reference}
-              current={d.current}
+              key={`${pair.reference.id}:${pair.current.id}`}
+              reference={pair.reference}
+              current={pair.current}
               marks={marks}
               selectedId={noteSelection?.id ?? null}
               onSelect={(noteId) => setNoteSelection({ id: noteId, from: "mark" })}
@@ -560,6 +590,7 @@ export function ProjectWorkspace({ id }: { id: string }) {
             review={review}
             onSelect={setSelected}
             selection={noteSelection}
+            showingReviewed={!!reviewed}
             onShowOnArtwork={(issue) => {
               setNoteSelection({ id: issue.id, from: "note" });
               const stage = stageRef.current;
