@@ -7,7 +7,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DesignPreview, useDesignFonts } from "@/components/design/DesignPreview";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
-import { MissingResourcesError, parseBundle } from "@/lib/design/export";
+import { MAX_BUNDLE_TEXT, MissingResourcesError, parseBundle } from "@/lib/design/export";
 import { docFromTemplate, type Template } from "@/lib/design/library";
 import { FORMATS, type DesignDoc } from "@/lib/design/schema";
 import { TEMPLATES } from "@/lib/design/templates";
@@ -50,6 +50,11 @@ export function DesignIndex() {
 
   const importFile = async (file: File) => {
     setImportError(null);
+    // Refuse before reading: a huge file shouldn't be pulled into memory just to be rejected.
+    if (file.size > MAX_BUNDLE_TEXT) {
+      setImportError(`This file is ${Math.round(file.size / 1024 / 1024)} MB; design files can be at most ${MAX_BUNDLE_TEXT / 1024 / 1024} MB.`);
+      return;
+    }
     setBusy(true);
     try {
       // Fresh ids for the document and everything it brings, so nothing already here is overwritten.
@@ -123,7 +128,7 @@ export function DesignIndex() {
           Original layouts in the built-in OFL fonts. Every word, colour and shape is a layer you can change; image slots wait for your own pictures.
         </p>
         <ul className="design-cards" data-testid="templates">
-          {TEMPLATES.map((t, i) => (
+          {TEMPLATES.map((t, i) => !t.layers.some((l) => l.type === "image") ? null : (
             <li key={t.id}>
               <button type="button" className="design-card" disabled={busy} onClick={() => start(() => createDesign({ template: t }))} aria-label={`Start from template: ${t.name}`}>
                 <DesignPreview doc={templateDocs[i]!} fontsVersion={fontsVersion} />

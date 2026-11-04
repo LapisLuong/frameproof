@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
+import { rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 async function freshStart(page: Page) {
   await page.goto("/");
@@ -62,6 +65,16 @@ test.describe("Designer first run", () => {
 });
 
 test.describe("Design file import", () => {
+  test("a file over the size limit is refused before it's read", async ({ page }) => {
+    await freshStart(page);
+    await page.goto("/design");
+    const big = join(tmpdir(), `frameproof-big-${process.pid}.json`);
+    await writeFile(big, Buffer.alloc(61 * 1024 * 1024, 32));
+    await page.locator("#import-design").setInputFiles(big);
+    await rm(big);
+    await expect(page.getByRole("alert").filter({ hasText: "at most 60 MB" })).toBeVisible();
+  });
+
   test("a second file with the same resource id doesn't overwrite the first one's picture", async ({ page }) => {
     await freshStart(page);
     const imp = async (text: string) => {

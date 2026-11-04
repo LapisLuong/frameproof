@@ -68,7 +68,7 @@ export const BUNDLE_FORMAT = "frameproof.design-bundle";
 export const BUNDLE_VERSION = 1;
 export type Bundle = { format: typeof BUNDLE_FORMAT; version: typeof BUNDLE_VERSION; exportedAt: number; doc: DesignDoc; resources: Array<ResourceMeta & { data: string }> };
 const BundleSchema = z.object({ format: z.literal(BUNDLE_FORMAT), version: z.literal(BUNDLE_VERSION), exportedAt: z.number().int().nonnegative(), doc: DesignDocSchema, resources: z.array(ResourceMetaSchema.extend({ data: z.string() })).max(400) });
-const MAX_BUNDLE_TEXT = 60 * 1024 * 1024;
+export const MAX_BUNDLE_TEXT = 60 * 1024 * 1024;
 export async function createBundle(doc: DesignDoc, resources: Resource[]): Promise<string> {
   const ids = new Set(referencedResources(doc));
   const entries = await Promise.all(resources.filter((r) => ids.has(r.id)).map(async ({ blob, ...meta }) => ({ ...meta, data: base64(new Uint8Array(await blob.arrayBuffer())) })));
