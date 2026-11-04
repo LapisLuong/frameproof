@@ -114,6 +114,19 @@ await page.setViewportSize({ width: 390, height: 844 });
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/10-compose-390.png`, fullPage: true });
 
+// Picture tools: the "Fill an area" dialog (brush and typed rectangle) at each width. No model is loaded for this step.
+for (const w of [1440, 1024, 390]) {
+  await page.setViewportSize({ width: w, height: w === 390 ? 844 : 900 });
+  await page.goto(editorUrl);
+  await page.getByTestId("design-canvas").waitFor();
+  await page.getByRole("button", { name: /^Portrait slot/ }).first().click();
+  await page.getByRole("button", { name: "Fill an area…" }).click();
+  await page.getByRole("button", { name: "Fill painted area" }).waitFor();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${out}/12-fill-area-${w}.png` });
+  await page.keyboard.press("Escape");
+}
+
 // Campaign formats from the editor's design: banner and avatar.
 await page.setViewportSize({ width: 1440, height: 900 });
 await page.goto(editorUrl);

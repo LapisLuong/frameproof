@@ -11,6 +11,7 @@ import { LayersPanel } from "@/components/design/LayersPanel";
 import { useHistory } from "@/components/design/useHistory";
 import { DocPalette } from "@/components/design/DocPalette";
 import { CutoutDialog, type CutoutSource } from "@/components/design/CutoutDialog";
+import { InpaintDialog } from "@/components/design/InpaintDialog";
 import type { ToolResult } from "@/lib/image-tools/types";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
@@ -81,7 +82,7 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
   const [linked, setLinked] = useState(initial.projectId !== null);
   const textRef = useRef<HTMLTextAreaElement>(null);
   // Background removal for one picture layer: which layer, and the picture it showed when the dialog opened.
-  const [cutout, setCutout] = useState<{ layerId: string; source: CutoutSource } | null>(null);
+  const [imageTool, setImageTool] = useState<{ kind: "cutout" | "inpaint"; layerId: string; source: CutoutSource } | null>(null);
 
   /* ---------- resources: object URLs and user fonts ---------- */
   const urls = useObjectUrls(resources);
@@ -144,16 +145,23 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
     const art = getBuiltinArt(rid);
     return { id: "CC0-1.0", author: art?.author ?? "Unknown", source: art?.source ?? "FrameProof" };
   };
-  // The cut-out becomes a new picture linked to its source; the layer switches to it as one undo step.
-  const acceptCutout = async (layerId: string, source: CutoutSource, result: ToolResult) => {
+  // The result becomes a new picture linked to its source; the layer switches to it as one undo step.
+  const acceptToolResult = async (kind: "cutout" | "inpaint", layerId: string, source: CutoutSource, result: ToolResult) => {
+    const label = kind === "cutout" ? "cut-out" : "filled";
     const res = await addResource(result.png, "image", {
-      name: `${source.name} (cut-out)`,
+      name: `${source.name} (${label})`,
       licence: licenceFor(source.resourceId),
-      tags: ["cut-out"],
-      derivedFrom: { resourceId: source.resourceId, tool: "cutout", model: result.model.name },
+      tags: [label],
+      derivedFrom: { resourceId: source.resourceId, tool: kind, model: result.model.name },
     });
     h.commit((d) => updateLayer(d, layerId, { resourceId: res.id }));
-    toast("Cut-out saved as a new picture; the original is unchanged.");
+    toast(`${kind === "cutout" ? "Cut-out" : "Filled picture"} saved as a new picture; the original is unchanged.`);
+  };
+  const openImageTool = (kind: "cutout" | "inpaint") => {
+    if (selected?.type !== "image" || !selected.resourceId) return;
+    const source = sourceFor(selected.resourceId);
+    if (source) setImageTool({ kind, layerId: selected.id, source });
+    else toast("This picture isn't in the library any more.");
   };
 
   /* ---------- edits ---------- */
@@ -399,19 +407,18 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
               images={[...resources.filter((r) => r.kind === "image").map((r) => ({ id: r.id, label: r.name })), ...BUILTIN_ART.map((a) => ({ id: a.id, label: `${a.name} (${a.author.split(",")[0]}, public domain)` }))]}
               textRef={textRef}
               onNudge={nudge}
-              onCutout={() => {
-                if (selected?.type !== "image" || !selected.resourceId) return;
-                const source = sourceFor(selected.resourceId);
-                if (source) setCutout({ layerId: selected.id, source });
-                else toast("This picture isn't in the library any more.");
-              }}
+              onCutout={() => openImageTool("cutout")}
+              onInpaint={() => openImageTool("inpaint")}
             />
             </fieldset>
           </div>
         </div>
       </div>
-      {cutout ? (
-        <CutoutDialog source={cutout.source} onAccept={(r) => acceptCutout(cutout.layerId, cutout.source, r)} onClose={() => setCutout(null)} />
+      {imageTool?.kind === "cutout" ? (
+        <CutoutDialog source={imageTool.source} onAccept={(r) => acceptToolResult("cutout", imageTool.layerId, imageTool.source, r)} onClose={() => setImageTool(null)} />
+      ) : null}
+      {imageTool?.kind === "inpaint" ? (
+        <InpaintDialog source={imageTool.source} onAccept={(r) => acceptToolResult("inpaint", imageTool.layerId, imageTool.source, r)} onClose={() => setImageTool(null)} />
       ) : null}
     </div>
   );

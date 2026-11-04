@@ -3,6 +3,9 @@
 import { Dialog } from "radix-ui";
 import { useEffect, useRef, useState } from "react";
 import type { CutoutTool, ModelInfo, ToolProgress, ToolResult } from "@/lib/image-tools/types";
+import { ModelLine, stageText } from "./ImageToolParts";
+
+export type CutoutSource = ImageToolSource;
 
 /**
  * Background removal for a picture layer, run in this browser (BEN2). The user sees what will be downloaded before
@@ -12,28 +15,18 @@ import type { CutoutTool, ModelInfo, ToolProgress, ToolResult } from "@/lib/imag
  * The runtime module is imported only when the dialog opens, so the editor doesn't carry it until it's used.
  */
 
-export type CutoutSource = { resourceId: string; name: string; width?: number; height?: number; load: () => Promise<Blob>; url: string | null };
+export type ImageToolSource = { resourceId: string; name: string; width?: number; height?: number; load: () => Promise<Blob>; url: string | null };
 
 type Phase =
   | { kind: "checking" }
   | { kind: "unsupported"; reason: string }
   | { kind: "confirm"; model: ModelInfo }
   | { kind: "running"; model: ModelInfo; progress: ToolProgress | null }
-  | { kind: "preview"; result: ToolResult; url: string }
+  | { kind: "preview"; result: ToolResult; url: string; saveError?: string }
   | { kind: "saving"; result: ToolResult; url: string }
   | { kind: "error"; message: string; model: ModelInfo | null };
 
-const mb = (bytes: number) => `${Math.round(bytes / 1048576)} MB`;
-
-function stageText(p: ToolProgress | null): string {
-  if (!p) return "Starting…";
-  if (p.stage === "download") return p.total ? `Downloading the model: ${mb(p.loaded)} of ${mb(p.total)}` : `Downloading the model: ${mb(p.loaded)}`;
-  if (p.stage === "load") return "Loading the model…";
-  if (p.stage === "run") return "Finding the subject…";
-  return "Preparing the result…";
-}
-
-export function CutoutDialog({ source, onAccept, onClose }: { source: CutoutSource; onAccept: (result: ToolResult) => Promise<void>; onClose: () => void }) {
+export function CutoutDialog({ source, onAccept, onClose }: { source: ImageToolSource; onAccept: (result: ToolResult) => Promise<void>; onClose: () => void }) {
   const [phase, setPhase] = useState<Phase>({ kind: "checking" });
   const tool = useRef<CutoutTool | null>(null);
   const abort = useRef<AbortController | null>(null);
@@ -90,7 +83,8 @@ export function CutoutDialog({ source, onAccept, onClose }: { source: CutoutSour
       await onAccept(phase.result);
       onClose();
     } catch (e) {
-      setPhase({ kind: "error", message: e instanceof Error ? e.message : "The cut-out couldn't be saved.", model: phase.result.model });
+      // Keep the result: saving again must not mean running the model again.
+      setPhase({ kind: "preview", result: phase.result, url: phase.url, saveError: e instanceof Error ? e.message : "The cut-out couldn't be saved." });
     }
   };
 
@@ -169,6 +163,12 @@ export function CutoutDialog({ source, onAccept, onClose }: { source: CutoutSour
             </>
           ) : null}
 
+          {phase.kind === "preview" && phase.saveError ? (
+            <p className="notice" data-tone="error" role="alert">
+              The cut-out couldn&apos;t be saved: {phase.saveError} It&apos;s kept here; try saving again.
+            </p>
+          ) : null}
+
           <div className="dialog-actions">
             {phase.kind === "running" ? (
               <button type="button" className="btn" onClick={cancelRun}>
@@ -186,34 +186,12 @@ export function CutoutDialog({ source, onAccept, onClose }: { source: CutoutSour
             ) : null}
             {phase.kind === "preview" || phase.kind === "saving" ? (
               <button type="button" className="btn btn-primary" onClick={() => void accept()} disabled={phase.kind === "saving"}>
-                Use the cut-out
+                {phase.kind === "preview" && phase.saveError ? "Retry save" : "Use the cut-out"}
               </button>
             ) : null}
           </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
-  );
-}
-
-function ModelLine({ model }: { model: ModelInfo }) {
-  let host = model.source;
-  try {
-    host = new URL(model.source).host;
-  } catch {
-    /* keep the raw text */
-  }
-  return (
-    <p className="t-small cutout-model">
-      Uses {model.name} ({model.licence} licence). The first run downloads the model, about <span className="t-value">{mb(model.bytes)}</span>, from{" "}
-      {/^https?:\/\//.test(model.source) ? (
-        <a href={model.source} target="_blank" rel="noreferrer noopener">
-          {host}
-        </a>
-      ) : (
-        host
-      )}
-      ; your picture is not sent anywhere.
-    </p>
   );
 }

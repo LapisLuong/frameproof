@@ -86,7 +86,7 @@ test.describe("Campaign formats", () => {
   });
 });
 
-test.describe("Background removal", () => {
+test.describe("Picture tools", () => {
   // The model itself is exercised by the runtime's own tests; here a stand-in worker checks the editor's flow:
   // confirmation before any download, progress, cancel, preview, and accept as a new linked picture.
   test.beforeEach(async ({ page }) => {
@@ -100,11 +100,27 @@ test.describe("Background removal", () => {
           this.terminated = true;
           (window as unknown as { __terminated: number }).__terminated = ((window as unknown as { __terminated?: number }).__terminated ?? 0) + 1;
         }
-        async postMessage() {
+        async postMessage(msg: { mask?: Blob }) {
           const send = (data: unknown) => !this.terminated && this.onmessage?.({ data });
-          send({ type: "progress", progress: { stage: "download", loaded: 50 * 1048576, total: 200 * 1048576 } });
+          const inpaint = !!msg?.mask;
+          const progress = { stage: "download", loaded: 50 * 1048576, total: 200 * 1048576 };
+          send(inpaint ? { progress } : { type: "progress", progress });
           if ((window as unknown as { __hang?: boolean }).__hang) return;
           await new Promise((r) => setTimeout(r, 150));
+          if (inpaint) {
+            // Record how much of the mask was painted, so the test can check what the tool was given.
+            const bmp = await createImageBitmap(msg.mask!);
+            const c = new OffscreenCanvas(bmp.width, bmp.height);
+            const g = c.getContext("2d")!;
+            g.drawImage(bmp, 0, 0);
+            const d = g.getImageData(0, 0, bmp.width, bmp.height).data;
+            let white = 0;
+            for (let i = 0; i < d.length; i += 4) if (d[i] === 255) white++;
+            (window as unknown as { __mask: unknown }).__mask = { width: bmp.width, height: bmp.height, white };
+            const png = await c.convertToBlob({ type: "image/png" });
+            send({ result: { png, width: bmp.width, height: bmp.height, ms: { load: 1, run: 2 } } });
+            return;
+          }
           const c = new OffscreenCanvas(40, 30);
           const g = c.getContext("2d")!;
           g.fillStyle = "#c65a42";
@@ -142,11 +158,126 @@ test.describe("Background removal", () => {
     await expect(dialog).toContainText("40 × 30 px");
     await dialog.getByRole("button", { name: "Use the cut-out" }).click();
     await expect(dialog).toBeHidden();
-    await expect(page.getByLabel("Picture")).toHaveValue(/^res_/);
-    await expect(page.getByLabel("Picture").locator("option:checked")).toContainText("(cut-out)");
+    await expect(page.getByLabel("Picture", { exact: true })).toHaveValue(/^res_/);
+    await expect(page.getByLabel("Picture", { exact: true }).locator("option:checked")).toContainText("(cut-out)");
     await page.getByRole("button", { name: "Undo" }).click();
-    await expect(page.getByLabel("Picture").locator("option:checked")).not.toContainText("(cut-out)");
+    await expect(page.getByLabel("Picture", { exact: true }).locator("option:checked")).not.toContainText("(cut-out)");
     expect(external).toEqual([]);
+  });
+
+  test("fills a painted area: the mask is what was painted, and the result is a new picture", async ({ page }) => {
+    const external: string[] = [];
+    page.on("request", (r) => !r.url().startsWith("http://localhost") && !r.url().startsWith("data:") && !r.url().startsWith("blob:") && external.push(r.url()));
+    await freshStart(page);
+    await page.getByTestId("desk-starters").getByRole("button").first().click();
+    await page.getByRole("button", { name: /^Portrait slot/ }).first().click();
+    await page.getByRole("button", { name: "Fill an area…" }).click();
+    const dialog = page.getByRole("dialog", { name: "Fill an area" });
+    await expect(dialog).toContainText("LaMa");
+    const fill = dialog.getByRole("button", { name: "Fill painted area" });
+    await expect(fill).toBeDisabled();
+
+    const canvas = dialog.getByTestId("inpaint-canvas");
+    const box = (await canvas.boundingBox())!;
+    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.55, { steps: 6 });
+    await page.mouse.up();
+    await expect(fill).toBeEnabled();
+    await dialog.getByRole("button", { name: "Undo stroke" }).click();
+    await expect(fill).toBeDisabled();
+    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.55, { steps: 6 });
+    await page.mouse.up();
+
+    await page.evaluate(() => ((window as unknown as { __hang: boolean }).__hang = true));
+    await fill.click();
+    await expect(dialog).toContainText("Downloading the model");
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(fill).toBeEnabled(); // back on the same mask
+
+    await page.evaluate(() => ((window as unknown as { __hang: boolean }).__hang = false));
+    await fill.click();
+    await expect(dialog.getByRole("button", { name: "Use the filled picture" })).toBeVisible();
+    await expect(dialog).toContainText("reconstruction");
+    const mask = await page.evaluate(() => (window as unknown as { __mask: { width: number; height: number; white: number } }).__mask);
+    expect([mask.width, mask.height]).toEqual([2000, 1367]); // the picture's own size, not the screen's
+    expect(mask.white).toBeGreaterThan(1000);
+    expect(mask.white).toBeLessThan(2000 * 1367 * 0.2);
+    await dialog.getByRole("button", { name: "Use the filled picture" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByLabel("Picture", { exact: true }).locator("option:checked")).toContainText("(filled)");
+    await expect(page.getByTestId("save-state")).toHaveText("Saved in this browser");
+    await page.reload();
+    await page.getByRole("button", { name: /^Portrait slot/ }).first().click();
+    await expect(page.getByLabel("Picture", { exact: true }).locator("option:checked")).toContainText("(filled)");
+    expect(external).toEqual([]);
+  });
+});
+
+test.describe("Picture tools without a pointer", () => {
+  test.beforeEach(async ({ page }) => {
+    // A stand-in inpainting worker that counts runs, and a switch that fails the next writes to the resources store
+    // (as a full disk or a blocked database would).
+    await page.addInitScript(() => {
+      const w = window as unknown as { __runs: number; __mask: unknown; __failResourceWrites?: number; Worker: unknown };
+      w.__runs = 0;
+      w.Worker = class {
+        onmessage: ((e: { data: unknown }) => void) | null = null;
+        terminate() {}
+        async postMessage(msg: { mask: Blob }) {
+          w.__runs++;
+          const bmp = await createImageBitmap(msg.mask);
+          const c = new OffscreenCanvas(bmp.width, bmp.height);
+          const g = c.getContext("2d")!;
+          g.drawImage(bmp, 0, 0);
+          const d = g.getImageData(0, 0, bmp.width, bmp.height).data;
+          let white = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i] === 255) white++;
+          w.__mask = { width: bmp.width, height: bmp.height, white };
+          const png = await c.convertToBlob({ type: "image/png" });
+          this.onmessage?.({ data: { result: { png, width: bmp.width, height: bmp.height, ms: { load: 1, run: 2 } } } });
+        }
+      };
+      const put = IDBObjectStore.prototype.put;
+      IDBObjectStore.prototype.put = function (this: IDBObjectStore, ...args: Parameters<IDBObjectStore["put"]>) {
+        if (this.name === "resources" && (w.__failResourceWrites ?? 0) > 0) {
+          w.__failResourceWrites!--;
+          throw new DOMException("The browser's storage is full.", "QuotaExceededError");
+        }
+        return put.apply(this, args);
+      };
+    });
+  });
+
+  test("a typed rectangle marks the area, and a failed save keeps the result for Retry save", async ({ page }) => {
+    await freshStart(page);
+    await page.getByTestId("desk-starters").getByRole("button").first().click();
+    await page.getByRole("button", { name: /^Portrait slot/ }).first().click();
+    await page.getByRole("button", { name: "Fill an area…" }).click();
+    const dialog = page.getByRole("dialog", { name: "Fill an area" });
+    const rect = dialog.getByRole("group", { name: /Or mark a rectangle/ });
+    for (const [label, v] of [["X", "100"], ["Y", "200"], ["Width", "300"], ["Height", "50"]] as const) {
+      await rect.getByLabel(label, { exact: true }).fill(v);
+    }
+    await rect.getByRole("button", { name: "Add this rectangle" }).focus();
+    await page.keyboard.press("Enter");
+    const fill = dialog.getByRole("button", { name: "Fill painted area" });
+    await expect(fill).toBeEnabled();
+    await fill.focus();
+    await page.keyboard.press("Enter");
+    await expect(dialog.getByRole("button", { name: "Use the filled picture" })).toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { __mask: unknown }).__mask)).toEqual({ width: 2000, height: 1367, white: 300 * 50 });
+
+    await page.evaluate(() => ((window as unknown as { __failResourceWrites: number }).__failResourceWrites = 1));
+    await dialog.getByRole("button", { name: "Use the filled picture" }).click();
+    await expect(dialog.getByRole("alert")).toContainText("couldn't be saved");
+    await expect(dialog.getByRole("img", { name: /painted area filled/ })).toBeVisible(); // the result is still here
+    await dialog.getByRole("button", { name: "Retry save" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByLabel("Picture", { exact: true }).locator("option:checked")).toContainText("(filled)");
+    expect(await page.evaluate(() => (window as unknown as { __runs: number }).__runs)).toBe(1); // no second model run
   });
 });
 

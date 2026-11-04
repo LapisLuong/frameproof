@@ -20,6 +20,8 @@ type Props = {
   onNudge: (dx: number, dy: number) => void;
   /** Open background removal for the selected picture (absent when the tool isn't offered). */
   onCutout?: () => void;
+  /** Open "fill an area" (inpainting) for the selected picture. */
+  onInpaint?: () => void;
 };
 
 /** Numeric field that only commits valid numbers, and shows what was typed until then. */
@@ -173,7 +175,7 @@ function TextFields({ layer, onLayer, userFonts, textRef }: { layer: TextLayer; 
   );
 }
 
-export function Inspector({ doc, layer, onLayer, onDoc, userFonts, images, textRef, onNudge, onCutout }: Props) {
+export function Inspector({ doc, layer, onLayer, onDoc, userFonts, images, textRef, onNudge, onCutout, onInpaint }: Props) {
   const swatches = usedColours(doc);
   if (!layer) {
     const format = FORMATS.find((f) => f.width === doc.width && f.height === doc.height)?.id ?? "custom";
@@ -257,14 +259,28 @@ export function Inspector({ doc, layer, onLayer, onDoc, userFonts, images, textR
           <Select
             label="Picture"
             value={layer.resourceId ?? ""}
-            options={[{ value: "", label: "Empty slot" }, ...images.map((i) => ({ value: i.id, label: i.label }))]}
+            options={[
+              { value: "", label: "Empty slot" },
+              // A picture saved a moment ago may not be in the list yet; keep it selected meanwhile.
+              ...(layer.resourceId && !images.some((i) => i.id === layer.resourceId) ? [{ value: layer.resourceId, label: "New picture (loading)" }] : []),
+              ...images.map((i) => ({ value: i.id, label: i.label })),
+            ]}
             onChange={(v) => onLayer({ resourceId: v || null }, `${layer.id}:res`)}
           />
           {!images.length ? <p className="hint">Add your own pictures under Add → Your images. Nothing is generated.</p> : null}
-          {layer.resourceId && onCutout ? (
-            <button type="button" className="btn btn-sm" onClick={onCutout}>
-              Remove background…
-            </button>
+          {layer.resourceId && (onCutout || onInpaint) ? (
+            <div className="design-row" role="group" aria-label="Picture tools">
+              {onCutout ? (
+                <button type="button" className="btn btn-sm" onClick={onCutout}>
+                  Remove background…
+                </button>
+              ) : null}
+              {onInpaint ? (
+                <button type="button" className="btn btn-sm" onClick={onInpaint}>
+                  Fill an area…
+                </button>
+              ) : null}
+            </div>
           ) : null}
           <div className="design-row">
             <Select label="Fit" value={layer.fit} options={[{ value: "cover", label: "Fill the frame" }, { value: "contain", label: "Show all" }]} onChange={(v) => onLayer({ fit: v }, `${layer.id}:fit`)} />
