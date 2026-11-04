@@ -6,7 +6,7 @@ import { useMemo, useRef, useState } from "react";
 import { useDraftGuard, withDraftGuard } from "@/components/ConfirmDialog";
 import { Thumb } from "@/components/Thumb";
 import { DesignPreview, useDesignFonts } from "@/components/design/DesignPreview";
-import { STARTERS, starterDoc } from "@/lib/design/starters";
+import { DESK_STARTERS, starterDoc } from "@/lib/design/starters";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
 import { createProject, createSampleProject, listAllReviews, listAssets, listProjects, listStyles, saveNewDesign } from "@/lib/store/repo";
@@ -105,13 +105,13 @@ function NewProjectForm({ inputRef }: { inputRef: React.RefObject<HTMLInputEleme
 /** First thing on the Desk: finished designs to open and edit straight away, and the brief-led path. */
 function DesignStart() {
   const router = useRouter();
-  const docs = useMemo(() => STARTERS.slice(0, 6).map((st) => starterDoc(st, `desk-${st.id}`, 0)), []);
+  const docs = useMemo(() => DESK_STARTERS.slice(0, 6).map((st) => starterDoc(st, `desk-${st.id}`, 0)), []);
   const fontsVersion = useDesignFonts(docs);
   const [busy, setBusy] = useState(false);
   const open = async (i: number) => {
     setBusy(true);
     try {
-      const d = await saveNewDesign(starterDoc(STARTERS[i]!, "new"));
+      const d = await saveNewDesign(starterDoc(DESK_STARTERS[i]!, "new"));
       router.push(`/design?id=${encodeURIComponent(d.id)}`);
     } catch (e) {
       toast(e instanceof Error ? e.message : "The design couldn't be created.");
@@ -139,9 +139,9 @@ function DesignStart() {
       <ul className="design-cards desk-starters" data-testid="desk-starters">
         {docs.map((d, i) => (
           <li key={d.id}>
-            <button type="button" className="design-card" disabled={busy} onClick={() => void open(i)} aria-label={`Edit starter: ${STARTERS[i]!.template.name}`}>
+            <button type="button" className="design-card" disabled={busy} onClick={() => void open(i)} aria-label={`Edit starter: ${DESK_STARTERS[i]!.template.name}`}>
               <DesignPreview doc={d} fontsVersion={fontsVersion} />
-              <span className="t-small">{STARTERS[i]!.template.name}</span>
+              <span className="t-small">{DESK_STARTERS[i]!.template.name}</span>
             </button>
           </li>
         ))}

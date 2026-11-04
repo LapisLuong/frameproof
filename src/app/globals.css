@@ -1057,8 +1057,20 @@ details.disclose[open] > summary::before {
 }
 .design-panel {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
   align-content: start;
+  min-width: 0;
+}
+/* Grid children default to their content's width; keep panels inside their column. */
+.design-col > *,
+.design-pane {
+  min-width: 0;
+}
+.palette-lock {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
 }
 .design-sub {
   margin-top: 0.5rem;
@@ -1461,7 +1473,7 @@ details.disclose[open] > summary::before {
   gap: 0.5rem;
   min-width: 0;
 }
-.palette-slider .slider {
+.palette-slider input[type="range"].slider {
   width: 100%;
   min-width: 0;
 }

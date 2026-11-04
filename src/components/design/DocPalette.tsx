@@ -55,9 +55,9 @@ export function DocPalette({ doc, onLive, onEnd, onCommit, comparing, onCompare,
           const s = swatches[i];
           if (!s || live) return null;
           return (
-            <label className="check">
+            <label className="t-meta palette-lock" title="For a brand or logo colour: palette changes leave it alone.">
               <input type="checkbox" checked={s.locked} onChange={() => onCommit(toggleLock(doc, s.hex))} />
-              Lock this colour (brand or logo colour: palette changes leave it alone)
+              Lock as a brand colour
             </label>
           );
         }}

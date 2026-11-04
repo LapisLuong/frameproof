@@ -13,9 +13,9 @@ export type Starter = { id: string; template: Template; art: string[] };
 const FILLS: Record<string, string[]> = {
   "tpl_editorial-image": ["res_met-39799"],
   tpl_collage: ["res_met-360446", "res_met-436528", "res_met-384889"],
-  "tpl_collage-grid": ["res_met-283063", "res_met-362545", "res_met-39799"],
+  "tpl_collage-grid": ["res_met-39799", "res_met-360446", "res_met-362545"],
   "tpl_lyrical-night": ["res_met-39799"],
-  "tpl_new-chapter": ["res_met-360446", "res_met-283063"],
+  "tpl_new-chapter": ["res_met-360446", "res_met-436528"],
   tpl_spotlight: ["res_met-436528"],
 };
 
@@ -26,6 +26,14 @@ export const STARTERS: Starter[] = TEMPLATES.flatMap((t) => {
   if (art) return [{ id: `st_${t.id.slice(4)}`, template: t, art }];
   return photoSlots(t) === 0 ? [{ id: `st_${t.id.slice(4)}`, template: t, art: [] }] : [];
 });
+
+/** What the Desk shows first: the light-and-ornament styles, then picture-led covers, then type. */
+const DESK_ORDER = ["tpl_lyrical-night", "tpl_new-chapter", "tpl_spotlight", "tpl_editorial-image", "tpl_collage", "tpl_music"];
+export const DESK_STARTERS: Starter[] = [...STARTERS].sort((a, b) => rank(a) - rank(b));
+function rank(s: Starter) {
+  const i = DESK_ORDER.indexOf(s.template.id);
+  return i < 0 ? DESK_ORDER.length : i;
+}
 
 /** The starter as a design: the template with its picture slots filled, in order, by the starter's artworks. */
 export function starterDoc(s: Starter, id: string, now = Date.now()): DesignDoc {
