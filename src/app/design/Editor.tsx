@@ -9,6 +9,7 @@ import { Canvas } from "@/components/design/Canvas";
 import { Inspector } from "@/components/design/Inspector";
 import { LayersPanel } from "@/components/design/LayersPanel";
 import { useHistory } from "@/components/design/useHistory";
+import { DocPalette } from "@/components/design/DocPalette";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
 import { loadDocFonts, registerUserFont } from "@/lib/design/browser";
@@ -67,6 +68,9 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
   const [selectedId, setSelectedId] = useState<string | null>(() => (at ? (hitTest(initial, at.x * initial.width, at.y * initial.height, { includeLocked: true })?.id ?? null) : null));
   const [tab, setTab] = useState<Tab>("edit");
   const [fontsVersion, setFontsVersion] = useState(0);
+  // Palette before/after: the design as it was before the first palette change in this session.
+  const [before, setBefore] = useState<DesignDoc | null>(null);
+  const [comparing, setComparing] = useState(false);
   const [saveState, setSaveState] = useState<"saved" | "saving" | "unsaved" | "failed">("saved");
   const [busy, setBusy] = useState<string | null>(null);
   const saved = useRef<DesignDoc>(initial);
@@ -152,6 +156,7 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
   /* ---------- keyboard ---------- */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (comparing) return;
       const t = e.target as HTMLElement;
       const typing = t.closest("input, textarea, select, [contenteditable]");
       const mod = e.metaKey || e.ctrlKey;
@@ -296,12 +301,17 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
           </div>
         </div>
         <div className="design-pane design-pane-canvas" data-pane="canvas">
+          {comparing ? (
+            <p className="notice design-compare-note" role="status">
+              Showing the design before your palette changes. Editing is paused until you go back to current.
+            </p>
+          ) : null}
           <Canvas
-            doc={doc}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onLive={h.live}
-            onEnd={h.end}
+            doc={comparing && before ? before : doc}
+            selectedId={comparing ? null : selectedId}
+            onSelect={comparing ? () => {} : setSelectedId}
+            onLive={comparing ? () => {} : h.live}
+            onEnd={comparing ? () => {} : h.end}
             imageUrl={imageUrl}
             fontsVersion={fontsVersion}
             onEditText={() => {
@@ -313,6 +323,22 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
         </div>
         <div className="design-col design-col-right">
           <div className="design-pane" data-pane="edit">
+            <section className="design-panel" aria-label="Design palette">
+              <DocPalette
+                doc={doc}
+                onLive={(next) => {
+                  if (!before) setBefore(doc);
+                  setComparing(false);
+                  h.live(next);
+                }}
+                onEnd={h.end}
+                onCommit={(next) => h.commit(next)}
+                comparing={comparing}
+                onCompare={setComparing}
+                canCompare={before !== null}
+              />
+            </section>
+            <fieldset className="design-fieldset" disabled={comparing}>
             <Inspector
               doc={doc}
               layer={selected}
@@ -323,6 +349,7 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
               textRef={textRef}
               onNudge={nudge}
             />
+            </fieldset>
           </div>
         </div>
       </div>

@@ -9,6 +9,8 @@ export type PaletteEntry = {
   label: string;
   /** Extra line for screen readers and the title tooltip, e.g. "measured, 41% of the reference". */
   detail?: string;
+  /** Locked colours (brand, logo) can't be changed here and are skipped by whole-palette changes. */
+  locked?: boolean;
 };
 
 type Props = {
@@ -22,14 +24,14 @@ type Props = {
   renderExtra?: (index: number) => React.ReactNode;
 };
 
-function Slider({ label, value, min, max, onChange, onEnd, suffix }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void; onEnd?: () => void; suffix: string }) {
+function Slider({ label, value, min, max, onChange, onEnd, suffix, disabled }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void; onEnd?: () => void; suffix: string; disabled?: boolean }) {
   const id = useId();
   return (
     <div className="palette-slider">
       <label htmlFor={id} className="t-small">
         {label}
       </label>
-      <input id={id} type="range" className="slider" min={min} max={max} step={1} value={Math.round(value)} onChange={(e) => onChange(Number(e.target.value))} onPointerUp={onEnd} onKeyUp={onEnd} />
+      <input id={id} type="range" className="slider" min={min} max={max} step={1} value={Math.round(value)} disabled={disabled} onChange={(e) => onChange(Number(e.target.value))} onPointerUp={onEnd} onKeyUp={onEnd} />
       <span className="t-value">
         {Math.round(value)}
         {suffix}
@@ -52,7 +54,7 @@ export function PaletteEditor({ entries, onChange, onCommitEnd, heading = "Palet
   const hsl = selected !== null ? hexToHsl(hexes[selected]!) : null;
 
   const setOne = (patch: Partial<{ h: number; s: number; l: number }>) => {
-    if (selected === null || !hsl) return;
+    if (selected === null || !hsl || entries[selected]?.locked) return;
     const next = [...hexes];
     next[selected] = hslToHex({ ...hsl, ...patch });
     onChange(next, `palette:${selected}`);
@@ -62,7 +64,8 @@ export function PaletteEditor({ entries, onChange, onCommitEnd, heading = "Palet
     if (!base) setBase(hexes);
     const d = { ...delta, ...patch };
     setDelta(d);
-    onChange(adjustPalette(from, d), "palette:all");
+    const adjusted = adjustPalette(from, d);
+    onChange(adjusted.map((hex, i) => (entries[i]?.locked ? from[i]! : hex)), "palette:all");
   };
   const endAll = () => {
     setBase(null);
@@ -80,13 +83,17 @@ export function PaletteEditor({ entries, onChange, onCommitEnd, heading = "Palet
               type="button"
               className="palette-swatch"
               aria-pressed={selected === i}
-              aria-label={`${e.label}, ${e.hex}${e.detail ? `, ${e.detail}` : ""}. Edit this colour`}
+              aria-label={`${e.label}, ${e.hex}${e.detail ? `, ${e.detail}` : ""}${e.locked ? ", locked" : ""}. Edit this colour`}
+              data-locked={e.locked || undefined}
               title={e.detail}
               onClick={() => setOpen(selected === i ? null : i)}
             >
               <span style={{ background: e.hex }} />
             </button>
-            <span className="t-small palette-label">{e.label}</span>
+            <span className="t-small palette-label">
+              {e.label}
+              {e.locked ? " · locked" : ""}
+            </span>
             <span className="t-value palette-hex">{e.hex}</span>
           </li>
         ))}
@@ -97,9 +104,9 @@ export function PaletteEditor({ entries, onChange, onCommitEnd, heading = "Palet
           <p className="t-small">
             Colour {selected + 1}: <span className="t-value">{hexes[selected]}</span>
           </p>
-          <Slider label="Hue" value={hsl.h} min={0} max={360} suffix="°" onChange={(h) => setOne({ h })} onEnd={onCommitEnd} />
-          <Slider label="Saturation" value={hsl.s} min={0} max={100} suffix="%" onChange={(s) => setOne({ s })} onEnd={onCommitEnd} />
-          <Slider label="Lightness" value={hsl.l} min={0} max={100} suffix="%" onChange={(l) => setOne({ l })} onEnd={onCommitEnd} />
+          <Slider label="Hue" value={hsl.h} min={0} max={360} suffix="°" disabled={entries[selected]?.locked} onChange={(h) => setOne({ h })} onEnd={onCommitEnd} />
+          <Slider label="Saturation" value={hsl.s} min={0} max={100} suffix="%" disabled={entries[selected]?.locked} onChange={(s) => setOne({ s })} onEnd={onCommitEnd} />
+          <Slider label="Lightness" value={hsl.l} min={0} max={100} suffix="%" disabled={entries[selected]?.locked} onChange={(l) => setOne({ l })} onEnd={onCommitEnd} />
           {renderExtra?.(selected)}
         </div>
       ) : null}

@@ -165,6 +165,8 @@ export const DesignDocSchema = z
     templateId: z.string().max(80).nullable().default(null),
     /** FrameProof project this design is reviewed in, if any (review bridge). */
     projectId: z.string().max(80).nullable().default(null),
+    /** Brand colours (logo, club colours) that palette edits leave alone. */
+    lockedColours: z.array(HexSchema).max(24).default([]),
     createdAt: z.number().int().nonnegative(),
     updatedAt: z.number().int().nonnegative(),
   })

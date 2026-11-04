@@ -40,6 +40,7 @@ function ItemPreview({ item, fontsVersion }: { item: Item; fontsVersion: number 
       layers: item.layers,
       templateId: null,
       projectId: null,
+      lockedColours: [],
       createdAt: 0,
       updatedAt: 0,
     };

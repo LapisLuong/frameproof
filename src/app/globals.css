@@ -1449,14 +1449,55 @@ details.disclose[open] > summary::before {
 .palette-all summary {
   cursor: pointer;
 }
+.palette-editor,
+.palette-detail,
+.palette-all {
+  min-width: 0;
+}
 .palette-slider {
   display: grid;
-  grid-template-columns: 5.5rem minmax(0, 1fr) 3rem;
+  grid-template-columns: minmax(3.5rem, 5.5rem) minmax(0, 1fr) 2.75rem;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
 }
 .palette-slider .slider {
   width: 100%;
+  min-width: 0;
+}
+.palette-slider .t-value {
+  text-align: right;
+}
+/* A locked brand colour: a small proof-mark corner rather than a padlock icon. */
+.palette-swatch[data-locked] {
+  border-style: dashed;
+}
+.palette-slider .slider:disabled {
+  opacity: 0.4;
+}
+.doc-palette {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+  min-width: 0;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-rule);
+}
+.doc-palette .palette-editor {
+  width: 100%;
+}
+.design-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.design-fieldset:disabled {
+  opacity: 0.55;
+}
+.design-compare-note {
+  margin-bottom: 0.5rem;
 }
 
 /* ---------- compose ---------- */
