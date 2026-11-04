@@ -24,7 +24,17 @@ export function safeUrl(raw: string): string | null {
   }
 }
 
-type Draft = { id?: string; title: string; url: string; attribution: string; category: ReferenceCategory; tags: string; collection: string; notes: string; assetId: string | null };
+type Draft = {
+  id?: string;
+  title: string;
+  url: string;
+  attribution: string;
+  category: ReferenceCategory;
+  tags: string;
+  collection: string;
+  notes: string;
+  assetId: string | null;
+};
 const EMPTY: Draft = { title: "", url: "", attribution: "", category: "Editorial", tags: "", collection: "", notes: "", assetId: null };
 
 function Editor({ initial, collections, onDone }: { initial: Draft; collections: string[]; onDone: () => void }) {
@@ -77,7 +87,14 @@ function Editor({ initial, collections, onDone }: { initial: Draft; collections:
       </div>
       <div className="field">
         <label htmlFor="r-attr">Credit</label>
-        <input id="r-attr" className="input" value={d.attribution} onChange={(e) => set("attribution", e.target.value)} placeholder="Designer or studio, publication, year" maxLength={200} />
+        <input
+          id="r-attr"
+          className="input"
+          value={d.attribution}
+          onChange={(e) => set("attribution", e.target.value)}
+          placeholder="Designer or studio, publication, year"
+          maxLength={200}
+        />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(10rem, 1fr))", gap: "1rem" }}>
         <div className="field">
@@ -90,7 +107,15 @@ function Editor({ initial, collections, onDone }: { initial: Draft; collections:
         </div>
         <div className="field">
           <label htmlFor="r-col">Collection</label>
-          <input id="r-col" className="input" list="collections" value={d.collection} onChange={(e) => set("collection", e.target.value)} maxLength={80} placeholder="Event Poster moodboard" />
+          <input
+            id="r-col"
+            className="input"
+            list="collections"
+            value={d.collection}
+            onChange={(e) => set("collection", e.target.value)}
+            maxLength={80}
+            placeholder="Event Poster moodboard"
+          />
           <datalist id="collections">
             {collections.map((c) => (
               <option key={c} value={c} />
@@ -109,7 +134,13 @@ function Editor({ initial, collections, onDone }: { initial: Draft; collections:
       </div>
       <div className="field">
         <span className="label">{d.assetId ? "Replace image" : "Image (optional)"}</span>
-        <Dropzone compact label={img ? img.name : "Choose an image"} hint="A screenshot or saved file you're allowed to keep. PNG, JPEG, WebP or GIF." onFile={setImg} testId="upload-reference" />
+        <Dropzone
+          compact
+          label={img ? img.name : "Choose an image"}
+          hint="A screenshot or saved file you're allowed to keep. PNG, JPEG, WebP or GIF."
+          onFile={setImg}
+          testId="upload-reference"
+        />
       </div>
       {error ? (
         <p className="error-text" role="alert">
@@ -134,7 +165,13 @@ function Detail({ item, asset, onEdit, onClose }: { item: InspirationRef; asset?
   const link = safeUrl(item.url);
   return (
     <div style={{ display: "grid", gap: "1rem", marginTop: "0.75rem" }}>
-      {asset ? <Thumb blob={asset.thumb} alt={item.title} style={{ maxHeight: "50vh", maxWidth: "100%", objectFit: "contain", justifySelf: "start", border: "1px solid var(--color-rule)" }} /> : null}
+      {asset ? (
+        <Thumb
+          blob={asset.thumb}
+          alt={item.title}
+          style={{ maxHeight: "50vh", maxWidth: "100%", objectFit: "contain", justifySelf: "start", border: "1px solid var(--color-rule)" }}
+        />
+      ) : null}
       <p className="t-meta">
         {item.category}
         {item.collection ? `, in ${item.collection}` : ""}
@@ -148,7 +185,11 @@ function Detail({ item, asset, onEdit, onClose }: { item: InspirationRef; asset?
           </a>
         </p>
       ) : null}
-      {item.notes ? <p className="t-measure" style={{ whiteSpace: "pre-wrap" }}>{item.notes}</p> : null}
+      {item.notes ? (
+        <p className="t-measure" style={{ whiteSpace: "pre-wrap" }}>
+          {item.notes}
+        </p>
+      ) : null}
       {asset ? <PaletteList analysis={asset.analysis} title="Measured palette" /> : null}
       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
         <ConfirmDialog
@@ -285,17 +326,34 @@ export function Library() {
         <Dialog.Portal>
           <Dialog.Overlay className="overlay" />
           <Dialog.Content className="dialog" aria-describedby={undefined}>
-            <Dialog.Title className="t-heading">{dialog?.mode === "new" ? "Add reference" : dialog?.mode === "edit" ? "Edit reference" : (active?.title ?? "Reference")}</Dialog.Title>
+            <Dialog.Title className="t-heading">
+              {dialog?.mode === "new" ? "Add reference" : dialog?.mode === "edit" ? "Edit reference" : (active?.title ?? "Reference")}
+            </Dialog.Title>
             {dialog?.mode === "new" ? <Editor initial={EMPTY} collections={collections} onDone={() => setDialog(null)} /> : null}
             {dialog?.mode === "edit" && active ? (
               <Editor
-                initial={{ id: active.id, title: active.title, url: active.url, attribution: active.attribution, category: active.category, tags: active.tags.join(", "), collection: active.collection, notes: active.notes, assetId: active.assetId }}
+                initial={{
+                  id: active.id,
+                  title: active.title,
+                  url: active.url,
+                  attribution: active.attribution,
+                  category: active.category,
+                  tags: active.tags.join(", "),
+                  collection: active.collection,
+                  notes: active.notes,
+                  assetId: active.assetId,
+                }}
                 collections={collections}
                 onDone={() => setDialog({ mode: "view", id: active.id })}
               />
             ) : null}
             {dialog?.mode === "view" && active ? (
-              <Detail item={active} asset={active.assetId ? assets.get(active.assetId) : undefined} onEdit={() => setDialog({ mode: "edit", id: active.id })} onClose={() => setDialog(null)} />
+              <Detail
+                item={active}
+                asset={active.assetId ? assets.get(active.assetId) : undefined}
+                onEdit={() => setDialog({ mode: "edit", id: active.id })}
+                onClose={() => setDialog(null)}
+              />
             ) : null}
           </Dialog.Content>
         </Dialog.Portal>

@@ -28,10 +28,8 @@ export function sobel(luma: Float32Array, w: number, h: number): Float32Array {
   const at = (x: number, y: number) => luma[Math.min(h - 1, Math.max(0, y)) * w + Math.min(w - 1, Math.max(0, x))]!;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      const gx =
-        -at(x - 1, y - 1) - 2 * at(x - 1, y) - at(x - 1, y + 1) + at(x + 1, y - 1) + 2 * at(x + 1, y) + at(x + 1, y + 1);
-      const gy =
-        -at(x - 1, y - 1) - 2 * at(x, y - 1) - at(x + 1, y - 1) + at(x - 1, y + 1) + 2 * at(x, y + 1) + at(x + 1, y + 1);
+      const gx = -at(x - 1, y - 1) - 2 * at(x - 1, y) - at(x - 1, y + 1) + at(x + 1, y - 1) + 2 * at(x + 1, y) + at(x + 1, y + 1);
+      const gy = -at(x - 1, y - 1) - 2 * at(x, y - 1) - at(x + 1, y - 1) + at(x - 1, y + 1) + 2 * at(x, y + 1) + at(x + 1, y + 1);
       mag[y * w + x] = Math.hypot(gx, gy);
     }
   }
@@ -80,7 +78,10 @@ export function measureStructure(buf: PixelBuffer): StructureMetrics {
       const x1 = Math.floor(((cx + 1) * w) / gx);
       const y0 = Math.floor((cy * h) / gy);
       const y1 = Math.floor(((cy + 1) * h) / gy);
-      let s = 0, s2 = 0, e = 0, c = 0;
+      let s = 0,
+        s2 = 0,
+        e = 0,
+        c = 0;
       for (let y = y0; y < y1; y++) {
         for (let x = x0; x < x1; x++) {
           const v = luma[y * w + x]!;

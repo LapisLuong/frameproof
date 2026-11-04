@@ -17,3 +17,4 @@ next-env.d.ts
 qa/screenshots/tmp/
 qa/council/
 ._*
+.sync/

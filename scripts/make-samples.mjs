@@ -38,7 +38,10 @@ const current = `
   ${dots}
 </svg>`;
 
-for (const [name, svg] of [["reference-poster.png", reference], ["current-poster.png", current]]) {
+for (const [name, svg] of [
+  ["reference-poster.png", reference],
+  ["current-poster.png", current],
+]) {
   const info = await sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toFile(new URL(name, out).pathname);
   process.stdout.write(`${name} ${info.width}x${info.height} ${(info.size / 1024).toFixed(0)} KB\n`);
 }

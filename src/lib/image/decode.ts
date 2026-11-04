@@ -51,9 +51,7 @@ async function thumbnail(bitmap: ImageBitmap): Promise<Blob> {
   if (!ctx) throw new Error("Canvas 2D isn't available in this browser.");
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(bitmap, 0, 0, c.width, c.height);
-  return new Promise((resolve, reject) =>
-    c.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't create a thumbnail."))), "image/webp", 0.86),
-  );
+  return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't create a thumbnail."))), "image/webp", 0.86));
 }
 
 /** Validate, decode, measure. Throws ImageRejectedError with a user-facing reason. */
@@ -74,7 +72,13 @@ export async function decodeAndAnalyze(file: Blob, k = 6): Promise<DecodedImage>
     }
     const pixels = rasterize(bitmap, WORK_SIDE);
     const analysis = analyzeBuffer(pixels, { width: bitmap.width, height: bitmap.height, bytes: file.size, kind: v.info.kind }, k);
-    return { info: { ...v.info, width: bitmap.width, height: bitmap.height }, mime: MIME_BY_KIND[v.info.kind], pixels, thumb: await thumbnail(bitmap), analysis };
+    return {
+      info: { ...v.info, width: bitmap.width, height: bitmap.height },
+      mime: MIME_BY_KIND[v.info.kind],
+      pixels,
+      thumb: await thumbnail(bitmap),
+      analysis,
+    };
   } finally {
     bitmap.close();
   }

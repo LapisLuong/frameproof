@@ -34,10 +34,24 @@ export function ImageViewer({ src, alt, label, labelSide = "left", height = "min
           </span>
         ) : null}
         <div style={{ position: "absolute", inset: "2.5rem", display: "grid", placeItems: "center" }}>
-          <div style={{ transform: zp.transform, transformOrigin: "center", transition: "transform 60ms linear", maxWidth: "100%", maxHeight: "100%", display: "grid" }}>
+          <div
+            style={{
+              transform: zp.transform,
+              transformOrigin: "center",
+              transition: "transform 60ms linear",
+              maxWidth: "100%",
+              maxHeight: "100%",
+              display: "grid",
+            }}
+          >
             <div style={{ position: "relative", display: "grid", maxWidth: "100%", maxHeight: "100%" }}>
               {/* eslint-disable-next-line @next/next/no-img-element -- local blob URLs can't use next/image */}
-              <img src={src} alt={alt} draggable={false} style={{ maxWidth: "100%", maxHeight: `calc(${height} - 5rem)`, objectFit: "contain", display: "block", userSelect: "none" }} />
+              <img
+                src={src}
+                alt={alt}
+                draggable={false}
+                style={{ maxWidth: "100%", maxHeight: `calc(${height} - 5rem)`, objectFit: "contain", display: "block", userSelect: "none" }}
+              />
               <span className="cropmarks" style={{ inset: 0 }} aria-hidden="true">
                 <i />
               </span>

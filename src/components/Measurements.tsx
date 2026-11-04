@@ -34,7 +34,8 @@ export function PaletteList({ analysis, title = "Palette" }: { analysis: ImageAn
       </ul>
       <p className="t-small" style={{ marginTop: "0.5rem" }}>
         Share of opaque pixels. {analysis.palette.method}.
-        {analysis.palette.transparentShare > 0.001 ? ` ${pct(analysis.palette.transparentShare, 1)} of the image is transparent and was left out.` : ""} Small accents can be missed — this is a frequency summary, not the designer&apos;s palette.
+        {analysis.palette.transparentShare > 0.001 ? ` ${pct(analysis.palette.transparentShare, 1)} of the image is transparent and was left out.` : ""} Small
+        accents can be missed — this is a frequency summary, not the designer&apos;s palette.
       </p>
     </section>
   );
@@ -76,7 +77,17 @@ export function ContrastPicker({ analysis }: { analysis: ImageAnalysis }) {
       </div>
       {g ? (
         <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "1rem", alignItems: "center", marginTop: "1rem" }}>
-          <div style={{ background: b, color: a, padding: "0.6rem 0.9rem", border: "1px solid var(--color-rule)", fontFamily: "var(--font-serif)", fontSize: "var(--text-lg)" }} aria-hidden="true">
+          <div
+            style={{
+              background: b,
+              color: a,
+              padding: "0.6rem 0.9rem",
+              border: "1px solid var(--color-rule)",
+              fontFamily: "var(--font-serif)",
+              fontSize: "var(--text-lg)",
+            }}
+            aria-hidden="true"
+          >
             Aa
           </div>
           <div>
@@ -202,7 +213,11 @@ export function MeasurementTable({ reference, current, comparison }: { reference
       <details className="disclose" style={{ marginTop: "0.75rem" }}>
         <summary>How these are measured, and what they can&apos;t tell you</summary>
         <ul className="t-meta t-measure" style={{ paddingLeft: "1.1rem", marginTop: "0.5rem", display: "grid", gap: "0.35rem" }}>
-          <li>Measures run on a copy at most {reference.analysisSize.width >= reference.analysisSize.height ? reference.analysisSize.width : reference.analysisSize.height} px on its long side. Size and aspect come from the original file.</li>
+          <li>
+            Measures run on a copy at most{" "}
+            {reference.analysisSize.width >= reference.analysisSize.height ? reference.analysisSize.width : reference.analysisSize.height} px on its long side.
+            Size and aspect come from the original file.
+          </li>
           <li>RMS contrast is the spread of lightness values. Higher means stronger lights and darks; it says nothing about which element is emphasised.</li>
           <li>Edge density is the share of pixels on a hard edge (Sobel, threshold 0.25). It approximates visual busyness, not clutter or legibility.</li>
           <li>Detail centre is where hard edges concentrate. It points to where detail sits, not to what matters.</li>
@@ -210,7 +225,9 @@ export function MeasurementTable({ reference, current, comparison }: { reference
           {comparison ? (
             <>
               <li>{comparison.canvas.note} SSIM is sensitive to small shifts: a 2% move can drop it sharply. It is not a quality score.</li>
-              <li>The layout hash compares coarse light-dark structure and ignores colour. 0 means the same arrangement; above about 20 means a different one.</li>
+              <li>
+                The layout hash compares coarse light-dark structure and ignores colour. 0 means the same arrangement; above about 20 means a different one.
+              </li>
               <li>Colour distribution overlap ignores where colours are placed.</li>
             </>
           ) : null}

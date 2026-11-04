@@ -57,7 +57,17 @@ function NewProjectForm({ inputRef }: { inputRef: React.RefObject<HTMLInputEleme
       </h2>
       <div className="field">
         <label htmlFor="pname">Name</label>
-        <input ref={inputRef} id="pname" className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Event Poster" maxLength={120} aria-invalid={!!error} aria-describedby={error ? "pname-err" : undefined} />
+        <input
+          ref={inputRef}
+          id="pname"
+          className="input"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Event Poster"
+          maxLength={120}
+          aria-invalid={!!error}
+          aria-describedby={error ? "pname-err" : undefined}
+        />
         {error ? (
           <p id="pname-err" className="error-text">
             {error}
@@ -66,7 +76,14 @@ function NewProjectForm({ inputRef }: { inputRef: React.RefObject<HTMLInputEleme
       </div>
       <div className="field">
         <label htmlFor="pbrief">Brief (optional)</label>
-        <textarea id="pbrief" className="textarea" value={brief} onChange={(e) => setBrief(e.target.value)} maxLength={2000} placeholder="Who it's for, where it will be seen, and what should be read first." />
+        <textarea
+          id="pbrief"
+          className="textarea"
+          value={brief}
+          onChange={(e) => setBrief(e.target.value)}
+          maxLength={2000}
+          placeholder="Who it's for, where it will be seen, and what should be read first."
+        />
         <p className="hint">The brief is used in AI review when it is turned on, and printed on exported revision briefs.</p>
       </div>
       <div>
@@ -85,7 +102,12 @@ export function Desk() {
   const [sampleBusy, setSampleBusy] = useState(false);
   const [sampleError, setSampleError] = useState<string | null>(null);
 
-  if (data.status === "loading") return <div className="page"><p className="t-meta">Opening your desk…</p></div>;
+  if (data.status === "loading")
+    return (
+      <div className="page">
+        <p className="t-meta">Opening your desk…</p>
+      </div>
+    );
   if (data.status === "error")
     return (
       <div className="page">
@@ -118,15 +140,14 @@ export function Desk() {
         <div>
           <div className="folio">
             <h1 className="t-display">Desk</h1>
-            <p className="t-meta">
-              {projects.length === 0 ? "Nothing here yet" : `${projects.length} ${projects.length === 1 ? "project" : "projects"}`}
-            </p>
+            <p className="t-meta">{projects.length === 0 ? "Nothing here yet" : `${projects.length} ${projects.length === 1 ? "project" : "projects"}`}</p>
           </div>
 
           {projects.length === 0 ? (
             <section aria-label="Getting started" style={{ display: "grid", gap: "1.25rem", marginBottom: "2.5rem" }}>
               <p className="prose-serif">
-                Pair a design you admire with the one you&apos;re making. FrameProof measures both, shows you where they differ, and turns that into a revision brief you can act on.
+                Pair a design you admire with the one you&apos;re making. FrameProof measures both, shows you where they differ, and turns that into a revision
+                brief you can act on.
               </p>
               <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
                 <button className="btn" type="button" onClick={openSample} disabled={sampleBusy}>
@@ -189,80 +210,100 @@ export function Desk() {
         </div>
 
         <aside className="margin" aria-label="Recent work">
-          <section aria-labelledby="recent-reviews-h">
-            <h2 id="recent-reviews-h" className="t-subhead">
-              Recent reviews
-            </h2>
-            {reviews.length === 0 ? (
-              <p className="t-meta" style={{ marginTop: "0.4rem" }}>
-                Reviews appear here once a project has both images.
-              </p>
-            ) : (
-              <ul style={{ listStyle: "none", padding: 0, margin: "0.5rem 0 0", display: "grid", gap: "0.6rem" }}>
-                {reviews.slice(0, 5).map((r) => {
-                  const p = projects.find((x) => x.id === r.projectId);
-                  return (
-                    <li key={r.id}>
-                      <Link className="link" href={`/projects/${r.projectId}?review=${r.id}`}>
-                        {p?.name ?? "Deleted project"}, review {r.version}
+          {reviews.length === 0 && analyses.length === 0 && styles.length === 0 ? (
+            <p className="t-meta">
+              Recent reviews, analyses and saved styles will collect here. To look at a single image first, open the{" "}
+              <Link className="link" href="/analyze">
+                analyzer
+              </Link>
+              .
+            </p>
+          ) : null}
+          {reviews.length > 0 ? (
+            <section aria-labelledby="recent-reviews-h">
+              <h2 id="recent-reviews-h" className="t-subhead">
+                Recent reviews
+              </h2>
+              {reviews.length === 0 ? (
+                <p className="t-meta" style={{ marginTop: "0.4rem" }}>
+                  Reviews appear here once a project has both images.
+                </p>
+              ) : (
+                <ul style={{ listStyle: "none", padding: 0, margin: "0.5rem 0 0", display: "grid", gap: "0.6rem" }}>
+                  {reviews.slice(0, 5).map((r) => {
+                    const p = projects.find((x) => x.id === r.projectId);
+                    return (
+                      <li key={r.id}>
+                        <Link className="link" href={`/projects/${r.projectId}?review=${r.id}`}>
+                          {p?.name ?? "Deleted project"}, review {r.version}
+                        </Link>
+                        <p className="t-small">
+                          {r.issues.filter((i) => !i.resolved).length} open of {r.issues.length}, {fmtDate(r.createdAt)}
+                        </p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          ) : null}
+          {analyses.length > 0 ? (
+            <section aria-labelledby="recent-analyses-h" style={{ marginTop: "1.5rem" }}>
+              <h2 id="recent-analyses-h" className="t-subhead">
+                Recent analyses
+              </h2>
+              {analyses.length === 0 ? (
+                <p className="t-meta" style={{ marginTop: "0.4rem" }}>
+                  Analyze a single image to pull its palette and measurements.{" "}
+                  <Link className="link" href="/analyze">
+                    Open the analyzer
+                  </Link>
+                </p>
+              ) : (
+                <ul style={{ listStyle: "none", padding: 0, margin: "0.5rem 0 0", display: "grid", gap: "0.6rem" }}>
+                  {analyses.slice(0, 4).map((a) => (
+                    <li key={a.id} style={{ display: "grid", gridTemplateColumns: "2.5rem 1fr", gap: "0.6rem", alignItems: "center" }}>
+                      <Thumb
+                        blob={a.thumb}
+                        alt=""
+                        style={{ maxWidth: "2.5rem", maxHeight: "2.5rem", objectFit: "contain", border: "1px solid var(--color-rule)" }}
+                      />
+                      <Link className="link" href={`/analyze?asset=${a.id}`} style={{ overflowWrap: "anywhere" }}>
+                        {a.name}
                       </Link>
-                      <p className="t-small">
-                        {r.issues.filter((i) => !i.resolved).length} open of {r.issues.length}, {fmtDate(r.createdAt)}
-                      </p>
                     </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-          <hr className="rule" />
-          <section aria-labelledby="recent-analyses-h">
-            <h2 id="recent-analyses-h" className="t-subhead">
-              Recent analyses
-            </h2>
-            {analyses.length === 0 ? (
-              <p className="t-meta" style={{ marginTop: "0.4rem" }}>
-                Analyze a single image to pull its palette and measurements. <Link className="link" href="/analyze">Open the analyzer</Link>
-              </p>
-            ) : (
-              <ul style={{ listStyle: "none", padding: 0, margin: "0.5rem 0 0", display: "grid", gap: "0.6rem" }}>
-                {analyses.slice(0, 4).map((a) => (
-                  <li key={a.id} style={{ display: "grid", gridTemplateColumns: "2.5rem 1fr", gap: "0.6rem", alignItems: "center" }}>
-                    <Thumb blob={a.thumb} alt="" style={{ maxWidth: "2.5rem", maxHeight: "2.5rem", objectFit: "contain", border: "1px solid var(--color-rule)" }} />
-                    <Link className="link" href={`/analyze?asset=${a.id}`} style={{ overflowWrap: "anywhere" }}>
-                      {a.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-          <hr className="rule" />
-          <section aria-labelledby="styles-h">
-            <h2 id="styles-h" className="t-subhead">
-              Saved styles
-            </h2>
-            {styles.length === 0 ? (
-              <p className="t-meta" style={{ marginTop: "0.4rem" }}>
-                Save a palette from the analyzer to start a style.
-              </p>
-            ) : (
-              <ul style={{ listStyle: "none", padding: 0, margin: "0.5rem 0 0", display: "grid", gap: "0.75rem" }}>
-                {styles.slice(0, 4).map((s) => (
-                  <li key={s.id}>
-                    <Link className="link" href={`/styles?id=${s.id}`}>
-                      {s.name}
-                    </Link>
-                    <div className="palette-strip" style={{ height: "0.6rem", marginTop: "0.3rem" }} aria-hidden="true">
-                      {s.palette.map((c, i) => (
-                        <span key={i} style={{ flex: 1, background: c.hex }} />
-                      ))}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                  ))}
+                </ul>
+              )}
+            </section>
+          ) : null}
+          {styles.length > 0 ? (
+            <section aria-labelledby="styles-h" style={{ marginTop: "1.5rem" }}>
+              <h2 id="styles-h" className="t-subhead">
+                Saved styles
+              </h2>
+              {styles.length === 0 ? (
+                <p className="t-meta" style={{ marginTop: "0.4rem" }}>
+                  Save a palette from the analyzer to start a style.
+                </p>
+              ) : (
+                <ul style={{ listStyle: "none", padding: 0, margin: "0.5rem 0 0", display: "grid", gap: "0.75rem" }}>
+                  {styles.slice(0, 4).map((s) => (
+                    <li key={s.id}>
+                      <Link className="link" href={`/styles?id=${s.id}`}>
+                        {s.name}
+                      </Link>
+                      <div className="palette-strip" style={{ height: "0.6rem", marginTop: "0.3rem" }} aria-hidden="true">
+                        {s.palette.map((c, i) => (
+                          <span key={i} style={{ flex: 1, background: c.hex }} />
+                        ))}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          ) : null}
         </aside>
       </div>
     </div>

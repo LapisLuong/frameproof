@@ -59,7 +59,10 @@ export function chroma(c: Oklab): number {
 }
 
 export function rgbToHex({ r, g, b }: RGB): string {
-  const h = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
+  const h = (n: number) =>
+    Math.max(0, Math.min(255, Math.round(n)))
+      .toString(16)
+      .padStart(2, "0");
   return `#${h(r)}${h(g)}${h(b)}`.toUpperCase();
 }
 
@@ -67,7 +70,11 @@ export function hexToRgb(hex: string): RGB | null {
   const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim());
   if (!m) return null;
   let v = m[1]!;
-  if (v.length === 3) v = v.split("").map((c) => c + c).join("");
+  if (v.length === 3)
+    v = v
+      .split("")
+      .map((c) => c + c)
+      .join("");
   const n = parseInt(v, 16);
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }

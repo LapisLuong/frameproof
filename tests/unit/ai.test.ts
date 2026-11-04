@@ -40,7 +40,10 @@ describe("AI configuration", () => {
   it("is off without a provider, and explains why", () => {
     expect(getProviderConfig(env({}))).toMatchObject({ configured: false });
     expect(getProviderConfig(env({ AI_PROVIDER: "anthropic" }))).toMatchObject({ configured: false, reason: expect.stringContaining("ANTHROPIC_API_KEY") });
-    expect(getProviderConfig(env({ AI_PROVIDER: "openai", OPENAI_API_KEY: "k" }))).toMatchObject({ configured: false, reason: expect.stringContaining("AI_MODEL") });
+    expect(getProviderConfig(env({ AI_PROVIDER: "openai", OPENAI_API_KEY: "k" }))).toMatchObject({
+      configured: false,
+      reason: expect.stringContaining("AI_MODEL"),
+    });
     expect(getProviderConfig(env({ AI_PROVIDER: "other" }))).toMatchObject({ configured: false });
   });
   it("is on with a key and never exposes the key in the result", () => {

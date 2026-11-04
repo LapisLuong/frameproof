@@ -82,8 +82,14 @@ export async function updateProject(id: string, patch: Partial<Pick<Project, "na
 
 export async function deleteProject(id: string): Promise<void> {
   const [assets, reviews] = await Promise.all([getByProject<Asset>("assets", id), getByProject<Review>("reviews", id)]);
-  await remove("reviews", reviews.map((r) => r.id));
-  await remove("assets", assets.map((a) => a.id));
+  await remove(
+    "reviews",
+    reviews.map((r) => r.id),
+  );
+  await remove(
+    "assets",
+    assets.map((a) => a.id),
+  );
   await remove("projects", [id]);
   emit("projects");
 }

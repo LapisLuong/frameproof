@@ -10,9 +10,7 @@ export interface VisionProvider {
   complete(system: string, user: string, images: [PreparedImage, PreparedImage], signal: AbortSignal): Promise<string>;
 }
 
-export type ProviderConfig =
-  | { configured: false; reason: string }
-  | { configured: true; provider: VisionProvider };
+export type ProviderConfig = { configured: false; reason: string } | { configured: true; provider: VisionProvider };
 
 export class ProviderError extends Error {
   constructor(
@@ -77,7 +75,10 @@ class AnthropicProvider implements VisionProvider {
       },
       signal,
     )) as { content?: Array<{ type: string; text?: string }> };
-    const text = data.content?.filter((c) => c.type === "text").map((c) => c.text ?? "").join("\n");
+    const text = data.content
+      ?.filter((c) => c.type === "text")
+      .map((c) => c.text ?? "")
+      .join("\n");
     if (!text) throw new ProviderError("The model returned an empty answer.", undefined, true);
     return text;
   }

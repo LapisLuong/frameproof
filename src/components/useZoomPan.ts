@@ -15,10 +15,13 @@ const MAX = 8;
 export function useZoomPan(shared?: { view: View; onView: (v: View) => void }) {
   const [local, setLocal] = useState<View>(FIT);
   const view = shared?.view ?? local;
-  const setView = useCallback((v: View | ((prev: View) => View)) => {
-    if (shared) shared.onView(typeof v === "function" ? v(shared.view) : v);
-    else setLocal(v);
-  }, [shared]);
+  const setView = useCallback(
+    (v: View | ((prev: View) => View)) => {
+      if (shared) shared.onView(typeof v === "function" ? v(shared.view) : v);
+      else setLocal(v);
+    },
+    [shared],
+  );
   const drag = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
 
   const zoomAt = useCallback(

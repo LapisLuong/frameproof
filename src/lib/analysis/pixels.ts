@@ -22,14 +22,7 @@ export function createBuffer(width: number, height: number, fill?: [number, numb
 }
 
 /** Paint an axis-aligned rectangle (used by tests and sample generation). */
-export function fillRect(
-  buf: PixelBuffer,
-  x0: number,
-  y0: number,
-  w: number,
-  h: number,
-  rgba: [number, number, number, number],
-): void {
+export function fillRect(buf: PixelBuffer, x0: number, y0: number, w: number, h: number, rgba: [number, number, number, number]): void {
   for (let y = Math.max(0, y0); y < Math.min(buf.height, y0 + h); y++) {
     for (let x = Math.max(0, x0); x < Math.min(buf.width, x0 + w); x++) {
       const i = (y * buf.width + x) * 4;
@@ -88,7 +81,11 @@ export function resample(buf: PixelBuffer, w: number, h: number): PixelBuffer {
     for (let x = 0; x < w; x++) {
       const x0 = Math.floor(x * sx);
       const x1 = Math.max(x0 + 1, Math.floor((x + 1) * sx));
-      let r = 0, g = 0, b = 0, a = 0, n = 0;
+      let r = 0,
+        g = 0,
+        b = 0,
+        a = 0,
+        n = 0;
       for (let yy = y0; yy < Math.min(y1, buf.height); yy++) {
         for (let xx = x0; xx < Math.min(x1, buf.width); xx++) {
           const i = (yy * buf.width + xx) * 4;

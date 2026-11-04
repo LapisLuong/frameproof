@@ -20,24 +20,29 @@ export function ssim(a: Float32Array, b: Float32Array, w: number, h: number): nu
   let count = 0;
   for (let y = 0; y + win <= h; y += step) {
     for (let x = 0; x + win <= w; x += step) {
-      let ma = 0, mb = 0;
-      for (let j = 0; j < win; j++) for (let i = 0; i < win; i++) {
-        const p = (y + j) * w + x + i;
-        ma += a[p]!;
-        mb += b[p]!;
-      }
+      let ma = 0,
+        mb = 0;
+      for (let j = 0; j < win; j++)
+        for (let i = 0; i < win; i++) {
+          const p = (y + j) * w + x + i;
+          ma += a[p]!;
+          mb += b[p]!;
+        }
       const N = win * win;
       ma /= N;
       mb /= N;
-      let va = 0, vb = 0, cov = 0;
-      for (let j = 0; j < win; j++) for (let i = 0; i < win; i++) {
-        const p = (y + j) * w + x + i;
-        const da = a[p]! - ma;
-        const db = b[p]! - mb;
-        va += da * da;
-        vb += db * db;
-        cov += da * db;
-      }
+      let va = 0,
+        vb = 0,
+        cov = 0;
+      for (let j = 0; j < win; j++)
+        for (let i = 0; i < win; i++) {
+          const p = (y + j) * w + x + i;
+          const da = a[p]! - ma;
+          const db = b[p]! - mb;
+          va += da * da;
+          vb += db * db;
+          cov += da * db;
+        }
       va /= N - 1;
       vb /= N - 1;
       cov /= N - 1;
@@ -91,7 +96,12 @@ export type Comparison = {
   diff: DiffMap;
 };
 
-export function compareImages(ref: PixelBuffer, cur: PixelBuffer, refOriginal: { width: number; height: number }, curOriginal: { width: number; height: number }): Comparison {
+export function compareImages(
+  ref: PixelBuffer,
+  cur: PixelBuffer,
+  refOriginal: { width: number; height: number },
+  curOriginal: { width: number; height: number },
+): Comparison {
   const { w, h } = comparisonSize(refOriginal);
   const A = fitContain(ref, w, h);
   const B = fitContain(cur, w, h);

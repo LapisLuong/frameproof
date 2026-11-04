@@ -110,7 +110,14 @@ export function reviewToJson(project: Project, review: Review): string {
   );
 }
 
-const slug = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "token";
+const slug = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "token";
 
 export function styleToCss(style: StyleSystem): string {
   const lines = [`/* ${style.name.replace(/\*\//g, "")} — exported from FrameProof */`, ":root {"];

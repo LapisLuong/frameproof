@@ -8,7 +8,6 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Dropzone } from "@/components/Dropzone";
 import { MeasurementTable, PaletteList } from "@/components/Measurements";
 import { ProofNotes } from "@/components/ProofNotes";
-import { Thumb } from "@/components/Thumb";
 import { toast } from "@/components/Toast";
 import { useAiStatus } from "@/hooks/useAiStatus";
 import { useStore } from "@/hooks/useStore";
@@ -51,38 +50,57 @@ function ImageSlot({ role, asset, projectId }: { role: "reference" | "current"; 
     setError(null);
     try {
       await setProjectImage(projectId, role, f, f.name);
-      toast(`${label} added`);
+      toast(`${label} ${asset ? "replaced" : "added"}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "The image couldn't be added.");
     } finally {
       setBusy(false);
     }
   };
+  if (asset)
+    return (
+      <div>
+        <div className="file-row">
+          <span className="t-meta" style={{ minWidth: "5.5rem" }}>
+            {label}
+          </span>
+          <span style={{ overflowWrap: "anywhere", flex: 1 }}>{asset.name}</span>
+          <span className="t-value t-meta">
+            {asset.width}×{asset.height}
+          </span>
+          <label className="btn btn-sm" aria-disabled={busy}>
+            {busy ? "Measuring…" : "Replace…"}
+            <input
+              type="file"
+              className="sr-only"
+              data-testid={`upload-${role}`}
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              disabled={busy}
+              aria-label={`Replace ${label.toLowerCase()}`}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) void onFile(f);
+              }}
+            />
+          </label>
+        </div>
+        {error ? (
+          <p className="error-text" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </div>
+    );
   return (
     <div style={{ display: "grid", gap: "0.6rem" }}>
       <h2 className="t-subhead">{label}</h2>
-      {asset ? (
-        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.9rem", alignItems: "end" }}>
-          <Thumb blob={asset.thumb} alt={label} style={{ maxHeight: "9rem", maxWidth: "8rem", border: "1px solid var(--color-rule)", background: "var(--color-sheet)" }} />
-          <div>
-            <p style={{ overflowWrap: "anywhere" }}>{asset.name}</p>
-            <p className="t-value t-meta">
-              {asset.width}×{asset.height} px
-            </p>
-          </div>
-        </div>
-      ) : null}
       <Dropzone
-        compact={!!asset}
-        label={asset ? `Replace ${label.toLowerCase()}` : `Add the ${label.toLowerCase()}`}
+        label={`Add the ${label.toLowerCase()}`}
         hint={
           role === "reference"
-            ? asset
-              ? undefined
-              : "The piece you want to learn from. PNG, JPEG, WebP or GIF, up to 15 MB."
-            : asset
-              ? undefined
-              : "Your work in progress. PNG, JPEG, WebP or GIF, up to 15 MB."
+            ? "The piece you want to learn from. PNG, JPEG, WebP or GIF, up to 15 MB."
+            : "Your work in progress. PNG, JPEG, WebP or GIF, up to 15 MB."
         }
         busy={busy}
         error={error}
@@ -123,8 +141,16 @@ function ReviewControls({ data, review, onSelect }: { data: Data; review: Review
     setError(null);
     const m = review.measurements;
     const ctx: MeasuredContext = {
-      reference: { width: m.reference.width, height: m.reference.height, palette: m.reference.palette.swatches.map((s) => ({ hex: s.hex, share: Number(s.share.toFixed(3)) })) },
-      current: { width: m.current.width, height: m.current.height, palette: m.current.palette.swatches.map((s) => ({ hex: s.hex, share: Number(s.share.toFixed(3)) })) },
+      reference: {
+        width: m.reference.width,
+        height: m.reference.height,
+        palette: m.reference.palette.swatches.map((s) => ({ hex: s.hex, share: Number(s.share.toFixed(3)) })),
+      },
+      current: {
+        width: m.current.width,
+        height: m.current.height,
+        palette: m.current.palette.swatches.map((s) => ({ hex: s.hex, share: Number(s.share.toFixed(3)) })),
+      },
       localFindings: review.issues.filter((i) => i.source === "local").map((i) => i.title),
     };
     const form = new FormData();
@@ -208,7 +234,8 @@ function ReviewControls({ data, review, onSelect }: { data: Data; review: Review
           <select id="rev-select" className="select" value={review?.id ?? ""} onChange={(e) => onSelect(e.target.value)}>
             {data.reviews.map((r) => (
               <option key={r.id} value={r.id}>
-                Review {r.version}, {new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(r.createdAt)}
+                Review {r.version},{" "}
+                {new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(r.createdAt)}
               </option>
             ))}
           </select>
@@ -222,7 +249,13 @@ function ReviewControls({ data, review, onSelect }: { data: Data; review: Review
       ) : null}
 
       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-        <button type="button" className={review && !stale ? "btn" : "btn btn-primary"} onClick={runLocal} disabled={!!busy || !data.reference || !data.current} data-testid="run-review">
+        <button
+          type="button"
+          className={review && !stale ? "btn" : "btn btn-primary"}
+          onClick={runLocal}
+          disabled={!!busy || !data.reference || !data.current}
+          data-testid="run-review"
+        >
           {busy === "local" ? "Measuring…" : review ? "Run a new review" : "Run review"}
         </button>
         {ai.state === "on" ? (
@@ -251,9 +284,9 @@ function ReviewControls({ data, review, onSelect }: { data: Data; review: Review
             ) : review.ai.state === "failed" ? (
               <p>AI review failed: {review.ai.message} Only local measurements are shown.</p>
             ) : ai.state === "off" ? (
-              <p>Findings come from local measurements. {ai.reason}</p>
+              <p title={ai.reason}>Local measurements only.</p>
             ) : ai.state === "on" ? (
-              <p>Findings come from local measurements. You can ask a vision model for notes on hierarchy and typography.</p>
+              <p>Local measurements. You can ask a vision model for notes on hierarchy and type.</p>
             ) : null}
           </div>
 
@@ -370,7 +403,12 @@ export function ProjectWorkspace({ id }: { id: string }) {
     }
   }, [ready, id]);
 
-  if (data.status === "loading") return <div className="page"><p className="t-meta">Opening project…</p></div>;
+  if (data.status === "loading")
+    return (
+      <div className="page">
+        <p className="t-meta">Opening project…</p>
+      </div>
+    );
   if (data.status === "error")
     return (
       <div className="page">
@@ -442,7 +480,13 @@ export function ProjectWorkspace({ id }: { id: string }) {
           </div>
         ) : null}
         <div className="area-details" style={{ display: "grid", gap: "2rem", minWidth: 0 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(15rem, 1fr))", gap: "1.5rem" }}>
+          <div
+            style={
+              d.reference && d.current
+                ? { display: "grid", gap: 0 }
+                : { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(15rem, 1fr))", gap: "1.5rem" }
+            }
+          >
             <ImageSlot role="reference" asset={d.reference} projectId={d.project.id} />
             <ImageSlot role="current" asset={d.current} projectId={d.project.id} />
           </div>

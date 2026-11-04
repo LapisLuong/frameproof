@@ -6,10 +6,13 @@ const CUR = "public/samples/current-poster.png";
 
 async function freshStart(page: Page) {
   await page.goto("/");
-  await page.evaluate(() => new Promise<void>((resolve) => {
-    const req = indexedDB.deleteDatabase("frameproof");
-    req.onsuccess = req.onerror = req.onblocked = () => resolve();
-  }));
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const req = indexedDB.deleteDatabase("frameproof");
+        req.onsuccess = req.onerror = req.onblocked = () => resolve();
+      }),
+  );
   await page.reload();
   await expect(page.getByRole("heading", { name: "Desk" })).toBeVisible();
 }
@@ -39,7 +42,7 @@ test.describe("Event poster journey", () => {
     await expect(first).toContainText("Format differs from the reference");
     await expect(first).toContainText("Measured");
     // AI is off and says so; no AI-observed notes appear
-    await expect(page.getByTestId("ai-state")).toContainText("AI review is off");
+    await expect(page.getByTestId("ai-state")).toContainText("Local measurements only");
     await expect(page.getByText("AI-observed", { exact: true })).toHaveCount(0);
 
     // Comparison modes work
@@ -100,7 +103,9 @@ test.describe("Event poster journey", () => {
     await page.getByLabel("Name").fill("Bad upload");
     await page.getByRole("button", { name: "Create project" }).click();
     await page.waitForURL(/\/projects\//);
-    await page.getByTestId("upload-reference").setInputFiles({ name: "poster.png", mimeType: "image/png", buffer: Buffer.from("<svg onload=alert(1)>not an image</svg>") });
+    await page
+      .getByTestId("upload-reference")
+      .setInputFiles({ name: "poster.png", mimeType: "image/png", buffer: Buffer.from("<svg onload=alert(1)>not an image</svg>") });
     await expect(page.locator("main").getByRole("alert")).toContainText("isn't a PNG, JPEG, WebP or GIF");
     // nothing was saved
     await expect(page.getByText("poster.png")).toHaveCount(0);

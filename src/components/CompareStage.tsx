@@ -77,7 +77,12 @@ function Layered({
       <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
         <div style={{ position: "relative", width: box.w, height: box.h, transform: zp.transform, transition: "transform 60ms linear" }}>
           {mode === "diff" ? (
-            <canvas ref={diffCanvas} style={{ ...img, imageRendering: "pixelated" }} aria-label="Difference map: brighter red means a larger change in lightness" role="img" />
+            <canvas
+              ref={diffCanvas}
+              style={{ ...img, imageRendering: "pixelated" }}
+              aria-label="Difference map: brighter red means a larger change in lightness"
+              role="img"
+            />
           ) : (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -95,7 +100,10 @@ function Layered({
                 />
               ) : null}
               {mode === "slider" ? (
-                <span aria-hidden="true" style={{ position: "absolute", top: -12, bottom: -12, left: `${amount}%`, width: 0, borderLeft: "1.5px solid var(--color-proof)" }} />
+                <span
+                  aria-hidden="true"
+                  style={{ position: "absolute", top: -12, bottom: -12, left: `${amount}%`, width: 0, borderLeft: "1.5px solid var(--color-proof)" }}
+                />
               ) : null}
             </>
           )}
@@ -114,8 +122,22 @@ function Layered({
   );
 }
 
+function useNarrow(query = "(max-width: 640px)") {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const m = window.matchMedia(query);
+    const on = () => setNarrow(m.matches);
+    on();
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, [query]);
+  return narrow;
+}
+
 export function CompareStage({ reference, current }: { reference: Asset; current: Asset }) {
   const [mode, setMode] = useState<CompareMode>("side");
+  const narrow = useNarrow();
+  const [shown, setShown] = useState<"reference" | "current">("reference");
   const [slider, setSlider] = useState(50);
   const [opacity, setOpacity] = useState(50);
   const [linked, setLinked] = useState(true);
@@ -174,7 +196,17 @@ export function CompareStage({ reference, current }: { reference: Asset; current
           ))}
         </div>
         <span className="spacer" />
-        {mode === "side" ? (
+        {mode === "side" && narrow ? (
+          <div className="modes" role="toolbar" aria-label="Image shown">
+            <button type="button" aria-pressed={shown === "reference"} onClick={() => setShown("reference")}>
+              Reference
+            </button>
+            <button type="button" aria-pressed={shown === "current"} onClick={() => setShown("current")}>
+              Current
+            </button>
+          </div>
+        ) : null}
+        {mode === "side" && !narrow ? (
           <label className="t-meta" style={{ display: "inline-flex", gap: "0.4rem", alignItems: "center" }}>
             <input type="checkbox" checked={linked} onChange={(e) => setLinked(e.target.checked)} /> Link zoom and pan
           </label>
@@ -182,13 +214,29 @@ export function CompareStage({ reference, current }: { reference: Asset; current
         {mode === "slider" ? (
           <label className="t-meta" style={{ display: "inline-flex", gap: "0.5rem", alignItems: "center" }}>
             Split
-            <input className="slider" type="range" min={0} max={100} value={slider} onChange={(e) => setSlider(Number(e.target.value))} aria-valuetext={`${slider}% reference visible`} />
+            <input
+              className="slider"
+              type="range"
+              min={0}
+              max={100}
+              value={slider}
+              onChange={(e) => setSlider(Number(e.target.value))}
+              aria-valuetext={`${slider}% reference visible`}
+            />
           </label>
         ) : null}
         {mode === "overlay" ? (
           <label className="t-meta" style={{ display: "inline-flex", gap: "0.5rem", alignItems: "center" }}>
             Current opacity
-            <input className="slider" type="range" min={0} max={100} value={opacity} onChange={(e) => setOpacity(Number(e.target.value))} aria-valuetext={`${opacity}%`} />
+            <input
+              className="slider"
+              type="range"
+              min={0}
+              max={100}
+              value={opacity}
+              onChange={(e) => setOpacity(Number(e.target.value))}
+              aria-valuetext={`${opacity}%`}
+            />
             <span className="t-value" style={{ width: "2.6rem" }}>
               {opacity}%
             </span>
@@ -196,10 +244,32 @@ export function CompareStage({ reference, current }: { reference: Asset; current
         ) : null}
       </div>
 
-      {mode === "side" && refUrl && curUrl ? (
+      {mode === "side" && narrow && refUrl && curUrl ? (
+        <ImageViewer
+          key="single"
+          src={shown === "reference" ? refUrl : curUrl}
+          alt={shown === "reference" ? "Reference" : "Current design"}
+          label={shown === "reference" ? "Reference" : "Current"}
+          height="22.5rem"
+          shared={{ view: sharedView, onView: setSharedView }}
+        />
+      ) : null}
+      {mode === "side" && !narrow && refUrl && curUrl ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(16rem, 1fr))", gap: "1rem" }}>
-          <ImageViewer src={refUrl} alt="Reference" label="Reference" height="min(64vh, 40rem)" shared={linked ? { view: sharedView, onView: setSharedView } : undefined} />
-          <ImageViewer src={curUrl} alt="Current design" label="Current" height="min(64vh, 40rem)" shared={linked ? { view: sharedView, onView: setSharedView } : undefined} />
+          <ImageViewer
+            src={refUrl}
+            alt="Reference"
+            label="Reference"
+            height="min(64vh, 40rem)"
+            shared={linked ? { view: sharedView, onView: setSharedView } : undefined}
+          />
+          <ImageViewer
+            src={curUrl}
+            alt="Current design"
+            label="Current"
+            height="min(64vh, 40rem)"
+            shared={linked ? { view: sharedView, onView: setSharedView } : undefined}
+          />
         </div>
       ) : null}
       {mode === "slider" || mode === "overlay" || mode === "diff" ? (
@@ -208,7 +278,9 @@ export function CompareStage({ reference, current }: { reference: Asset; current
 
       <p className="t-small" style={{ marginTop: "0.5rem" }}>
         {mode === "side"
-          ? "Each image is fitted to its own frame."
+          ? narrow
+            ? "Switch between the two images; zoom and position are kept."
+            : "Each image is fitted to its own frame."
           : sameAspect
             ? "Both images are fitted into the reference's frame without stretching."
             : "The formats differ, so the current design is letterboxed inside the reference's frame — it is never stretched."}

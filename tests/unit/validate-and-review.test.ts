@@ -38,7 +38,15 @@ describe("upload validation", () => {
   });
 });
 
-function poster(opts: { ground: [number, number, number]; title: [number, number, number]; titleH: number; titleY: number; clutter?: boolean; w?: number; h?: number }) {
+function poster(opts: {
+  ground: [number, number, number];
+  title: [number, number, number];
+  titleH: number;
+  titleY: number;
+  clutter?: boolean;
+  w?: number;
+  h?: number;
+}) {
   const w = opts.w ?? 200;
   const h = opts.h ?? 250;
   const b = createBuffer(w, h, [...opts.ground, 255]);
@@ -100,7 +108,17 @@ describe("review engine", () => {
   });
 
   it("sorts by priority, then confidence, then evidence", () => {
-    const base = { title: "t", observation: "o", recommendation: "r", rationale: "x", preserve: "", evidence: [], source: "local" as const, resolved: false, category: "layout" as const };
+    const base = {
+      title: "t",
+      observation: "o",
+      recommendation: "r",
+      rationale: "x",
+      preserve: "",
+      evidence: [],
+      source: "local" as const,
+      resolved: false,
+      category: "layout" as const,
+    };
     const list: ReviewIssue[] = [
       { ...base, id: "a", priority: "low", confidence: "high", evidenceType: "measured" },
       { ...base, id: "b", priority: "high", confidence: "low", evidenceType: "ai-observed" },

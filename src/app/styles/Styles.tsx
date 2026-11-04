@@ -12,7 +12,11 @@ import { download, fileSlug, styleToCss, styleToJson } from "@/lib/review/report
 import { deleteStyle, listReferences, listStyles, saveStyle } from "@/lib/store/repo";
 import type { InspirationRef, StyleSystem, StyleToken } from "@/lib/store/models";
 
-const lines = (s: string) => s.split("\n").map((l) => l.trim()).filter(Boolean);
+const lines = (s: string) =>
+  s
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
 const tokensToText = (t: StyleToken[]) => t.map((x) => `${x.name}: ${x.value}`).join("\n");
 function textToTokens(s: string): StyleToken[] {
   return lines(s)
@@ -56,7 +60,13 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
   const [error, setError] = useState<string | null>(null);
   const touch = () => setDirty(true);
 
-  const compose = (): StyleSystem => ({ ...s, layoutPrinciples: lines(layout), spacing: textToTokens(spacing), radius: textToTokens(radius), motion: lines(motion) });
+  const compose = (): StyleSystem => ({
+    ...s,
+    layoutPrinciples: lines(layout),
+    spacing: textToTokens(spacing),
+    radius: textToTokens(radius),
+    motion: lines(motion),
+  });
 
   const save = async () => {
     const bad = s.palette.find((c) => !hexToRgb(c.hex));
@@ -77,7 +87,10 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
 
   const setColor = (i: number, patch: Partial<StyleSystem["palette"][number]>) => {
     touch();
-    setS((x) => ({ ...x, palette: x.palette.map((c, j) => (j === i ? { ...c, ...patch, ...(patch.hex ? { origin: "manual" as const, share: undefined } : {}) } : c)) }));
+    setS((x) => ({
+      ...x,
+      palette: x.palette.map((c, j) => (j === i ? { ...c, ...patch, ...(patch.hex ? { origin: "manual" as const, share: undefined } : {}) } : c)),
+    }));
   };
 
   return (
@@ -113,14 +126,35 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
                   <span className="chip" style={{ background: hexToRgb(c.hex) ? c.hex : "transparent" }} aria-hidden="true" />
                 </td>
                 <td>
-                  <input className="input" aria-label={`Name of colour ${i + 1}`} value={c.name} onChange={(e) => setColor(i, { name: e.target.value.slice(0, 40) })} style={{ padding: "0.3rem 0.5rem" }} />
+                  <input
+                    className="input"
+                    aria-label={`Name of colour ${i + 1}`}
+                    value={c.name}
+                    onChange={(e) => setColor(i, { name: e.target.value.slice(0, 40) })}
+                    style={{ padding: "0.3rem 0.5rem" }}
+                  />
                 </td>
                 <td>
-                  <input className="input t-value" aria-label={`Hex of colour ${i + 1}`} value={c.hex} onChange={(e) => setColor(i, { hex: e.target.value.slice(0, 7) })} style={{ padding: "0.3rem 0.5rem", width: "7rem" }} />
+                  <input
+                    className="input t-value"
+                    aria-label={`Hex of colour ${i + 1}`}
+                    value={c.hex}
+                    onChange={(e) => setColor(i, { hex: e.target.value.slice(0, 7) })}
+                    style={{ padding: "0.3rem 0.5rem", width: "7rem" }}
+                  />
                 </td>
-                <td className="t-meta">{c.origin === "measured" ? `Measured${c.share != null ? `, ${c.share < 0.01 ? "under 1" : (c.share * 100).toFixed(0)}% of pixels` : ""}` : "Manual"}</td>
+                <td className="t-meta">
+                  {c.origin === "measured"
+                    ? `Measured${c.share != null ? `, ${c.share < 0.01 ? "under 1" : (c.share * 100).toFixed(0)}% of pixels` : ""}`
+                    : "Manual"}
+                </td>
                 <td>
-                  <button type="button" className="btn btn-quiet btn-sm" aria-label={`Remove ${c.name}`} onClick={() => (touch(), setS({ ...s, palette: s.palette.filter((_, j) => j !== i) }))}>
+                  <button
+                    type="button"
+                    className="btn btn-quiet btn-sm"
+                    aria-label={`Remove ${c.name}`}
+                    onClick={() => (touch(), setS({ ...s, palette: s.palette.filter((_, j) => j !== i) }))}
+                  >
                     Remove
                   </button>
                 </td>
@@ -128,7 +162,13 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
             ))}
           </tbody>
         </table>
-        <button type="button" className="btn btn-sm" style={{ marginTop: "0.75rem" }} onClick={() => (touch(), setS({ ...s, palette: [...s.palette, { name: `Colour ${s.palette.length + 1}`, hex: "#777972", origin: "manual" }] }))} disabled={s.palette.length >= 16}>
+        <button
+          type="button"
+          className="btn btn-sm"
+          style={{ marginTop: "0.75rem" }}
+          onClick={() => (touch(), setS({ ...s, palette: [...s.palette, { name: `Colour ${s.palette.length + 1}`, hex: "#777972", origin: "manual" }] }))}
+          disabled={s.palette.length >= 16}
+        >
           Add colour
         </button>
       </section>
@@ -142,13 +182,23 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
           {(["display", "body", "mono"] as const).map((k) => (
             <div className="field" key={k}>
               <label htmlFor={`t-${k}`}>{k === "display" ? "Display" : k === "body" ? "Body" : "Monospace"}</label>
-              <input id={`t-${k}`} className="input" value={s.typography[k]} onChange={(e) => (touch(), setS({ ...s, typography: { ...s.typography, [k]: e.target.value.slice(0, 80) } }))} />
+              <input
+                id={`t-${k}`}
+                className="input"
+                value={s.typography[k]}
+                onChange={(e) => (touch(), setS({ ...s, typography: { ...s.typography, [k]: e.target.value.slice(0, 80) } }))}
+              />
             </div>
           ))}
         </div>
         <div className="field">
           <label htmlFor="t-notes">Type notes</label>
-          <textarea id="t-notes" className="textarea" value={s.typography.notes} onChange={(e) => (touch(), setS({ ...s, typography: { ...s.typography, notes: e.target.value.slice(0, 1000) } }))} />
+          <textarea
+            id="t-notes"
+            className="textarea"
+            value={s.typography.notes}
+            onChange={(e) => (touch(), setS({ ...s, typography: { ...s.typography, notes: e.target.value.slice(0, 1000) } }))}
+          />
         </div>
       </section>
 
@@ -159,19 +209,43 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(15rem, 1fr))", gap: "1rem" }}>
           <div className="field">
             <label htmlFor="s-layout">Layout principles</label>
-            <textarea id="s-layout" className="textarea" value={layout} onChange={(e) => (touch(), setLayout(e.target.value))} placeholder={"One per line\nTitle sits in the top third\nOne accent block, never two"} />
+            <textarea
+              id="s-layout"
+              className="textarea"
+              value={layout}
+              onChange={(e) => (touch(), setLayout(e.target.value))}
+              placeholder={"One per line\nTitle sits in the top third\nOne accent block, never two"}
+            />
           </div>
           <div className="field">
             <label htmlFor="s-motion">Motion</label>
-            <textarea id="s-motion" className="textarea" value={motion} onChange={(e) => (touch(), setMotion(e.target.value))} placeholder={"One per line\n160 ms ease-out for state changes"} />
+            <textarea
+              id="s-motion"
+              className="textarea"
+              value={motion}
+              onChange={(e) => (touch(), setMotion(e.target.value))}
+              placeholder={"One per line\n160 ms ease-out for state changes"}
+            />
           </div>
           <div className="field">
             <label htmlFor="s-spacing">Spacing tokens</label>
-            <textarea id="s-spacing" className="textarea t-value" value={spacing} onChange={(e) => (touch(), setSpacing(e.target.value))} placeholder={"name: value, one per line\nsm: 8px\nmd: 16px"} />
+            <textarea
+              id="s-spacing"
+              className="textarea t-value"
+              value={spacing}
+              onChange={(e) => (touch(), setSpacing(e.target.value))}
+              placeholder={"name: value, one per line\nsm: 8px\nmd: 16px"}
+            />
           </div>
           <div className="field">
             <label htmlFor="s-radius">Radius tokens</label>
-            <textarea id="s-radius" className="textarea t-value" value={radius} onChange={(e) => (touch(), setRadius(e.target.value))} placeholder={"name: value, one per line\ncontrol: 2px"} />
+            <textarea
+              id="s-radius"
+              className="textarea t-value"
+              value={radius}
+              onChange={(e) => (touch(), setRadius(e.target.value))}
+              placeholder={"name: value, one per line\ncontrol: 2px"}
+            />
           </div>
         </div>
         <p className="t-small">Token values accept letters, numbers, %, dots, brackets and dashes; anything else is dropped on save.</p>
@@ -183,17 +257,26 @@ function Editor({ style, refs }: { style: StyleSystem; refs: InspirationRef[] })
         </h2>
         {refs.length === 0 ? (
           <p className="t-meta">
-            Add references in the <Link className="link" href="/library">library</Link> to link them here.
+            Add references in the{" "}
+            <Link className="link" href="/library">
+              library
+            </Link>{" "}
+            to link them here.
           </p>
         ) : (
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.35rem", gridTemplateColumns: "repeat(auto-fill, minmax(14rem, 1fr))" }}>
+          <ul
+            style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.35rem", gridTemplateColumns: "repeat(auto-fill, minmax(14rem, 1fr))" }}
+          >
             {refs.map((r) => (
               <li key={r.id}>
                 <label style={{ display: "flex", gap: "0.5rem", alignItems: "baseline" }}>
                   <input
                     type="checkbox"
                     checked={s.referenceIds.includes(r.id)}
-                    onChange={(e) => (touch(), setS({ ...s, referenceIds: e.target.checked ? [...s.referenceIds, r.id] : s.referenceIds.filter((x) => x !== r.id) }))}
+                    onChange={(e) => (
+                      touch(),
+                      setS({ ...s, referenceIds: e.target.checked ? [...s.referenceIds, r.id] : s.referenceIds.filter((x) => x !== r.id) })
+                    )}
                   />
                   <span>{r.title}</span>
                 </label>
@@ -277,7 +360,11 @@ export function Styles() {
             <div style={{ display: "grid", gap: "1rem", maxWidth: "40rem" }}>
               <p className="prose-serif">A style records the decisions behind a look — palette, type, spacing, motion — so the next piece starts from them.</p>
               <p className="t-meta">
-                Start from a measured palette in the <Link className="link" href="/analyze">analyzer</Link>, or create a blank style and fill it in.
+                Start from a measured palette in the{" "}
+                <Link className="link" href="/analyze">
+                  analyzer
+                </Link>
+                , or create a blank style and fill it in.
               </p>
               {id ? <p className="notice">That style isn&apos;t in this browser.</p> : null}
             </div>
@@ -295,7 +382,12 @@ export function Styles() {
             <ul style={{ listStyle: "none", padding: 0, margin: "0.6rem 0 0", display: "grid", gap: "0.9rem" }}>
               {styles.map((s) => (
                 <li key={s.id}>
-                  <Link className="link" href={`/styles?id=${s.id}`} aria-current={s.id === id ? "page" : undefined} style={s.id === id ? { fontWeight: 600 } : undefined}>
+                  <Link
+                    className="link"
+                    href={`/styles?id=${s.id}`}
+                    aria-current={s.id === id ? "page" : undefined}
+                    style={s.id === id ? { fontWeight: 600 } : undefined}
+                  >
                     {s.name}
                   </Link>
                   <div className="palette-strip" style={{ height: "0.6rem", marginTop: "0.3rem" }} aria-hidden="true">

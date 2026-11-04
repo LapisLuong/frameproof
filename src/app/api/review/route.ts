@@ -41,6 +41,12 @@ export async function POST(req: Request) {
   const cfg = getProviderConfig();
   if (!cfg.configured) return NextResponse.json({ ok: false, error: cfg.reason, code: "not-configured" }, { status: 503 });
 
+  // Two images up to 15 MB each plus a small JSON context. Reject larger bodies before parsing them.
+  const declared = Number(req.headers.get("content-length") ?? "0");
+  if (!declared || declared > MAX_UPLOAD_BYTES * 2 + 256 * 1024) {
+    return NextResponse.json({ ok: false, error: "The request is missing a size or is larger than two 15 MB images." }, { status: 413 });
+  }
+
   let form: FormData;
   try {
     form = await req.formData();
@@ -60,7 +66,10 @@ export async function POST(req: Request) {
   } catch (e) {
     const err = e instanceof ProviderError ? e : new ProviderError("The AI review failed unexpectedly.");
     if (!(e instanceof ProviderError)) console.error("AI review error", e);
-    const status = err.status && err.status >= 400 && err.status < 500 && err.status !== 401 && err.status !== 403 && err.status !== 404 && err.status !== 429 ? err.status : 502;
+    const status =
+      err.status && err.status >= 400 && err.status < 500 && err.status !== 401 && err.status !== 403 && err.status !== 404 && err.status !== 429
+        ? err.status
+        : 502;
     return NextResponse.json({ ok: false, error: err.message, provider: cfg.provider.id }, { status });
   }
 }

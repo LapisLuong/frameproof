@@ -46,7 +46,8 @@ export function ProofNotes({ issues, onToggle, busyId }: Props) {
 
       {issues.length === 0 ? (
         <p className="t-meta t-measure">
-          No measured difference crossed a threshold. That doesn&apos;t make the design finished — it means the pixels are close to the reference on palette, format, tone and density. Judge hierarchy and type yourself, or turn on AI review for a second opinion.
+          No measured difference crossed a threshold. That doesn&apos;t make the design finished — it means the pixels are close to the reference on palette,
+          format, tone and density. Judge hierarchy and type yourself, or turn on AI review for a second opinion.
         </p>
       ) : list.length === 0 ? (
         <p className="t-meta">Every note is resolved. Show all to review them.</p>
@@ -67,16 +68,18 @@ export function ProofNotes({ issues, onToggle, busyId }: Props) {
                   <p className="proofnote-meta">
                     <span className={i.priority === "high" ? "priority-high" : undefined}>{LEVEL_WORD[i.priority]} priority</span>
                     <span>{CATEGORY_LABEL[i.category]}</span>
-                    <span className="break" aria-hidden="true" />
                     <EvidenceLabel type={i.evidenceType} />
-                    <span>{LEVEL_WORD[i.confidence]} confidence</span>
                   </p>
                   <p className="t-measure" style={{ fontSize: "var(--text-sm)" }}>
                     {i.observation}
                   </p>
                   <details className="disclose" style={{ marginTop: "0.5rem" }}>
-                    <summary>Why, what to change, what to keep</summary>
+                    <summary>How to fix it</summary>
                     <dl>
+                      <div>
+                        <dt>Confidence</dt>
+                        <dd>{LEVEL_WORD[i.confidence]}</dd>
+                      </div>
                       <div>
                         <dt>Why it matters</dt>
                         <dd>{i.rationale}</dd>

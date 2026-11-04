@@ -87,8 +87,10 @@ export function runRules({ reference: R, current: C, comparison: X }: RuleContex
       category: "layout",
       title: "Format differs from the reference",
       observation: `The current design is ${C.width}×${C.height} px (${C.aspect.label}); the reference is ${R.width}×${R.height} px (${R.aspect.label}). The aspect ratios differ by ${pct(X.aspectDifference, 1)}.`,
-      recommendation: "Confirm the output format first. If both pieces target the same format, match the reference's aspect ratio before adjusting composition.",
-      rationale: "Composition decisions — margins, scale, where the eye lands — only transfer between pieces of the same proportion. Comparisons below are less reliable while formats differ.",
+      recommendation:
+        "Confirm the output format first. If both pieces target the same format, match the reference's aspect ratio before adjusting composition.",
+      rationale:
+        "Composition decisions — margins, scale, where the eye lands — only transfer between pieces of the same proportion. Comparisons below are less reliable while formats differ.",
       preserve: "Keep the current arrangement of elements until the format is settled.",
       priority: X.aspectDifference > 0.1 ? "high" : "medium",
       confidence: "high",
@@ -192,18 +194,18 @@ export function runRules({ reference: R, current: C, comparison: X }: RuleContex
     out.push({
       rule: "palette-contrast",
       category: "accessibility",
-      title: "No main colour pair reaches 4.5:1",
-      observation: `Among colours covering at least 5% of the design, the strongest pair is ${pair.a.hex} on ${pair.b.hex} at ${formatRatio(pair.ratio)}.`,
-      recommendation: "Check the body copy and small text. If they use these colours, darken the text or lighten the ground until the pair reaches 4.5:1 (3:1 for text 24 px and up).",
-      rationale: "Text below 4.5:1 fails WCAG AA for normal sizes and is hard to read in print and on projectors.",
-      preserve: "Large display type may stay as it is if it is at least 3:1.",
-      priority: pair.ratio < 3 ? "high" : "medium",
-      confidence: "medium",
+      title: "Check text contrast",
+      observation: `No two of the main colours (each covering at least 5% of the design) reach 4.5:1. The strongest pair is ${pair.a.hex} with ${pair.b.hex} at ${formatRatio(pair.ratio)}. Pixel counts can't tell which colours actually sit behind text, so this is a prompt to check, not a verdict.`,
+      recommendation:
+        "Find the body copy and small labels and test their real text and background colours in the analyzer's contrast picker. If they are among these colours, darken the text or lighten the ground until the pair reaches 4.5:1 (3:1 for text 24 px and up).",
+      rationale: "Text below 4.5:1 fails WCAG AA at normal sizes and is hard to read in print, on projectors and from a distance.",
+      preserve: "Large display type may stay as it is if it reaches 3:1.",
+      priority: "medium",
+      confidence: "low",
       evidenceType: "measured",
       evidence: [
-        { label: "Best pair", value: `${pair.a.hex} / ${pair.b.hex}` },
+        { label: "Strongest main pair", value: `${pair.a.hex} / ${pair.b.hex}` },
         { label: "Contrast", value: formatRatio(pair.ratio) },
-        { label: "Caveat", value: "colours may not touch" },
       ],
     });
   }
@@ -290,7 +292,8 @@ export function runRules({ reference: R, current: C, comparison: X }: RuleContex
       category: "hierarchy",
       title: "The centre of detail has moved",
       observation: `The detail-weighted centre sits at ${pct(C.structure.detailCentroid.x)} across, ${pct(C.structure.detailCentroid.y)} down; in the reference it is at ${pct(R.structure.detailCentroid.x)}, ${pct(R.structure.detailCentroid.y)}. It has moved ${direction(dx, dy)}.`,
-      recommendation: "Compare where the main element sits in each piece. If the reference's anchor point matters to the look, move the headline or key image back toward it.",
+      recommendation:
+        "Compare where the main element sits in each piece. If the reference's anchor point matters to the look, move the headline or key image back toward it.",
       rationale: "Where detail concentrates is usually where the eye lands first. This is a measurement of edges, not of meaning, so treat it as a pointer.",
       preserve: "Keep the reading order of title, details and call to action.",
       priority: "low",
@@ -307,7 +310,5 @@ export function runRules({ reference: R, current: C, comparison: X }: RuleContex
 }
 
 export function buildLocalIssues(ctx: RuleContext, reviewId: string): ReviewIssue[] {
-  return sortIssues(
-    runRules(ctx).map(({ rule, ...d }) => ({ ...d, id: `${reviewId}:${rule}`, source: "local" as const, resolved: false })),
-  );
+  return sortIssues(runRules(ctx).map(({ rule, ...d }) => ({ ...d, id: `${reviewId}:${rule}`, source: "local" as const, resolved: false })));
 }

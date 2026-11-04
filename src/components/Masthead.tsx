@@ -28,8 +28,7 @@ export function Masthead() {
         ))}
       </nav>
       <p className="masthead-status" title={ai.state === "off" ? ai.reason : undefined}>
-        Work is saved in this browser.{" "}
-        {ai.state === "loading" ? "" : ai.state === "on" ? `AI review on (${ai.provider}).` : "AI review off."}
+        Work is saved in this browser. {ai.state === "loading" ? "" : ai.state === "on" ? `AI review on (${ai.provider}).` : "AI review off."}
       </p>
     </header>
   );

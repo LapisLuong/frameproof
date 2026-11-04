@@ -96,7 +96,11 @@ function Result({ asset }: { asset: Asset }) {
             Save palette as a style
           </button>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <button type="button" className="btn btn-sm" onClick={() => download(`${fileSlug(asset.name)}-analysis.md`, analysisMarkdown(asset), "text/markdown;charset=utf-8")}>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => download(`${fileSlug(asset.name)}-analysis.md`, analysisMarkdown(asset), "text/markdown;charset=utf-8")}
+            >
               Export analysis (.md)
             </button>
             <button
@@ -124,7 +128,14 @@ export function Analyzer() {
   const router = useRouter();
   const assetId = params.get("asset");
   const current = useStore(() => (assetId ? getAsset(assetId) : Promise.resolve(undefined)), ["assets"], [assetId]);
-  const recent = useStore(async () => (await listAssets()).filter((a) => a.projectId === null).sort((a, b) => b.createdAt - a.createdAt).slice(0, 8), ["assets"]);
+  const recent = useStore(
+    async () =>
+      (await listAssets())
+        .filter((a) => a.projectId === null)
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, 8),
+    ["assets"],
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -182,7 +193,12 @@ export function Analyzer() {
             <ul className="ledger">
               {recent.data.map((a) => (
                 <li key={a.id}>
-                  <Link href={`/analyze?asset=${a.id}`} className="ledger-row" style={{ gridTemplateColumns: "3rem minmax(0,1fr) auto", padding: "0.6rem 0" }} aria-current={a.id === assetId ? "true" : undefined}>
+                  <Link
+                    href={`/analyze?asset=${a.id}`}
+                    className="ledger-row"
+                    style={{ gridTemplateColumns: "3rem minmax(0,1fr) auto", padding: "0.6rem 0" }}
+                    aria-current={a.id === assetId ? "true" : undefined}
+                  >
                     <Thumb blob={a.thumb} alt="" style={{ maxWidth: "3rem", maxHeight: "3rem", objectFit: "contain", border: "1px solid var(--color-rule)" }} />
                     <span style={{ overflowWrap: "anywhere" }}>{a.name}</span>
                     <span className="t-value t-meta">
