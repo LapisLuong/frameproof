@@ -68,7 +68,7 @@ it("reports unconfigured status and returns 503 without reading a request body",
   const mock = vi.spyOn(providerModule, "getProviderConfig").mockReturnValue({ configured: false, reason: "No key" });
   try {
     expect(await (await GET()).json()).toEqual({ configured: false, reason: "No key" });
-    const response = await POST(new Request("http://localhost/api/direction", { method: "POST" }));
+    const response = await POST(new Request("http://localhost/api/direction", { method: "POST", headers: { "content-type": "multipart/form-data; boundary=test" } }));
     expect(response.status).toBe(503); expect((await response.json()).code).toBe("not-configured");
   } finally { mock.mockRestore(); }
 });
@@ -77,10 +77,10 @@ it("enforces declared and streamed body caps", async () => {
   const mock = vi.spyOn(providerModule, "getProviderConfig").mockReturnValue({ configured: true, provider: fake });
   try {
     for (const length of [undefined, "-1", "NaN", "50000000"]) {
-      expect((await POST(new Request("http://localhost/api/direction", { method: "POST", headers: length ? { "content-length": length } : {} }))).status).toBe(413);
+      expect((await POST(new Request("http://localhost/api/direction", { method: "POST", headers: { "content-type": "multipart/form-data; boundary=test", ...(length ? { "content-length": length } : {}) } }))).status).toBe(413);
     }
     const body = new Uint8Array(3 * 15 * 1024 * 1024 + 256 * 1024 + 1);
-    expect((await POST(new Request("http://localhost/api/direction", { method: "POST", body, headers: { "content-length": "1" } }))).status).toBe(413);
+    expect((await POST(new Request("http://localhost/api/direction", { method: "POST", body, headers: { "content-length": "1", "content-type": "multipart/form-data; boundary=test" } }))).status).toBe(413);
     expect(fake.complete).not.toHaveBeenCalled();
   } finally { mock.mockRestore(); }
 });

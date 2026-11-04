@@ -3,6 +3,7 @@ import sharp from "sharp";
 import { getProviderConfig, ProviderError, requestReview, type PreparedImage } from "@/lib/ai/provider";
 import { MeasuredContextSchema } from "@/lib/ai/schema";
 import { MAX_UPLOAD_BYTES, validateImageBytes } from "@/lib/image/validate";
+import { rejectUnsafeAiRequest } from "@/lib/security/request";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +39,8 @@ async function prepare(file: FormDataEntryValue | null, label: string): Promise<
 }
 
 export async function POST(req: Request) {
+  const rejected = rejectUnsafeAiRequest(req);
+  if (rejected) return rejected;
   const cfg = getProviderConfig();
   if (!cfg.configured) return NextResponse.json({ ok: false, error: cfg.reason, code: "not-configured" }, { status: 503 });
 
