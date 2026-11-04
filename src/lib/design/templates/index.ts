@@ -1,0 +1,9 @@
+import { TemplateSchema, type Template } from "../library";
+import { template as t0 } from "./exhibition";
+import { template as t1 } from "./exhibition-type";
+import { template as t2 } from "./editorial-image";
+import { template as t3 } from "./editorial-type";
+import { template as t4 } from "./music";
+import { template as t5 } from "./collage";
+export const TEMPLATES: Template[] = [t0,t1,t2,t3,t4,t5].map((t) => TemplateSchema.parse(t));
+export const getTemplate = (id: string): Template | undefined => TEMPLATES.find((t) => t.id === id);
