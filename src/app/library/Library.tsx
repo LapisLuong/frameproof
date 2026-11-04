@@ -37,13 +37,30 @@ type Draft = {
 };
 const EMPTY: Draft = { title: "", url: "", attribution: "", category: "Editorial", tags: "", collection: "", notes: "", assetId: null };
 
-function Editor({ initial, collections, onDone, closeRef }: { initial: Draft; collections: string[]; onDone: () => void; closeRef: React.RefObject<(() => void) | null> }) {
+function Editor({
+  initial,
+  collections,
+  onDone,
+  closeRef,
+}: {
+  initial: Draft;
+  collections: string[];
+  onDone: () => void;
+  closeRef: React.RefObject<(() => void) | null>;
+}) {
   const [d, setD] = useState<Draft>(initial);
   const [img, setImg] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const guard = useDraftGuard(JSON.stringify(d) !== JSON.stringify(initial) || !!img);
-  useEffect(() => { closeRef.current = () => { if (!busy) guard.request(onDone); }; return () => { closeRef.current = null; }; }, [busy, guard, onDone, closeRef]);
+  useEffect(() => {
+    closeRef.current = () => {
+      if (!busy) guard.request(onDone);
+    };
+    return () => {
+      closeRef.current = null;
+    };
+  }, [busy, guard, onDone, closeRef]);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((x) => ({ ...x, [k]: v }));
 
   return (
@@ -151,9 +168,9 @@ function Editor({ initial, collections, onDone, closeRef }: { initial: Draft; co
         </p>
       ) : null}
       <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-          <button type="button" className="btn" disabled={busy} onClick={() => guard.request(onDone)}>
-            Cancel
-          </button>
+        <button type="button" className="btn" disabled={busy} onClick={() => guard.request(onDone)}>
+          Cancel
+        </button>
 
         <button type="submit" className="btn btn-primary" disabled={busy}>
           {busy ? "Saving…" : d.id ? "Save changes" : "Save reference"}
@@ -325,7 +342,15 @@ export function Library() {
         })}
       </ul>
 
-      <Dialog.Root open={!!dialog} onOpenChange={(o) => { if (!o) { if (dialog?.mode === "new" || dialog?.mode === "edit") closeRef.current?.(); else setDialog(null); } }}>
+      <Dialog.Root
+        open={!!dialog}
+        onOpenChange={(o) => {
+          if (!o) {
+            if (dialog?.mode === "new" || dialog?.mode === "edit") closeRef.current?.();
+            else setDialog(null);
+          }
+        }}
+      >
         <Dialog.Portal>
           <Dialog.Overlay className="overlay" />
           <Dialog.Content className="dialog" aria-describedby={undefined}>

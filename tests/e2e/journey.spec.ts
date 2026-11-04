@@ -179,7 +179,11 @@ test.describe("Libraries", () => {
     await page.waitForURL(/\/styles\/?\?id=/);
     await expect(page.getByText("Measured, 62% of pixels")).toBeVisible();
     await page.getByLabel("Display").fill("Lora");
+    // An unsafe token line is refused with its line number, not dropped silently.
     await page.getByLabel("Spacing tokens").fill("sm: 8px\nmd: 16px\nbad: url(x);}");
+    await page.getByRole("button", { name: "Save style" }).click();
+    await expect(page.locator("p[role=alert]")).toContainText("Line 3:");
+    await page.getByLabel("Spacing tokens").fill("sm: 8px\nmd: 16px");
     await page.getByRole("button", { name: "Save style" }).click();
     // A click starts the async save; wait for the IndexedDB commit (the button disables) before reloading.
     await expect(page.getByRole("button", { name: "Save style" })).toBeDisabled();

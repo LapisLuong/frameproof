@@ -16,12 +16,21 @@ describe("stored records", () => {
 });
 describe("recent projects", () => {
   it("uses opens before edit dates and preserves the input order", () => {
-    const rows = [{ ...project, id: "recent edit", updatedAt: 20 }, { ...project, lastOpenedAt: 30 }];
-    expect(sortRecentProjects(rows).map(p => p.id)).toEqual(["p", "recent edit"]);
+    const rows = [
+      { ...project, id: "recent edit", updatedAt: 20 },
+      { ...project, lastOpenedAt: 30 },
+    ];
+    expect(sortRecentProjects(rows).map((p) => p.id)).toEqual(["p", "recent edit"]);
     expect(rows[0]!.id).toBe("recent edit");
   });
 });
 describe("style token drafts", () => {
-  it("parses every nonblank valid line", () => expect(textToTokens("sm: 8px\n\nlarge: 1.5rem")).toEqual([{ name: "sm", value: "8px" }, { name: "large", value: "1.5rem" }]));
-  it.each(["missing separator", "empty:", "bad: 1px;", ": 8px"])("rejects invalid lines: %s", line => expect(() => textToTokens(`sm: 8px\n\n${line}`)).toThrow("Line 3:"));
+  it("parses every nonblank valid line", () =>
+    expect(textToTokens("sm: 8px\n\nlarge: 1.5rem")).toEqual([
+      { name: "sm", value: "8px" },
+      { name: "large", value: "1.5rem" },
+    ]));
+  it.each(["missing separator", "empty:", "bad: 1px;", ": 8px"])("rejects invalid lines: %s", (line) =>
+    expect(() => textToTokens(`sm: 8px\n\n${line}`)).toThrow("Line 3:"),
+  );
 });

@@ -91,18 +91,26 @@ function Result({ asset }: { asset: Asset }) {
             className="btn"
             disabled={saving}
             onClick={async () => {
-              setSaving(true); setError(null);
+              setSaving(true);
+              setError(null);
               try {
-              const s = await saveStyle(styleFromAsset(asset));
-              toast("Style saved");
-              router.push(`/styles?id=${s.id}`);
-              } catch (e) { setError(e instanceof Error ? e.message : "The style couldn’t be saved."); }
-              finally { setSaving(false); }
+                const s = await saveStyle(styleFromAsset(asset));
+                toast("Style saved");
+                router.push(`/styles?id=${s.id}`);
+              } catch (e) {
+                setError(e instanceof Error ? e.message : "The style couldn’t be saved.");
+              } finally {
+                setSaving(false);
+              }
             }}
           >
             Save palette as a style
           </button>
-          {error ? <p role="alert" className="error-text">{error}</p> : null}
+          {error ? (
+            <p role="alert" className="error-text">
+              {error}
+            </p>
+          ) : null}
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             <button
               type="button"
@@ -170,7 +178,11 @@ export function Analyzer() {
         <p className="t-meta">One image: palette, contrast and structure, measured in your browser.</p>
       </div>
 
-      {current.status === "error" || recent.status === "error" ? <p role="alert" className="error-text">{current.status === "error" ? current.message : recent.status === "error" ? recent.message : ""}</p> : null}
+      {current.status === "error" || recent.status === "error" ? (
+        <p role="alert" className="error-text">
+          {current.status === "error" ? current.message : recent.status === "error" ? recent.message : ""}
+        </p>
+      ) : null}
       {assetId && current.status === "ready" && !asset ? (
         <p className="notice" role="status" style={{ marginBottom: "1.5rem" }}>
           That analysis isn&apos;t in this browser any more. Drop an image to start a new one.

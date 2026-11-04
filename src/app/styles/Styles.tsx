@@ -22,8 +22,11 @@ const lines = (s: string) =>
 const tokensToText = (t: StyleToken[]) => t.map((x) => `${x.name}: ${x.value}`).join("\n");
 
 function parseTokens(label: string, text: string): StyleToken[] {
-  try { return textToTokens(text); }
-  catch (error) { throw new Error(`${label}, ${(error as Error).message}`); }
+  try {
+    return textToTokens(text);
+  } catch (error) {
+    throw new Error(`${label}, ${(error as Error).message}`);
+  }
 }
 
 function blank(): StyleSystem {
@@ -73,11 +76,13 @@ function Editor({ style, refs, assets }: { style: StyleSystem; refs: Inspiration
     if (bad) return setError(`"${bad.hex}" isn't a hex colour. Use a value like #C65A42.`);
     setError(null);
     try {
-    const saved = await saveStyle({ ...compose(), palette: s.palette.map((c) => ({ ...c, hex: rgbToHex(hexToRgb(c.hex)!) })) });
-    setS(saved);
-    setDirty(false);
-    toast("Style saved");
-    } catch (e) { setError(e instanceof Error ? e.message : "The style couldn’t be saved."); }
+      const saved = await saveStyle({ ...compose(), palette: s.palette.map((c) => ({ ...c, hex: rgbToHex(hexToRgb(c.hex)!) })) });
+      setS(saved);
+      setDirty(false);
+      toast("Style saved");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "The style couldn’t be saved.");
+    }
   };
 
   const setColor = (i: number, patch: Partial<StyleSystem["palette"][number]>) => {
@@ -247,7 +252,7 @@ function Editor({ style, refs, assets }: { style: StyleSystem; refs: Inspiration
         <p className="t-small">Token values accept letters, numbers, %, dots, brackets and dashes; correct invalid lines before saving.</p>
       </section>
 
-      {s.sourceAssetId ? <ReferenceAsset asset={assets.find(a => a.id === s.sourceAssetId)} /> : null}
+      {s.sourceAssetId ? <ReferenceAsset asset={assets.find((a) => a.id === s.sourceAssetId)} /> : null}
       <section aria-labelledby="refs-h" style={{ display: "grid", gap: "0.6rem" }}>
         <h2 id="refs-h" className="t-heading">
           References
@@ -266,7 +271,15 @@ function Editor({ style, refs, assets }: { style: StyleSystem; refs: Inspiration
           >
             {refs.map((r) => (
               <li key={r.id}>
-                {s.referenceIds.includes(r.id) ? (r.assetId ? <ReferenceAsset asset={assets.find(a => a.id === r.assetId)} /> : /^https?:\/\//i.test(r.url) ? <a className="link" href={r.url} target="_blank" rel="noopener noreferrer">Open {r.title}</a> : null) : null}
+                {s.referenceIds.includes(r.id) ? (
+                  r.assetId ? (
+                    <ReferenceAsset asset={assets.find((a) => a.id === r.assetId)} />
+                  ) : /^https?:\/\//i.test(r.url) ? (
+                    <a className="link" href={r.url} target="_blank" rel="noopener noreferrer">
+                      Open {r.title}
+                    </a>
+                  ) : null
+                ) : null}
                 <label style={{ display: "flex", gap: "0.5rem", alignItems: "baseline" }}>
                   <input
                     type="checkbox"
@@ -302,10 +315,30 @@ function Editor({ style, refs, assets }: { style: StyleSystem; refs: Inspiration
           {dirty ? "Unsaved changes" : "Saved"}
         </span>
         <span style={{ flex: 1 }} />
-        <button type="button" className="btn btn-sm" onClick={() => { try { download(`${fileSlug(s.name)}.tokens.json`, styleToJson(compose()), "application/json"); } catch (e) { setError((e as Error).message); } }}>
+        <button
+          type="button"
+          className="btn btn-sm"
+          onClick={() => {
+            try {
+              download(`${fileSlug(s.name)}.tokens.json`, styleToJson(compose()), "application/json");
+            } catch (e) {
+              setError((e as Error).message);
+            }
+          }}
+        >
           Export JSON
         </button>
-        <button type="button" className="btn btn-sm" onClick={() => { try { download(`${fileSlug(s.name)}.css`, styleToCss(compose()), "text/css"); } catch (e) { setError((e as Error).message); } }}>
+        <button
+          type="button"
+          className="btn btn-sm"
+          onClick={() => {
+            try {
+              download(`${fileSlug(s.name)}.css`, styleToCss(compose()), "text/css");
+            } catch (e) {
+              setError((e as Error).message);
+            }
+          }}
+        >
           Export CSS variables
         </button>
         <ConfirmDialog
@@ -333,7 +366,10 @@ export function Styles() {
   const router = useRouter();
   const id = useSearchParams().get("id");
   const [error, setError] = useState<string | null>(null);
-  const data = useStore(async () => ({ styles: await listStyles(), refs: await listReferences(), assets: await listAssets() }), ["styles", "references", "assets"]);
+  const data = useStore(
+    async () => ({ styles: await listStyles(), refs: await listReferences(), assets: await listAssets() }),
+    ["styles", "references", "assets"],
+  );
   const styles = data.status === "ready" ? data.data.styles : [];
   const selected = styles.find((s) => s.id === id) ?? null;
 
@@ -344,17 +380,27 @@ export function Styles() {
         <button
           type="button"
           className="btn btn-primary"
-          onClick={() => withDraftGuard(() => { void (async () => {
-            try {
-            const s = await saveStyle(blank());
-            router.push(`/styles?id=${s.id}`);
-            } catch (e) { setError(e instanceof Error ? e.message : "The style couldn’t be saved."); }
-            })(); })}
+          onClick={() =>
+            withDraftGuard(() => {
+              void (async () => {
+                try {
+                  const s = await saveStyle(blank());
+                  router.push(`/styles?id=${s.id}`);
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "The style couldn’t be saved.");
+                }
+              })();
+            })
+          }
         >
           New style
         </button>
       </div>
-      {error || data.status === "error" ? <p role="alert" className="error-text">{error ?? (data.status === "error" ? data.message : "")}</p> : null}
+      {error || data.status === "error" ? (
+        <p role="alert" className="error-text">
+          {error ?? (data.status === "error" ? data.message : "")}
+        </p>
+      ) : null}
       <div className="spread" style={{ gridTemplateColumns: "minmax(0,1fr) 18rem" }}>
         <div style={{ minWidth: 0 }}>
           {selected && data.status === "ready" ? (
@@ -409,5 +455,12 @@ export function Styles() {
 }
 
 function ReferenceAsset({ asset }: { asset?: Asset }) {
-  return asset ? <Link className="link" href={`/analyze?asset=${asset.id}`} style={{ display: "grid", gap: "0.5rem" }}><Thumb blob={asset.thumb} alt={asset.name} style={{ maxWidth: "12rem", maxHeight: "10rem", objectFit: "contain" }} />Open {asset.name}</Link> : <p className="t-small">The linked image is unavailable in this browser.</p>;
+  return asset ? (
+    <Link className="link" href={`/analyze?asset=${asset.id}`} style={{ display: "grid", gap: "0.5rem" }}>
+      <Thumb blob={asset.thumb} alt={asset.name} style={{ maxWidth: "12rem", maxHeight: "10rem", objectFit: "contain" }} />
+      Open {asset.name}
+    </Link>
+  ) : (
+    <p className="t-small">The linked image is unavailable in this browser.</p>
+  );
 }

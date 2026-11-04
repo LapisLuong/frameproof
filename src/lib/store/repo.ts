@@ -22,18 +22,33 @@ function emit(store: StoreName) {
   for (const fn of listeners) fn(store);
 }
 
+/** Say once per session that a store holds records that can't be read, instead of on every reload. */
+const reported = new Set<string>();
+function reportSkipped(store: StoreName, count: number) {
+  if (!count || reported.has(store)) return;
+  reported.add(store);
+  toast(
+    count === 1
+      ? `1 saved ${store.replace(/s$/, "")} couldn't be read and was skipped. It stays in this browser's storage.`
+      : `${count} saved ${store} couldn't be read and were skipped. They stay in this browser's storage.`,
+  );
+}
+
 async function readAll<T>(store: StoreName, projectId?: string): Promise<T[]> {
   const raw = projectId && (store === "assets" || store === "reviews") ? await getByProject<unknown>(store, projectId) : await getAll<unknown>(store);
   const result = validateRecords(store, raw);
-  if (result.skipped) toast(`${result.skipped} invalid ${store} records were skipped. They remain in local storage.`);
+  reportSkipped(store, result.skipped);
   return result.records as T[];
 }
 async function readOne<T>(store: StoreName, id: string): Promise<T | undefined> {
   const raw = await getOne<unknown>(store, id);
   if (raw === undefined) return undefined;
   const result = recordSchemas[store].safeParse(raw);
-  if (!result.success) { toast(`1 invalid ${store} record was skipped. It remains in local storage.`); return undefined; }
-  return result.data as T;
+  if (!result.success) {
+    reportSkipped(store, 1);
+    return undefined;
+  }
+  return raw as T;
 }
 
 /* ---------- assets ---------- */

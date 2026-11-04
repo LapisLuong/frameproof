@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { CompareStage, type StageMarks } from "@/components/CompareStage";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ConfirmDialog, useDraftGuard } from "@/components/ConfirmDialog";
 import { Dropzone } from "@/components/Dropzone";
 import { MeasurementTable, PaletteList } from "@/components/Measurements";
 import { ProofNotes, type NoteSelection } from "@/components/ProofNotes";
@@ -21,6 +21,7 @@ import {
   getAsset,
   getProject,
   listReviews,
+  markProjectOpened,
   runLocalReview,
   setIssueResolved,
   setProjectImage,
@@ -163,6 +164,8 @@ function ReviewControls({
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [notes, setNotes] = useState(review?.notes ?? "");
   const [notesState, setNotesState] = useState<"saved" | "dirty" | "saving">("saved");
+  // Unsaved notes survive a version switch, a new review, an in-app link and Back only if the user says to discard them.
+  const guard = useDraftGuard(notesState !== "saved");
 
   const stale = review && data.reference && data.current && (review.referenceAssetId !== data.reference.id || review.currentAssetId !== data.current.id);
 
@@ -255,14 +258,6 @@ function ReviewControls({
     }
   };
 
-  // Warn before leaving with unsaved notes.
-  useEffect(() => {
-    if (notesState === "saved") return;
-    const h = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", h);
-    return () => window.removeEventListener("beforeunload", h);
-  }, [notesState]);
-
   const exportAs = (kind: "md" | "json") => {
     if (!review) return;
     const name = `${fileSlug(data.project.name)}-review-${review.version}`;
@@ -275,10 +270,19 @@ function ReviewControls({
 
   return (
     <div style={{ display: "grid", gap: "1.25rem" }}>
+      {guard.dialog}
       {data.reviews.length > 0 ? (
         <div className="field">
           <label htmlFor="rev-select">Review version</label>
-          <select id="rev-select" className="select" value={review?.id ?? ""} onChange={(e) => onSelect(e.target.value)}>
+          <select
+            id="rev-select"
+            className="select"
+            value={review?.id ?? ""}
+            onChange={(e) => {
+              const next = e.target.value;
+              guard.request(() => onSelect(next));
+            }}
+          >
             {data.reviews.map((r) => (
               <option key={r.id} value={r.id}>
                 Review {r.version},{" "}
@@ -301,7 +305,7 @@ function ReviewControls({
         <button
           type="button"
           className={review && !stale ? "btn" : "btn btn-primary"}
-          onClick={runLocal}
+          onClick={() => guard.request(() => void runLocal())}
           disabled={!!busy || !data.reference || !data.current}
           data-testid="run-review"
         >
@@ -398,6 +402,8 @@ function EditProject({ project }: { project: Project }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(project.name);
   const [brief, setBrief] = useState(project.brief);
+  const [error, setError] = useState<string | null>(null);
+  const guard = useDraftGuard(open && (name !== project.name || brief !== project.brief));
   if (!open)
     return (
       <button type="button" className="btn btn-quiet btn-sm" onClick={() => setOpen(true)}>
@@ -409,11 +415,17 @@ function EditProject({ project }: { project: Project }) {
       style={{ display: "grid", gap: "0.75rem", maxWidth: "40rem", margin: "0.75rem 0 1.5rem" }}
       onSubmit={async (e) => {
         e.preventDefault();
-        await updateProject(project.id, { name: name.trim() || project.name, brief });
-        toast("Project saved");
-        setOpen(false);
+        setError(null);
+        try {
+          await updateProject(project.id, { name: name.trim() || project.name, brief });
+          toast("Project saved");
+          setOpen(false);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "The project couldn't be saved. Your text is still here; try again.");
+        }
       }}
     >
+      {guard.dialog}
       <div className="field">
         <label htmlFor="ename">Name</label>
         <input id="ename" className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
@@ -422,11 +434,26 @@ function EditProject({ project }: { project: Project }) {
         <label htmlFor="ebrief">Brief</label>
         <textarea id="ebrief" className="textarea" value={brief} onChange={(e) => setBrief(e.target.value)} maxLength={2000} />
       </div>
+      {error ? (
+        <p className="error-text" role="alert">
+          {error}
+        </p>
+      ) : null}
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button className="btn btn-primary btn-sm" type="submit">
           Save project
         </button>
-        <button className="btn btn-sm" type="button" onClick={() => setOpen(false)}>
+        <button
+          className="btn btn-sm"
+          type="button"
+          onClick={() =>
+            guard.request(() => {
+              setName(project.name);
+              setBrief(project.brief);
+              setOpen(false);
+            })
+          }
+        >
           Cancel
         </button>
       </div>
@@ -442,6 +469,13 @@ export function ProjectWorkspace({ id }: { id: string }) {
   const [noteSelection, setNoteSelection] = useState<NoteSelection>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const autoRan = useRef(false);
+
+  // Recent projects on the desk are ordered by when they were last opened.
+  useEffect(() => {
+    markProjectOpened(id).catch(() => {
+      // A missing project is shown as "Project not found"; a failed write only affects ordering on the desk.
+    });
+  }, [id]);
 
   // First time both images are present and there's no review yet, run one automatically.
   const ready = data.status === "ready" && data.data;
@@ -496,7 +530,9 @@ export function ProjectWorkspace({ id }: { id: string }) {
   const fresh = !!(review && d.reference && d.current && review.referenceAssetId === d.reference.id && review.currentAssetId === d.current.id);
   const historic = !!review && review.id !== d.reviews[0]?.id;
   const reviewed =
-    review && (fresh || historic) && d.reviewed?.reference.id === review.referenceAssetId && d.reviewed.current.id === review.currentAssetId ? d.reviewed : null;
+    review && (fresh || historic) && d.reviewed?.reference.id === review.referenceAssetId && d.reviewed.current.id === review.currentAssetId
+      ? d.reviewed
+      : null;
   const pair: Pair | null = reviewed ?? (d.reference && d.current ? { reference: d.reference, current: d.current } : null);
   const marks = marksFor(review, !!reviewed);
 

@@ -45,7 +45,8 @@ function NewProjectForm({ inputRef }: { inputRef: React.RefObject<HTMLInputEleme
         setBusy(true);
         try {
           const p = await createProject(name, brief);
-          setName(""); setBrief("");
+          setName("");
+          setBrief("");
           toast("Project created");
           router.push(`/project?id=${p.id}`);
         } catch (err) {
@@ -154,7 +155,16 @@ export function Desk() {
                 brief you can act on.
               </p>
               <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-                <button className="btn" type="button" onClick={() => withDraftGuard(() => { void openSample(); })} disabled={sampleBusy}>
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() =>
+                    withDraftGuard(() => {
+                      void openSample();
+                    })
+                  }
+                  disabled={sampleBusy}
+                >
                   {sampleBusy ? "Preparing the sample…" : "Open the sample project"}
                 </button>
               </div>
@@ -206,7 +216,17 @@ export function Desk() {
           {projects.length > 0 && !hasSample ? (
             <p className="t-small" style={{ marginTop: "1.5rem" }}>
               Want to see a finished review first?{" "}
-              <button type="button" className="btn-quiet btn" onClick={() => withDraftGuard(() => { void openSample(); })} disabled={sampleBusy} style={{ padding: 0, minHeight: 0 }}>
+              <button
+                type="button"
+                className="btn-quiet btn"
+                onClick={() =>
+                  withDraftGuard(() => {
+                    void openSample();
+                  })
+                }
+                disabled={sampleBusy}
+                style={{ padding: 0, minHeight: 0 }}
+              >
                 Open the sample project
               </button>
             </p>
