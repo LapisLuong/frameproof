@@ -13,7 +13,7 @@ type Props = {
   layer: Layer | null;
   /** Record a change; `key` merges quick successive edits of one field into one undo step. */
   onLayer: (patch: Partial<Layer>, key: string) => void;
-  onDoc: (patch: Partial<Pick<DesignDoc, "name" | "width" | "height" | "background">>, key: string) => void;
+  onDoc: (patch: Partial<Pick<DesignDoc, "name" | "width" | "height" | "background" | "transparent">>, key: string) => void;
   userFonts: FontOption[];
   images: ImageOption[];
   textRef?: React.Ref<HTMLTextAreaElement>;
@@ -201,7 +201,15 @@ export function Inspector({ doc, layer, onLayer, onDoc, userFonts, images, textR
           <NumberField label="Width" suffix="px" value={doc.width} min={64} max={6000} onChange={(v) => onDoc({ width: Math.round(v) }, "doc:w")} />
           <NumberField label="Height" suffix="px" value={doc.height} min={64} max={6000} onChange={(v) => onDoc({ height: Math.round(v) }, "doc:h")} />
         </div>
-        <ColourField label="Background" value={doc.background} swatches={swatches} onChange={(v) => v && onDoc({ background: v }, "doc:bg")} />
+        <label className="t-meta palette-lock">
+          <input type="checkbox" checked={doc.transparent} onChange={(e) => onDoc({ transparent: e.target.checked }, "doc:transparent")} />
+          Transparent background (for frames, logos and overlays)
+        </label>
+        {doc.transparent ? (
+          <p className="hint">The checkerboard marks transparent areas; PNG and SVG exports keep them transparent.</p>
+        ) : (
+          <ColourField label="Background" value={doc.background} swatches={swatches} onChange={(v) => v && onDoc({ background: v }, "doc:bg")} />
+        )}
         <p className="hint">Changing the size keeps layers where they are; move them to fit the new frame.</p>
       </section>
     );
@@ -268,6 +276,14 @@ export function Inspector({ doc, layer, onLayer, onDoc, userFonts, images, textR
             onChange={(v) => onLayer({ resourceId: v || null }, `${layer.id}:res`)}
           />
           {!images.length ? <p className="hint">Add your own pictures under Add → Your images. Nothing is generated.</p> : null}
+          <label className="t-meta palette-lock">
+            <input
+              type="checkbox"
+              checked={layer.role === "logo"}
+              onChange={(e) => onLayer(e.target.checked ? { role: "logo", fit: "contain" } : { role: undefined }, `${layer.id}:role`)}
+            />
+            This picture is the logo (campaign formats and frames keep it whole)
+          </label>
           {layer.resourceId && (onCutout || onInpaint) ? (
             <div className="design-row" role="group" aria-label="Picture tools">
               {onCutout ? (

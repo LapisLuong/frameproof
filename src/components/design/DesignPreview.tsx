@@ -20,7 +20,7 @@ export function DesignPreview({ doc, urls, fontsVersion }: { doc: DesignDoc; url
       ),
     [doc, urls, fontsVersion],
   );
-  return <span className="design-card-preview" style={{ aspectRatio: `${doc.width} / ${doc.height}` }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: svg }} />;
+  return <span className={`design-card-preview${doc.transparent ? " checker" : ""}`} style={{ aspectRatio: `${doc.width} / ${doc.height}` }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: svg }} />;
 }
 
 export function useDesignFonts(docs: DesignDoc[]): number {

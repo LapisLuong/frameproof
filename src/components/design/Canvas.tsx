@@ -142,7 +142,7 @@ export function Canvas({ doc, selectedId, onSelect, onLive, onEnd, imageUrl, onE
 
   return (
     <div ref={wrap} className="design-canvas" data-testid="design-canvas">
-      <div className="design-stage-frame" style={{ width: w, height: h }}>
+      <div className={`design-stage-frame${doc.transparent ? " checker" : ""}`} style={{ width: w, height: h }}>
         <div
           className="design-svg"
           style={{ width: doc.width, height: doc.height, transform: `scale(${scale})` }}

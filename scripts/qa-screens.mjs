@@ -132,13 +132,16 @@ await page.setViewportSize({ width: 1440, height: 900 });
 await page.goto(editorUrl);
 await page.getByRole("button", { name: "Campaign formats" }).click();
 await page.waitForURL(/\/campaign\/?\?id=/);
-for (const [fmt, file] of [["Banner 3:1", "11-campaign-banner"], ["Avatar 1:1 (circle-safe)", "11-campaign-avatar"]]) {
+for (const [fmt, file] of [["Banner 3:1", "11-campaign-banner"], ["Avatar 1:1 (circle-safe)", "11-campaign-avatar"], ["Avatar frame (transparent centre)", "11-campaign-frame"]]) {
   await page.getByRole("button", { name: fmt }).click();
   await page.waitForTimeout(700);
   await page.screenshot({ path: `${out}/${file}-1440.png`, fullPage: true });
 }
 await page.setViewportSize({ width: 390, height: 844 });
 await page.waitForTimeout(400);
+await page.screenshot({ path: `${out}/11-campaign-frame-390.png`, fullPage: true });
+await page.getByRole("button", { name: "Avatar 1:1 (circle-safe)" }).click();
+await page.waitForTimeout(500);
 await page.screenshot({ path: `${out}/11-campaign-avatar-390.png`, fullPage: true });
 
 await browser.close();

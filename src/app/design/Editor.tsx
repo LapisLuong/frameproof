@@ -186,6 +186,17 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
     const w = Math.round(doc.width * 0.6);
     add({ ...starterLayer(doc, "image", newId("l")), name: r?.name.slice(0, 80) ?? "Image", resourceId: rid, w, h: Math.round(w / ratio) } as Parameters<typeof addLayer>[1]);
   };
+  // A logo goes on its own layer, whole (contain), about a fifth of the short side, in the bottom-right corner.
+  const onLogo = (rid: string) => {
+    const r = resources.find((x) => x.id === rid);
+    const ratio = r?.width && r?.height ? r.width / r.height : 1;
+    const side = Math.min(doc.width, doc.height);
+    const box = side * 0.2;
+    const w = Math.round(ratio >= 1 ? box : box * ratio);
+    const h = Math.round(ratio >= 1 ? box / ratio : box);
+    const m = Math.round(side * 0.05);
+    add({ ...starterLayer(doc, "image", newId("l")), name: "Logo", role: "logo", fit: "contain", resourceId: rid, w, h, x: doc.width - m - w, y: doc.height - m - h } as Parameters<typeof addLayer>[1]);
+  };
   const del = (lid: string) => {
     h.commit((d) => removeLayer(d, lid));
     setSelectedId(null);
@@ -273,7 +284,7 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
     });
 
   const userFonts = resources.filter((r) => r.kind === "font").map((r) => ({ id: r.id as `res_${string}`, label: r.name.replace(/\.(ttf|otf|woff2?)$/i, "") }));
-  const cards = (kind: "image" | "font"): ResourceCard[] => resources.filter((r) => r.kind === kind).map((r) => ({ id: r.id, name: r.name, url: urls.get(r.id) ?? null, licence: r.licence, kind }));
+  const cards = (kind: "image" | "font"): ResourceCard[] => resources.filter((r) => r.kind === kind).map((r) => ({ id: r.id, name: r.name, url: urls.get(r.id) ?? null, licence: r.licence, kind, logo: r.tags.includes("logo") }));
   const missing = referencedResources(doc).filter((rid) => !isBuiltinArt(rid) && !resources.some((r) => r.id === rid));
   const status = { saved: "Saved in this browser", saving: "Saving…", unsaved: "Unsaved changes", failed: "Not saved" }[saveState];
 
@@ -337,6 +348,7 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
               onStarter={onStarter}
               onItem={onItem}
               onImage={onImage}
+              onLogo={onLogo}
               onAddResource={async (file, kind, meta) => {
                 const r = await addResource(file, kind, meta);
                 toast(`${r.name} added to your library.`);

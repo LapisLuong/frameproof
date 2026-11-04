@@ -10,7 +10,7 @@ export type { StarterKind } from "@/lib/design/edit";
 import type { StarterKind } from "@/lib/design/edit";
 import { EFFECTS } from "@/lib/design/schema";
 import { EFFECT_LABEL } from "@/lib/design/labels";
-export type ResourceCard = { id: string; name: string; url: string | null; licence: Licence; kind: "image" | "font"; credit?: string };
+export type ResourceCard = { id: string; name: string; url: string | null; licence: Licence; kind: "image" | "font"; credit?: string; logo?: boolean };
 
 type Props = {
   items: Item[];
@@ -21,7 +21,9 @@ type Props = {
   onStarter: (kind: StarterKind) => void;
   onItem: (item: Item) => void;
   onImage: (resourceId: string) => void;
-  onAddResource: (file: File, kind: "image" | "font", meta: { name: string; licence: Licence }) => Promise<void>;
+  /** Place a picture as the design's logo (its own layer, whole logo shown, in a corner). */
+  onLogo: (resourceId: string) => void;
+  onAddResource: (file: File, kind: "image" | "font", meta: { name: string; licence: Licence; tags?: string[] }) => Promise<void>;
   fontsVersion: number;
 };
 
@@ -34,6 +36,7 @@ function ItemPreview({ item, fontsVersion }: { item: Item; fontsVersion: number 
       version: DESIGN_VERSION,
       id: item.id,
       name: item.name,
+      transparent: false,
       width: Math.max(64, Math.ceil(item.width)),
       height: Math.max(64, Math.ceil(item.height)),
       background: "#ffffff",
@@ -56,6 +59,7 @@ function AddResourceForm({ kind, onAdd }: { kind: "image" | "font"; onAdd: Props
   const [source, setSource] = useState("");
   const [licence, setLicence] = useState("");
   const [author, setAuthor] = useState("");
+  const [logo, setLogo] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const label = kind === "image" ? "image" : "font";
@@ -71,7 +75,9 @@ function AddResourceForm({ kind, onAdd }: { kind: "image" | "font"; onAdd: Props
           await onAdd(file, kind, {
             name: file.name.slice(0, 200),
             licence: { id: licence.trim() || "Not recorded", author: author.trim() || "Not recorded", source: source.trim() || "Not recorded" },
+            ...(kind === "image" && logo ? { tags: ["logo"] } : {}),
           });
+          setLogo(false);
           setFile(null);
           setSource("");
           setLicence("");
@@ -110,6 +116,12 @@ function AddResourceForm({ kind, onAdd }: { kind: "image" | "font"; onAdd: Props
               <input id={`lic-${kind}`} className="input" value={licence} maxLength={40} placeholder={kind === "font" ? "OFL-1.1" : "Own work"} onChange={(e) => setLicence(e.target.value)} />
             </div>
           </div>
+          {kind === "image" ? (
+            <label className="t-meta palette-lock">
+              <input type="checkbox" checked={logo} onChange={(e) => setLogo(e.target.checked)} />
+              This is a logo (kept under Your logos for every design)
+            </label>
+          ) : null}
           <p className="hint">FrameProof records what you enter and shows it on export. It doesn&rsquo;t check licences.</p>
           <button type="submit" className="btn btn-sm btn-primary" disabled={busy}>
             {busy ? "Adding…" : `Add ${label} to your library`}
@@ -125,7 +137,8 @@ function AddResourceForm({ kind, onAdd }: { kind: "image" | "font"; onAdd: Props
   );
 }
 
-export function AddPanel({ items, images, art, fonts, onStarter, onItem, onImage, onAddResource, fontsVersion }: Props) {
+export function AddPanel({ items, images, art, fonts, onStarter, onItem, onImage, onLogo, onAddResource, fontsVersion }: Props) {
+  const logos = images.filter((r) => r.logo);
   const groups = useMemo(() => {
     const m = new Map<Item["kind"], Item[]>();
     for (const it of items) m.set(it.kind, [...(m.get(it.kind) ?? []), it]);
@@ -195,6 +208,23 @@ export function AddPanel({ items, images, art, fonts, onStarter, onItem, onImage
           </li>
         ))}
       </ul>
+
+      <h3 className="t-meta design-sub">Your logos</h3>
+      {logos.length ? (
+        <ul className="design-items">
+          {logos.map((r) => (
+            <li key={r.id}>
+              <button type="button" className="design-item" onClick={() => onLogo(r.id)} aria-label={`Place logo: ${r.name}`} title={`${r.licence.id} · ${r.licence.source}`}>
+                <span className="design-item-preview checker">{/* eslint-disable-next-line @next/next/no-img-element -- local blob: URL, nothing for next/image to optimise */}
+                  {r.url ? <img src={r.url} alt="" /> : null}</span>
+                <span className="t-small">{r.name}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="hint">Add your logo below and tick &ldquo;This is a logo&rdquo;; it&rsquo;s placed whole, in a corner, on its own layer.</p>
+      )}
 
       <h3 className="t-meta design-sub">Your images</h3>
       {images.length ? (

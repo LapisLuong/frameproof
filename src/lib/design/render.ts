@@ -125,7 +125,7 @@ export function renderSvg(doc: DesignDoc, o: RenderOptions): string {
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${doc.width}" height="${doc.height}" viewBox="0 0 ${doc.width} ${doc.height}">` +
     `<title>${escapeXml(doc.name)}</title>${style}` +
-    `<rect width="${doc.width}" height="${doc.height}" fill="${doc.background}"/>` +
+    (doc.transparent ? "" : `<rect width="${doc.width}" height="${doc.height}" fill="${doc.background}"/>`) +
     body +
     `</svg>`
   );

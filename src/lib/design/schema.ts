@@ -45,7 +45,7 @@ const n = (min: number, max: number) => z.number().finite().min(min).max(max);
  * What a layer is for in the composition. Optional; templates and items set it so the concept composer knows where
  * a brief's title, information lines and pictures go. It never affects rendering.
  */
-export const LAYER_ROLES = ["title", "subtitle", "kicker", "info", "credit", "body", "number", "photo", "motif", "ground"] as const;
+export const LAYER_ROLES = ["title", "subtitle", "kicker", "info", "credit", "body", "number", "photo", "motif", "ground", "logo"] as const;
 export type LayerRole = (typeof LAYER_ROLES)[number];
 
 const LayerBase = {
@@ -160,6 +160,11 @@ export const DesignDocSchema = z
     width: z.number().int().min(CANVAS_MIN).max(CANVAS_MAX),
     height: z.number().int().min(CANVAS_MIN).max(CANVAS_MAX),
     background: HexSchema,
+    /**
+     * No background fill: what isn't covered by a layer stays transparent in PNG and SVG exports (avatar frames,
+     * logos, overlays). `background` is kept for when it's switched back off.
+     */
+    transparent: z.boolean().default(false),
     layers: z.array(LayerSchema).max(MAX_LAYERS),
     /** Template the document started from, if any. */
     templateId: z.string().max(80).nullable().default(null),

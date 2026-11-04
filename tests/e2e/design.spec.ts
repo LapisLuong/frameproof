@@ -281,6 +281,61 @@ test.describe("Picture tools without a pointer", () => {
   });
 });
 
+test.describe("Logo and avatar frame", () => {
+  test("a logo is placed whole, survives undo and reload, and the frame PNG has a genuinely transparent centre", async ({ page }) => {
+    // An original test logo made here (a red disc on transparency), clearly not anyone's brand.
+    const file = join(tmpdir(), `frameproof-test-logo-${Date.now()}.png`);
+    const disc = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><circle cx="50" cy="50" r="45" fill="#ff0000"/><rect x="110" y="20" width="80" height="60" fill="#ff0000"/></svg>');
+    await writeFile(file, await sharp(disc).png().toBuffer());
+    try {
+      await freshStart(page);
+      await page.getByTestId("desk-starters").getByRole("button").first().click();
+      await expect(page.getByTestId("design-canvas")).toBeVisible();
+      await page.getByLabel("Add your image").setInputFiles(file);
+      await page.getByLabel("Where it’s from").fill("Test logo drawn for this test");
+      await page.getByLabel("This is a logo", { exact: false }).check();
+      await page.getByRole("button", { name: "Add image to your library" }).click();
+      await page.getByRole("button", { name: /^Place logo:/ }).click();
+      await expect(page.getByLabel("This picture is the logo", { exact: false })).toBeChecked();
+      await expect(page.getByLabel("Fit")).toHaveValue("contain");
+
+      await page.getByRole("button", { name: "Undo" }).click();
+      await expect(page.getByRole("button", { name: /^Logo/ })).toHaveCount(0);
+      await page.getByRole("button", { name: "Redo" }).click();
+      await expect(page.getByRole("button", { name: /^Logo/ }).first()).toBeVisible();
+
+      await page.getByRole("button", { name: "Campaign formats" }).click();
+      await page.getByRole("button", { name: "Avatar frame (transparent centre)" }).click();
+      const variant = page.getByTestId("campaign-variants").locator("> li").first();
+      await expect(variant).toContainText("Transparent centre");
+      await expect(variant).not.toContainText("No layer is marked as the logo");
+      await variant.getByRole("button", { name: "Save and edit" }).click();
+      await expect(page).toHaveURL(/\/design\?id=/);
+      await expect(page.getByLabel("Transparent background", { exact: false })).toBeChecked();
+
+      const download = page.waitForEvent("download");
+      await page.getByRole("button", { name: "Export PNG" }).click();
+      const png = await sharp(await (await download).path()).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      expect([png.info.width, png.info.height]).toEqual([1080, 1080]);
+      const alpha = (x: number, y: number) => png.data[(y * 1080 + x) * 4 + 3]!;
+      for (const [x, y] of [[540, 540], [400, 400], [700, 620], [540, 200]] as const) expect(alpha(x, y), `centre ${x},${y}`).toBe(0);
+      expect(alpha(540, 1080 - 4 - 30)).toBe(255); // the label in the lower band
+      expect(alpha(20, 540)).toBe(255); // the ring
+      expect(alpha(3, 3)).toBe(0); // the corner outside the ring
+      let red = 0;
+      for (let y = 0; y < 100; y++) for (let x = 440; x < 640; x++) { const i = (y * 1080 + x) * 4; if (png.data[i]! > 200 && png.data[i + 1]! < 60) red++; }
+      expect(red).toBeGreaterThan(200); // the logo, at the top of the ring
+
+      await expect(page.getByTestId("save-state")).toHaveText("Saved in this browser");
+      await page.reload();
+      await expect(page.getByRole("button", { name: /^Logo/ }).first()).toBeVisible();
+      await expect(page.getByLabel("Transparent background", { exact: false })).toBeChecked();
+    } finally {
+      await rm(file, { force: true });
+    }
+  });
+});
+
 test.describe("Design file import", () => {
   test("a file over the size limit is refused before it's read", async ({ page }) => {
     await freshStart(page);

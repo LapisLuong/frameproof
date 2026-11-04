@@ -107,9 +107,21 @@ the canvas. Every scaled size is capped at the schema limit, and a capped layer 
 variant is a new design with `sourceDesignId`. Notes are honest: overflow, very small type, crop by the circle
 (using rotated corners), and the standee's real print DPI (about 85 at 2667 × 6000 px) with a pointer to SVG.
 
-Not yet: a transparent avatar frame with a non-destructive centre cut-out (needs a transparent-canvas schema
-change), and per-format recipes with group distribution for several info or photo layers
-(see the Codex/Gemini campaign handoff).
+**Avatar frame** (`avatarFrame`, format "Avatar frame (transparent centre)"): a new 1080 × 1080 design with
+`transparent: true` (no background fill; PNG and SVG keep the transparency, the editor shows a checkerboard). It
+is built from the source, not cropped from it: a ring in the design's ground colour, a hairline in the title colour,
+the title on a label in the lower band (one line, shrunk to fit, with a note if it can't), and the layer marked as
+the logo, whole, at the top. The middle `FRAME_CLEAR` (70%) of the diameter stays empty, which a unit test checks
+geometrically and an e2e test checks on the exported PNG's alpha channel. Every layer left out is named in the notes
+and stays in the original. The copy says it's a file to upload yourself; nothing connects to a social network.
+
+**Logo**: images added with "This is a logo" are tagged `logo` and listed under Add → Your logos for every design.
+"Place logo" puts one on its own layer (`role: "logo"`, fit contain, a fifth of the short side, bottom-right).
+Any picture layer can be marked "This picture is the logo". The logo is always assigned by the user; FrameProof
+never guesses which picture is a logo.
+
+Not yet: per-format recipes with group distribution for several info or photo layers (see the Codex/Gemini
+campaign handoff); text on a curve for frame labels.
 
 ## Image tools
 
@@ -118,8 +130,14 @@ same-origin (`npm run prepare:image-tools`, run before dev and build); weights a
 revision only after the user starts the tool. Background removal (BEN2) is wired in the Inspector for picture
 layers (`CutoutDialog`): a confirmation names the model, licence, size and source; there's progress with Cancel;
 the preview compares the result with the original and states its real size. Accepting stores a new resource with
-`derivedFrom: { resourceId, tool, model }` and switches the layer as one undo step. Inpainting (LaMa) gets the same
-treatment, plus a brush mask, once its module lands; until then it isn't offered.
+`derivedFrom: { resourceId, tool, model }` and switches the layer as one undo step. If saving fails, the result
+stays in the dialog with "Retry save"; the model never runs twice for one result.
+
+"Fill an area" (LaMa) works the same way. The mask is painted with a brush (Paint, Erase, Undo stroke, Clear) or
+marked as a rectangle typed in picture pixels, which is the keyboard alternative. It's made at the picture's own
+size, white means reconstruct. Pictures over 4 MP are refused with the reason, before anything downloads. The
+preview says the filled area is the model's reconstruction. Cancel returns to the same mask. Only one model runs at
+a time per tab (`execution-slot`).
 
 ## Ownership
 

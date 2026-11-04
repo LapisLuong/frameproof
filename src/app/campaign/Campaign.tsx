@@ -8,12 +8,12 @@ import { DesignPreview, useDesignFonts } from "@/components/design/DesignPreview
 import { useStore } from "@/hooks/useStore";
 import { useObjectUrls } from "@/hooks/useObjectUrls";
 import { measureText } from "@/lib/design/browser";
-import { CAMPAIGN_FORMATS, campaignVariants, printDpi, type Recomposed } from "@/lib/design/campaign";
+import { CAMPAIGN_FORMATS, campaignVariants, FRAME_CLEAR, printDpi, type Recomposed } from "@/lib/design/campaign";
 import { newId } from "@/lib/store/db";
 import { getDesign, listResources, saveDesign } from "@/lib/store/repo";
 import type { DesignDoc } from "@/lib/design/schema";
 
-const STRATEGY: Record<Recomposed["strategy"], string> = { anchor: "Same arrangement", split: "Pictures and type side by side", "split-mirrored": "Sides swapped" };
+const STRATEGY: Record<Recomposed["strategy"], string> = { anchor: "Same arrangement", split: "Pictures and type side by side", "split-mirrored": "Sides swapped", frame: "Profile-picture frame" };
 
 function Variants({ source, urls }: { source: DesignDoc; urls: Map<string, string> }) {
   const router = useRouter();
@@ -64,12 +64,16 @@ function Variants({ source, urls }: { source: DesignDoc; urls: Map<string, strin
             sharp at any size.
           </>
         ) : null}
-        {format.circleSafe ? " The circle shows what a round profile picture keeps." : null}
+        {format.frame
+          ? " The checkerboard is transparent; the dashed circle is the empty centre where the profile photo shows. Export it as PNG to keep the transparency."
+          : format.circleSafe
+            ? " The circle shows what a round profile picture keeps."
+            : null}
       </p>
       <ul className="campaign-variants" data-testid="campaign-variants">
         {variants.map((v, i) => (
           <li key={v.doc.id} className="campaign-variant">
-            <div className="campaign-preview" data-circle={format.circleSafe ? "" : undefined} style={{ ["--safe" as string]: format.circleSafe ?? 0 }}>
+            <div className="campaign-preview" data-circle={format.circleSafe ? "" : undefined} style={{ ["--safe" as string]: format.frame ? FRAME_CLEAR : (format.circleSafe ?? 0) }}>
               <DesignPreview doc={v.doc} urls={urls} fontsVersion={fontsVersion} />
             </div>
             <h3 className="t-subhead">

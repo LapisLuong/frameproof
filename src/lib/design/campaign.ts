@@ -1,5 +1,5 @@
 import { layoutText, type Measure } from "./layout";
-import { CANVAS_MAX, DesignDocSchema, EFFECT_BLUR_MAX, LayerSchema, STROKE_MAX, TEXT_SIZE_MAX, type DesignDoc, type Layer } from "./schema";
+import { CANVAS_MAX, DesignDocSchema, EFFECT_BLUR_MAX, LayerSchema, STROKE_MAX, TEXT_SIZE_MAX, type DesignDoc, type Layer, type TextLayer } from "./schema";
 
 /**
  * Campaign formats: the same design recomposed for another shape (square post, story, banner, standee, avatar).
@@ -23,6 +23,8 @@ export type CampaignFormat = {
   circleSafe?: number;
   /** Bands a platform covers with its own buttons and captions (fractions of the height). Approximate. */
   overlay?: { top: number; bottom: number };
+  /** A profile-picture frame: transparent canvas, empty centre, built from the design's colours, title and logo. */
+  frame?: boolean;
 };
 
 export const CAMPAIGN_FORMATS: CampaignFormat[] = [
@@ -33,6 +35,7 @@ export const CAMPAIGN_FORMATS: CampaignFormat[] = [
   { id: "cover", label: "Page cover 2.7:1", width: 1640, height: 624 },
   { id: "standee-80x180", label: "Standee 80 × 180 cm", width: 2667, height: 6000, physical: { widthCm: 80, heightCm: 180 } },
   { id: "avatar", label: "Avatar 1:1 (circle-safe)", width: 1080, height: 1080, circleSafe: 0.82 },
+  { id: "avatar-frame", label: "Avatar frame (transparent centre)", width: 1080, height: 1080, circleSafe: 0.82, frame: true },
 ];
 
 /** Print resolution a raster of this size gives at the format's physical size (it doesn't change the file). */
@@ -57,7 +60,7 @@ export function safeBox(f: CampaignFormat): Box {
   return { x: 0, y: 0, w: W, h: H };
 }
 
-export type Strategy = "anchor" | "split" | "split-mirrored";
+export type Strategy = "anchor" | "split" | "split-mirrored" | "frame";
 export type Recomposed = { doc: DesignDoc; strategy: Strategy; notes: string[] };
 
 const area = (b: Box) => Math.max(0, b.w) * Math.max(0, b.h);
@@ -190,6 +193,7 @@ export function strategiesFor(doc: { width: number; height: number }, f: { width
 }
 
 export function recompose(doc: DesignDoc, f: CampaignFormat, strategy: Strategy, ids: { id: string; now: number }, measure: Measure): Recomposed | null {
+  if (strategy === "frame" || f.frame) return avatarFrame(doc, f, ids, measure);
   const { width: W, height: H } = f;
   const box = safeBox(f);
   const capped = new Set<string>();
@@ -249,8 +253,113 @@ export function corners(l: Layer): Array<[number, number]> {
   ).map(([dx, dy]) => [cx + dx * cos - dy * sin, cy + dx * sin + dy * cos]);
 }
 
+/* ---------- avatar frame ---------- */
+
+/** Share of the frame's diameter that stays empty and transparent, where the profile photo shows. */
+export const FRAME_CLEAR = 0.7;
+
+/** Largest single-line size, from `start` down to 12 px, at which the text fits the box. */
+function fitOneLine(l: TextLayer, measure: Measure, start: number): { size: number; fits: boolean } {
+  for (let size = Math.round(start); size >= 12; size--) {
+    const t = layoutText({ ...l, size }, measure);
+    if (t.lines.length <= 1 && !t.overflows && t.lines.every((x) => x.width <= l.w + 0.5)) return { size, fits: true };
+  }
+  return { size: 12, fits: false };
+}
+
+/**
+ * A profile-picture frame derived from a design: a transparent square with an empty centre (FRAME_CLEAR of the
+ * diameter) so the person's own photo shows through, a ring in the design's ground colour with a hairline in its
+ * title colour, the title on a label at the bottom, and the layer marked as the logo at the top. Nothing else is
+ * carried over, and the notes name every layer left out. The source design is not changed.
+ */
+export function avatarFrame(doc: DesignDoc, f: CampaignFormat, ids: { id: string; now: number }, measure: Measure): Recomposed {
+  const S = Math.min(f.width, f.height);
+  const R = S / 2;
+  const band = Math.round(R * (1 - (f.circleSafe ?? 0.82)));
+  const visible = doc.layers.filter((l) => !l.hidden);
+  const texts = visible.filter((l): l is TextLayer => l.type === "text" && l.text.trim() !== "");
+  const title = texts.find((l) => l.role === "title") ?? [...texts].sort((a, b) => b.size - a.size)[0];
+  const logo = visible.find((l) => l.type === "image" && l.role === "logo" && l.resourceId);
+  const ground = doc.background;
+  const accent = title?.color ?? "#ffffff";
+  const layers: Layer[] = [];
+  const shape = (o: Record<string, unknown>) => LayerSchema.parse({ type: "shape", rotation: 0, opacity: 1, hidden: false, locked: false, stroke: null, strokeWidth: 0, radius: 0, ...o });
+
+  layers.push(shape({ id: "frame-ring", name: "Frame ring", shape: "ellipse", x: band / 2, y: band / 2, w: S - band, h: S - band, fill: null, stroke: ground, strokeWidth: band }));
+  const hair = Math.max(2, Math.round(S / 270));
+  const rr = R - band + hair / 2;
+  layers.push(shape({ id: "frame-hairline", name: "Frame hairline", shape: "ellipse", x: R - rr, y: R - rr, w: rr * 2, h: rr * 2, fill: null, stroke: accent, strokeWidth: hair }));
+
+  const notes = [
+    `Transparent centre: the middle ${Math.round(FRAME_CLEAR * 100)}% stays empty, so the profile photo shows through; the ring and label sit around it.`,
+    "This is an image file to upload yourself. FrameProof doesn't connect to any social network; most crop profile pictures to a circle, so the corners don't show.",
+  ];
+  if (title) {
+    // The label sits in the lower band, inside the outer circle and outside the clear centre.
+    const h = Math.round(band * 0.95);
+    const cy = R + R * ((1 + FRAME_CLEAR) / 2) + band * 0.12;
+    const top = cy - h / 2;
+    const bottom = cy + h / 2;
+    const half = Math.floor(Math.sqrt(R * R - (bottom - R) ** 2)) - band * 0.15;
+    const w = Math.round(half * 2);
+    layers.push(shape({ id: "frame-label", name: "Frame label", shape: "rect", x: R - w / 2, y: top, w, h, fill: accent, radius: h / 2 }));
+    const pad = h * 0.45;
+    const text = LayerSchema.parse({
+      ...title,
+      id: "frame-title",
+      name: "Frame title",
+      text: title.text.replace(/\s+/g, " ").trim(),
+      x: R - w / 2 + pad,
+      y: top,
+      w: w - pad * 2,
+      h,
+      rotation: 0,
+      opacity: 1,
+      hidden: false,
+      locked: false,
+      align: "center",
+      valign: "middle",
+      lineHeight: 1,
+      letterSpacing: Math.min(title.letterSpacing, 0.08),
+      color: ground,
+    }) as TextLayer;
+    const fit = fitOneLine(text, measure, h * 0.5);
+    layers.push({ ...text, size: fit.size });
+    if (!fit.fits) notes.push(`${title.name}: too long for the frame's label even at 12 px; shorten it in the editor.`);
+  } else notes.push("The design has no text, so the frame has no label.");
+
+  if (logo) {
+    const ratio = logo.w / logo.h;
+    const lh = band * 0.78;
+    const lw = Math.min(band * 1.6, lh * ratio);
+    const h = lw / ratio;
+    layers.push(LayerSchema.parse({ ...logo, id: "frame-logo", name: "Logo", fit: "contain", rotation: 0, opacity: 1, hidden: false, locked: false, x: R - lw / 2, y: (band - h) / 2, w: lw, h }));
+  } else notes.push("No layer is marked as the logo. In the editor, select the logo picture and tick “This picture is the logo” to put it on the frame.");
+
+  const used = new Set([title?.id, logo?.id].filter(Boolean));
+  const left = visible.filter((l) => !used.has(l.id)).map((l) => l.name);
+  if (left.length) notes.push(`Left out to keep the centre clear: ${left.join(", ")}. They stay in the original design.`);
+
+  const next = DesignDocSchema.parse({
+    ...doc,
+    id: ids.id,
+    name: `${doc.name} — ${f.label}`.slice(0, 120),
+    width: S,
+    height: S,
+    transparent: true,
+    layers,
+    projectId: null,
+    sourceDesignId: doc.id,
+    createdAt: ids.now,
+    updatedAt: ids.now,
+  });
+  return { doc: next, strategy: "frame", notes };
+}
+
 /** Up to `count` distinct recompositions for one format (a batch to choose from). */
 export function campaignVariants(doc: DesignDoc, f: CampaignFormat, newId: () => string, now: number, measure: Measure, count = 2): Recomposed[] {
+  if (f.frame) return [avatarFrame(doc, f, { id: newId(), now }, measure)];
   const out: Recomposed[] = [];
   for (const s of strategiesFor(doc, f)) {
     if (out.length >= count) break;
