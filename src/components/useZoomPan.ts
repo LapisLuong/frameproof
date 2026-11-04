@@ -42,6 +42,7 @@ export function useZoomPan(shared?: { view: View; onView: (v: View) => void }) {
     },
     onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
       if (e.button !== 0) return;
+      if (e.target !== e.currentTarget && (e.target as HTMLElement).closest("button, input, select, textarea, a")) return;
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       drag.current = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y };
     },
@@ -53,7 +54,14 @@ export function useZoomPan(shared?: { view: View; onView: (v: View) => void }) {
     onPointerUp: () => {
       drag.current = null;
     },
+    onPointerCancel: () => {
+      drag.current = null;
+    },
+    onLostPointerCapture: () => {
+      drag.current = null;
+    },
     onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.target !== e.currentTarget) return;
       const step = 40;
       if (e.key === "+" || e.key === "=") zoomAt(1.25);
       else if (e.key === "-" || e.key === "_") zoomAt(0.8);
