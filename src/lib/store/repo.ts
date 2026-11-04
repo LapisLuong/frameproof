@@ -6,6 +6,8 @@ import { buildLocalIssues } from "../review/engine";
 import { sortIssues, type ReviewIssue } from "../review/types";
 import { getAll, getByProject, getOne, newId, put, remove, type StoreName } from "./db";
 import type { AiStatus, Asset, InspirationRef, Project, Review, StyleSystem } from "./models";
+import { recordSchemas, validateRecords, sortRecentProjects } from "./validation";
+import { toast } from "@/components/Toast";
 import { withBase } from "../base-path";
 
 /* ---------- change notifications (so open views refresh after a save) ---------- */
@@ -18,6 +20,20 @@ export function subscribe(fn: Listener): () => void {
 }
 function emit(store: StoreName) {
   for (const fn of listeners) fn(store);
+}
+
+async function readAll<T>(store: StoreName, projectId?: string): Promise<T[]> {
+  const raw = projectId && (store === "assets" || store === "reviews") ? await getByProject<unknown>(store, projectId) : await getAll<unknown>(store);
+  const result = validateRecords(store, raw);
+  if (result.skipped) toast(`${result.skipped} invalid ${store} records were skipped. They remain in local storage.`);
+  return result.records as T[];
+}
+async function readOne<T>(store: StoreName, id: string): Promise<T | undefined> {
+  const raw = await getOne<unknown>(store, id);
+  if (raw === undefined) return undefined;
+  const result = recordSchemas[store].safeParse(raw);
+  if (!result.success) { toast(`1 invalid ${store} record was skipped. It remains in local storage.`); return undefined; }
+  return result.data as T;
 }
 
 /* ---------- assets ---------- */
@@ -44,16 +60,16 @@ export async function saveAsset(file: Blob, name: string, projectId: string | nu
   return asset;
 }
 
-export const getAsset = (id: string) => getOne<Asset>("assets", id);
-export const listAssets = () => getAll<Asset>("assets");
+export const getAsset = (id: string) => readOne<Asset>("assets", id);
+export const listAssets = () => readAll<Asset>("assets");
 
 /* ---------- projects ---------- */
 
 export async function listProjects(): Promise<Project[]> {
-  return (await getAll<Project>("projects")).sort((a, b) => b.updatedAt - a.updatedAt);
+  return sortRecentProjects(await readAll<Project>("projects"));
 }
 
-export const getProject = (id: string) => getOne<Project>("projects", id);
+export const getProject = (id: string) => readOne<Project>("projects", id);
 
 export async function createProject(name: string, brief = "", opts: { sample?: boolean } = {}): Promise<Project> {
   const now = Date.now();
@@ -82,7 +98,7 @@ export async function updateProject(id: string, patch: Partial<Pick<Project, "na
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  const [assets, reviews] = await Promise.all([getByProject<Asset>("assets", id), getByProject<Review>("reviews", id)]);
+  const [assets, reviews] = await Promise.all([readAll<Asset>("assets", id), readAll<Review>("reviews", id)]);
   await remove(
     "reviews",
     reviews.map((r) => r.id),
@@ -105,14 +121,14 @@ export async function setProjectImage(projectId: string, role: "reference" | "cu
 /* ---------- reviews ---------- */
 
 export async function listReviews(projectId: string): Promise<Review[]> {
-  return (await getByProject<Review>("reviews", projectId)).sort((a, b) => b.version - a.version);
+  return (await readAll<Review>("reviews", projectId)).sort((a, b) => b.version - a.version);
 }
 
 export async function listAllReviews(): Promise<Review[]> {
-  return (await getAll<Review>("reviews")).sort((a, b) => b.createdAt - a.createdAt);
+  return (await readAll<Review>("reviews")).sort((a, b) => b.createdAt - a.createdAt);
 }
 
-export const getReview = (id: string) => getOne<Review>("reviews", id);
+export const getReview = (id: string) => readOne<Review>("reviews", id);
 
 /** Run the local (deterministic) review for the project's current image pair and save it as a new version. */
 export async function runLocalReview(projectId: string): Promise<Review> {
@@ -179,12 +195,12 @@ export async function deleteReview(id: string): Promise<void> {
 /* ---------- inspiration ---------- */
 
 export async function listReferences(): Promise<InspirationRef[]> {
-  return (await getAll<InspirationRef>("references")).sort((a, b) => b.createdAt - a.createdAt);
+  return (await readAll<InspirationRef>("references")).sort((a, b) => b.createdAt - a.createdAt);
 }
 
 export async function saveReference(input: Omit<InspirationRef, "id" | "createdAt" | "updatedAt"> & { id?: string }): Promise<InspirationRef> {
   const now = Date.now();
-  const prev = input.id ? await getOne<InspirationRef>("references", input.id) : undefined;
+  const prev = input.id ? await readOne<InspirationRef>("references", input.id) : undefined;
   const ref: InspirationRef = {
     ...input,
     id: input.id ?? newId("ref"),
@@ -199,7 +215,7 @@ export async function saveReference(input: Omit<InspirationRef, "id" | "createdA
 }
 
 export async function deleteReference(id: string): Promise<void> {
-  const ref = await getOne<InspirationRef>("references", id);
+  const ref = await readOne<InspirationRef>("references", id);
   await remove("references", [id]);
   if (ref?.assetId) await remove("assets", [ref.assetId]);
   emit("references");
@@ -208,9 +224,9 @@ export async function deleteReference(id: string): Promise<void> {
 /* ---------- styles ---------- */
 
 export async function listStyles(): Promise<StyleSystem[]> {
-  return (await getAll<StyleSystem>("styles")).sort((a, b) => b.updatedAt - a.updatedAt);
+  return (await readAll<StyleSystem>("styles")).sort((a, b) => b.updatedAt - a.updatedAt);
 }
-export const getStyle = (id: string) => getOne<StyleSystem>("styles", id);
+export const getStyle = (id: string) => readOne<StyleSystem>("styles", id);
 
 export async function saveStyle(style: StyleSystem): Promise<StyleSystem> {
   const next = { ...style, updatedAt: Date.now() };
@@ -241,4 +257,11 @@ export async function createSampleProject(): Promise<Project> {
   const ref = await saveAsset(refBlob, "reference-poster.png", project.id, { sample: true });
   const cur = await saveAsset(curBlob, "current-poster.png", project.id, { sample: true });
   return updateProject(project.id, { referenceAssetId: ref.id, currentAssetId: cur.id });
+}
+
+export async function markProjectOpened(id: string): Promise<void> {
+  const project = await getProject(id);
+  if (!project) throw new Error("This project no longer exists.");
+  await put("projects", { ...project, lastOpenedAt: Date.now() });
+  emit("projects");
 }
