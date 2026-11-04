@@ -73,7 +73,7 @@ await page.screenshot({ path: `${out}/06-library-1440.png`, fullPage: true });
 await page.goto(`${base}/analyze`);
 await page.getByRole("link", { name: "reference-poster.png" }).first().click();
 await page.getByRole("button", { name: "Save palette as a style" }).click();
-await page.waitForURL(/styles\?id=/);
+await page.waitForURL(/\/styles\/?\?id=/);
 await page.getByRole("heading", { name: "Palette" }).waitFor();
 await page.waitForTimeout(300);
 await page.screenshot({ path: `${out}/07-styles-1440.png`, fullPage: true });

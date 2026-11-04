@@ -65,6 +65,8 @@ test.describe("Event poster journey", () => {
     // Notes save
     await page.getByLabel("Your notes on this review").fill("Try a bigger serif title.");
     await page.getByRole("button", { name: "Save notes" }).click();
+    // The button stays disabled until the next edit, so this waits for the IndexedDB write, not a stale "Saved".
+    await expect(page.getByRole("button", { name: "Save notes" })).toBeDisabled();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
 
     // Persists across reload
@@ -174,12 +176,13 @@ test.describe("Libraries", () => {
     await page.getByTestId("contrast-b").selectOption("#F4F1EA");
     await expect(page.getByTestId("contrast-ratio")).toHaveText("3.73:1");
     await page.getByRole("button", { name: "Save palette as a style" }).click();
-    await page.waitForURL(/styles\?id=/);
+    await page.waitForURL(/\/styles\/?\?id=/);
     await expect(page.getByText("Measured, 62% of pixels")).toBeVisible();
     await page.getByLabel("Display").fill("Lora");
     await page.getByLabel("Spacing tokens").fill("sm: 8px\nmd: 16px\nbad: url(x);}");
     await page.getByRole("button", { name: "Save style" }).click();
-    // A click starts the async save; wait for the IndexedDB commit before reloading.
+    // A click starts the async save; wait for the IndexedDB commit (the button disables) before reloading.
+    await expect(page.getByRole("button", { name: "Save style" })).toBeDisabled();
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await page.reload();
     await expect(page.getByLabel("Display")).toHaveValue("Lora");
@@ -232,7 +235,8 @@ test.describe("Server and platform", () => {
       });
       expect(await measurements.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
     }
-    for (const path of ["/", "/analyze", "/library", "/styles", new URL(page.url()).pathname]) {
+    const project = new URL(page.url());
+    for (const path of ["/", "/analyze", "/library", "/styles", project.pathname + project.search]) {
       await page.goto(path);
       await page.waitForLoadState("networkidle");
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

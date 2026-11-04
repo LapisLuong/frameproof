@@ -238,7 +238,7 @@ function ReviewControls({
 
   // Warn before leaving with unsaved notes.
   useEffect(() => {
-    if (notesState !== "dirty") return;
+    if (notesState === "saved") return;
     const h = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", h);
     return () => window.removeEventListener("beforeunload", h);
@@ -342,7 +342,7 @@ function ReviewControls({
                 {notesState === "saving" ? "Saving…" : "Save notes"}
               </button>
               <span className="t-small" aria-live="polite">
-                {notesState === "dirty" ? "Unsaved changes" : "Saved"}
+                {notesState === "dirty" ? "Unsaved changes" : notesState === "saving" ? "Saving…" : "Saved"}
               </span>
             </div>
           </div>
