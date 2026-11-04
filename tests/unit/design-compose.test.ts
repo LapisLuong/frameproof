@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { composeConcepts, fitText, layerRole, pickTemplates } from "@/lib/design/compose";
-import { paletteFromMeasured, type ArtDirection } from "@/lib/design/direction";
+import { directionFromAnswer, paletteFromMeasured, type ArtDirection } from "@/lib/design/direction";
 import { approxMeasure, layoutText } from "@/lib/design/layout";
 import { DesignDocSchema, referencedResources, type TextLayer } from "@/lib/design/schema";
 import { renderSvg } from "@/lib/design/render";
@@ -43,10 +43,15 @@ describe("concept composer", () => {
     for (const c of composeConcepts(base)) {
       const texts = c.doc.layers.filter((l): l is TextLayer => l.type === "text");
       const title = texts.find((l) => layerRole(l) === "title");
-      expect(title?.text).toBe("Gốm Bát Tràng");
+      expect(title?.text.toLocaleLowerCase("vi")).toBe("gốm bát tràng");
       const visible = texts.filter((l) => !l.hidden).map((l) => l.text).join("\n");
       for (const line of brief.lines) expect(visible).toContain(line);
-      for (const l of texts) if (["kicker", "credit", "body"].includes(layerRole(l) ?? "")) expect(l.hidden).toBe(true);
+      // Template sample copy never survives: those layers are hidden, or (rhythm bands) repeat the brief's own words.
+      const own = [brief.title, ...brief.lines].join(" ").toLocaleUpperCase("vi");
+      for (const l of texts) {
+        if (!["kicker", "credit", "body"].includes(layerRole(l) ?? "")) continue;
+        if (!l.hidden) for (const w of l.text.split(/\s+/)) expect(own).toContain(w.toLocaleUpperCase("vi"));
+      }
     }
   });
 
@@ -101,9 +106,38 @@ describe("concept composer", () => {
     }
   });
 
-  it("leaves a deliberately cropped title at its size", () => {
-    const l = { ...(TEMPLATES[0]!.layers.find((x) => x.type === "text" && /\(cropped\)/i.test(x.name)) as TextLayer) };
-    if (l.id) expect(fitText({ ...l, text: "Một tiêu đề rất rất dài" }, approxMeasure).size).toBe(l.size);
+  it("keeps a deliberately cropped title at its size while it fits the height, and never grows its box", () => {
+    const l = TEMPLATES.flatMap((t) => t.layers).find((x): x is TextLayer => x.type === "text" && /\(cropped\)/i.test(x.name))!;
+    expect(fitText({ ...l, text: "ĐÊM" }, approxMeasure, 5000, l.text).size).toBe(l.size);
+    const long = fitText({ ...l, text: "Dạ hành khúc mùa đông" }, approxMeasure, 5000, l.text);
+    expect(long.size).toBeLessThan(l.size);
+    expect(long.h).toBe(l.h);
+  });
+
+  it("puts the subtitle in a kicker when there's no subtitle slot, and repeats brief words in rhythm bands", () => {
+    const music = TEMPLATES.find((t) => t.id === "tpl_music")!;
+    const [c] = composeConcepts({ ...base, templates: [music], brief: { ...brief, title: "Dạ hành khúc", subtitle: "Coming soon" } }, 1);
+    const texts = c!.doc.layers.filter((l): l is TextLayer => l.type === "text" && !l.hidden).map((l) => l.text);
+    expect(texts).toContain("DẠ HÀNH KHÚC");
+    expect(texts).toContain("COMING SOON");
+    // Every visible word comes from the brief, never from the template's sample copy.
+    const brieftext = ["Dạ hành khúc", "Coming soon", ...brief.lines].join(" ").toLocaleUpperCase("vi");
+    for (const t of texts) for (const w of t.split(/\s+/)) expect(brieftext).toContain(w.toLocaleUpperCase("vi"));
+    expect(c!.notes.join(" ")).toContain("rhythm band");
+  });
+});
+
+describe("AI direction applied to the composer", () => {
+  it("composes with the AI's fonts and colours, not the direction that was on screen before", () => {
+    // Same answer as Codex's state probe: Playfair Display with a #101033 ground.
+    const answer = { palette: [{ hex: "#101033", role: "ground" as const }, { hex: "#F2E6C9", role: "ink" as const }, { hex: "#C9A24B", role: "accent" as const }], fonts: { display: "playfair-display", text: "archivo" }, notes: "Night blue and gold." };
+    const next = directionFromAnswer(answer, direction.concepts);
+    expect(next.fonts).toEqual({ display: "playfair-display", text: "archivo", origin: "ai-suggested" });
+    for (const c of composeConcepts({ ...base, direction: next })) {
+      expect(c.doc.background).toBe("#101033");
+      const title = c.doc.layers.find((l): l is TextLayer => l.type === "text" && layerRole(l) === "title")!;
+      expect(title.font).toBe("playfair-display");
+    }
   });
 });
 

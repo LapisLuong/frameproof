@@ -75,30 +75,33 @@ export function pickTemplates(templates: Template[], concepts: ArtDirection["con
 /**
  * Fit a text layer's text into its box without splitting a word: shrink down to 25% of the template size, then, if
  * the text still doesn't fit, let the box grow downwards as far as the canvas allows. Returns the size and height
- * used and whether it fits. Layers named "(cropped)" are left alone: running off the edge is the idea.
+ * used and whether it fits. Layers named "(cropped)" run off the side on purpose: they keep their size while the text
+ * fits the box's height, and their box never grows.
  */
-export function fitText(l: TextLayer, measure: Measure, canvasHeight = Infinity): { size: number; h: number; fits: boolean } {
-  if (/\(cropped\)/i.test(l.name)) return { size: l.size, h: l.h, fits: true };
+export function fitText(l: TextLayer, measure: Measure, canvasHeight = Infinity, sample?: string): { size: number; h: number; fits: boolean } {
+  const cropped = /\(cropped\)/i.test(l.name);
   const words = l.text.split(/\s+/).filter(Boolean);
+  // A cropped title may overhang its box as the template's own sample does; it may not take more lines than that.
+  const maxLines = cropped ? layoutText({ ...l, text: sample ?? l.text }, measure).lines.length : Infinity;
   const check = (size: number, h: number) => {
     const out = layoutText({ ...l, size, h }, measure);
     // A split word shows up as line fragments that aren't whole words of the text.
     const whole = out.lines.every((line) => line.text.split(/\s+/).filter(Boolean).every((w) => words.includes(w)));
-    return { whole, overflows: out.overflows, blockHeight: out.blockHeight };
+    const ok = whole && (cropped ? out.lines.length <= maxLines : !out.overflows);
+    return { ok, whole, blockHeight: out.blockHeight };
   };
   let size = l.size;
   const min = Math.max(4, l.size * 0.25);
   let r = check(size, l.h);
-  while (size > min && (!r.whole || r.overflows)) {
+  while (size > min && !r.ok) {
     size = Math.max(min, Math.floor(size * 0.94));
     r = check(size, l.h);
   }
-  if (r.whole && !r.overflows) return { size, h: l.h, fits: true };
+  if (r.ok || cropped) return { size, h: l.h, fits: r.ok };
   // Still too long: grow the box (only downwards, never past the canvas edge) at the smallest size that keeps words whole.
   const room = Math.max(l.h, canvasHeight - l.y - Math.min(40, canvasHeight * 0.03));
   const h = Math.min(room, Math.ceil(r.blockHeight + 1));
-  r = check(size, h);
-  return { size, h, fits: r.whole && !r.overflows };
+  return { size, h, fits: check(size, h).ok };
 }
 
 function setFont(l: TextLayer, font: FontRef): TextLayer {
@@ -120,6 +123,13 @@ function composeOne(t: Template, input: ComposeInput, index: number, pictures: s
   let photo = 0;
   let filled = 0;
   const tooLong: string[] = [];
+  let repeated = 0;
+  let rhythmAt = 0;
+  const rhythm = [brief.title, brief.subtitle].filter((x): x is string => !!x && x.trim().length > 0);
+  // No subtitle slot in this template: the first kicker carries the subtitle instead of dropping it.
+  const hasSubtitle = doc.layers.some((l) => l.type === "text" && layerRole(l) === "subtitle");
+  const subtitleGoesTo = hasSubtitle ? null : (doc.layers.find((l) => l.type === "text" && layerRole(l) === "kicker")?.id ?? null);
+  const subtitleDropped = !!brief.subtitle && !hasSubtitle && !subtitleGoesTo && !doc.layers.some((l) => l.type === "text" && layerRole(l) === "body" && l.size >= RHYTHM_SIZE);
 
   const layers: Layer[] = doc.layers.map((l) => {
     const role = layerRole(l);
@@ -132,30 +142,35 @@ function composeOne(t: Template, input: ComposeInput, index: number, pictures: s
     }
     if (l.type !== "text") return l;
     let next: TextLayer = setFont(l, usesDisplay(role, l) ? direction.fonts.display : direction.fonts.text);
-    if (role === "title") next = { ...next, text: brief.title };
-    else if (role === "subtitle") {
-      if (brief.subtitle) next = { ...next, text: brief.subtitle };
-      else {
-        next = { ...next, hidden: true };
-        hidden++;
-      }
+    const hide = () => {
+      next = { ...next, hidden: true };
+      hidden++;
+    };
+    // Templates that set their sample words in capitals keep doing so: that's a type decision, not content.
+    const cased = (text: string) => (isCaps(l.text) ? text.toLocaleUpperCase("vi") : text);
+    if (role === "title") next = { ...next, text: cased(brief.title) };
+    else if (role === "subtitle" || (role === "kicker" && subtitleGoesTo === l.id)) {
+      if (brief.subtitle) next = { ...next, text: cased(brief.subtitle) };
+      else hide();
     } else if (role === "info") {
       const pos = infoLayers.indexOf(l.id);
       const last = pos === infoLayers.length - 1;
       // Extra brief lines go into the last information block rather than being dropped.
       const text = last ? lines.slice(pos).join("\n") : (lines[pos] ?? "");
       if (text) next = { ...next, text };
-      else {
-        next = { ...next, hidden: true };
-        hidden++;
-      }
+      else hide();
+    } else if (role === "body" && l.size >= RHYTHM_SIZE) {
+      // Display-size "body" words are the template's rhythm (repeated bands of type). They repeat the brief's own
+      // words, alternating title and subtitle, so the concept keeps its structure without inventing copy.
+      const words = rhythm[rhythmAt++ % rhythm.length]!;
+      next = { ...next, text: cased(words) };
+      repeated++;
     } else if (role === "kicker" || role === "credit" || role === "body") {
       // Template sample words the brief doesn't replace are hidden, not left in as fake content.
-      next = { ...next, hidden: true };
-      hidden++;
+      hide();
     }
-    if (!next.hidden && (role === "title" || role === "subtitle" || role === "info")) {
-      const fit = fitText(next, measure, doc.height);
+    if (!next.hidden && (role === "title" || role === "subtitle" || role === "info" || role === "kicker" || role === "body")) {
+      const fit = fitText(next, measure, doc.height, l.text);
       if (fit.size !== next.size || fit.h !== next.h) next = { ...next, size: fit.size, h: fit.h };
       if (!fit.fits) tooLong.push(next.name);
     }
@@ -171,12 +186,18 @@ function composeOne(t: Template, input: ComposeInput, index: number, pictures: s
   notes.push(`Type set in ${fontLabel(direction.fonts.display)} and ${fontLabel(direction.fonts.text)}; colours mapped onto your palette by role.`);
   if (filled) notes.push(`${filled} picture slot${filled === 1 ? "" : "s"} filled in the order given.`);
   else if (doc.layers.some((l) => l.type === "image" && l.resourceId === null)) notes.push("Picture slots are empty: add pictures to fill them.");
+  if (repeated) notes.push(`${repeated} rhythm band${repeated === 1 ? " repeats" : "s repeat"} your title${rhythm.length > 1 ? " and subtitle" : ""}, as the template repeats its sample words.`);
+  if (subtitleDropped) notes.push("This template has no place for a subtitle, so yours isn't shown. Add a text layer for it if you need it.");
   if (hidden) notes.push(`${hidden} template text layer${hidden === 1 ? " was" : "s were"} hidden because the brief has nothing for ${hidden === 1 ? "it" : "them"}; show ${hidden === 1 ? "it" : "them"} in Layers.`);
   if (tooLong.length) notes.push(`${tooLong.join(", ")}: the text is too long for this layout even at a quarter of its size. Shorten it or enlarge the box.`);
   if (choice?.note) notes.push(`AI note: ${choice.note}`);
   const method: ComposeMethod = choice && input.model ? { kind: "ai-directed", templateId: t.id, model: input.model } : { kind: "deterministic", templateId: t.id };
   return { doc, method, notes };
 }
+
+/** Display-size "body" text (rhythm bands) versus small prose. */
+const RHYTHM_SIZE = 90;
+const isCaps = (t: string) => /\p{L}/u.test(t) && t === t.toLocaleUpperCase("vi");
 
 const fontLabel = (f: FontRef) => (isBuiltinFont(f) ? BUILTIN_FONTS[f].label : "your font");
 

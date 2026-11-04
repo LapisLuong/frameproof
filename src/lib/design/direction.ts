@@ -85,3 +85,17 @@ export const DEFAULT_PALETTE: Swatch[] = [
   { hex: "#c65a42", role: "accent", origin: "manual" },
   { hex: "#7d8c84", role: "support", origin: "manual" },
 ];
+
+/**
+ * The direction an AI answer describes, built in one step so the composer uses it directly. (Setting React state and
+ * then composing in the same handler reads the previous direction: that was a real bug.)
+ */
+export function directionFromAnswer(answer: { palette: Array<{ hex: string; role: ColourRole }>; fonts: { display: string; text: string }; notes: string }, concepts: ArtDirection["concepts"]): ArtDirection {
+  return ArtDirectionSchema.parse({
+    palette: answer.palette.map((s) => ({ hex: s.hex, role: s.role, origin: "ai-suggested" })),
+    fonts: { display: answer.fonts.display, text: answer.fonts.text, origin: "ai-suggested" },
+    concepts,
+    conceptsOrigin: "ai-suggested",
+    notes: answer.notes,
+  });
+}

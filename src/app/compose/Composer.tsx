@@ -11,7 +11,7 @@ import { useStore } from "@/hooks/useStore";
 import { BUILTIN_ART, getBuiltinArt } from "@/lib/design/art";
 import { cssFamily, loadDocFonts, measureText } from "@/lib/design/browser";
 import { composeConcepts, type Concept } from "@/lib/design/compose";
-import { COLOUR_ROLES, DEFAULT_PALETTE, paletteFromMeasured, type ArtDirection, type Brief, type ColourRole, type Swatch } from "@/lib/design/direction";
+import { COLOUR_ROLES, DEFAULT_PALETTE, directionFromAnswer, paletteFromMeasured, type ArtDirection, type Brief, type ColourRole, type Swatch } from "@/lib/design/direction";
 import { artUrl } from "@/lib/design/exporters";
 import { BUILTIN_FONT_IDS, BUILTIN_FONTS, type BuiltinFontId } from "@/lib/design/fonts";
 import { TEMPLATE_CONCEPTS, type Template } from "@/lib/design/library";
@@ -105,7 +105,7 @@ export function Composer() {
   const direction: ArtDirection = { palette, fonts, concepts, conceptsOrigin, notes: aiResult?.notes ?? "" };
   const canCompose = brief.title.trim().length > 0 && palette.length >= 2;
 
-  const compose = async (choices?: AiDirectionResult) => {
+  const compose = async (choices?: AiDirectionResult, dir: ArtDirection = direction) => {
     const lines = linesText
       .split("\n")
       .map((l) => l.trim())
@@ -114,7 +114,7 @@ export function Composer() {
     const b: Brief = { ...brief, title: brief.title.trim(), lines };
     const out = composeConcepts({
       brief: b,
-      direction,
+      direction: dir,
       pictures,
       templates: TEMPLATES,
       measure: measureText,
@@ -125,7 +125,7 @@ export function Composer() {
     // Re-compose once real font metrics are in, so text fitting uses them.
     const fitted = composeConcepts({
       brief: b,
-      direction,
+      direction: dir,
       pictures,
       templates: TEMPLATES,
       measure: measureText,
@@ -146,11 +146,13 @@ export function Composer() {
         brief: { ...brief, lines: linesText.split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 8) },
         allowed: { fontIds: [...BUILTIN_FONT_IDS], templateIds: TEMPLATES.map((t) => t.id), imageIds: pictures.map((p) => p.id) },
       });
+      // Compose from the AI's direction itself; the state set here is only read on the next render.
+      const next = directionFromAnswer(result, concepts);
       setAiResult(result);
-      setPalette(result.palette.map((s) => ({ ...s, origin: "ai-suggested" as const })));
-      setFonts({ display: result.fonts.display, text: result.fonts.text, origin: "ai-suggested" });
+      setPalette(next.palette);
+      setFonts(next.fonts);
       setConceptsOrigin("ai-suggested");
-      await compose(result);
+      await compose(result, next);
     } catch (e) {
       setAiError(e instanceof Error ? e.message : "The AI direction failed.");
     } finally {
