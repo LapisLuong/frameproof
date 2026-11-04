@@ -8,9 +8,9 @@ Last verified: 4 Nov 2026, on Linux (Node 22, Chromium 1243) and macOS arm64 (No
 | --- | --- |
 | `npm run typecheck` (strict, `noUncheckedIndexedAccess`) | pass |
 | `npm run lint` (eslint-config-next core-web-vitals + TypeScript) | pass, 0 warnings |
-| `npm test` (Vitest) | 37 / 37 pass — colour conversion, WCAG, palette, structure, similarity, aspect labels, upload validation (PNG/JPEG headers, bombs, fake files), review rules, AI config/validation/retry |
+| `npm test` (Vitest) | 43 / 43 pass on `feat/finding-anchors` (adds `tests/unit/anchors.test.ts`) — colour conversion, WCAG, palette, structure, similarity, aspect labels, upload validation (PNG/JPEG headers, bombs, fake files), review rules, AI config/validation/retry |
 | `npm run build` | pass on Linux and macOS |
-| `npm run test:e2e` (Playwright) | 9 / 9 pass — full journey, fake-image rejection, library, analyzer → style → CSS, AI route unconfigured, keyboard skip link, sample project with no horizontal overflow at 1440 and 390 px, reduced motion |
+| `npm run test:e2e` (Playwright) | 12 / 12 with the e2e save-race fix on `fix/style-save-e2e` (11 / 12 without it); adds `tests/e2e/anchors.spec.ts` (marks at 1440 and 390 px, mark → note focus, resolve hides marks, layered modes) — full journey, fake-image rejection, library, analyzer → style → CSS, AI route unconfigured, keyboard skip link, sample project with no horizontal overflow at 1440 and 390 px, reduced motion |
 
 The end-to-end journey covers: create project → upload reference and current → automatic local review → genuine
 sizes in the measurement table → slider, overlay and difference modes → mark a note resolved → save notes →
@@ -39,7 +39,7 @@ ChatGPT (GPT-6.1, Work mode) reviewed five screenshots without having seen the b
 | Configuration text interrupts the review | Fixed: moved to README; review shows "Local measurements only." |
 | Library previews too small | Fixed: 15 rem previews, wider grid |
 | Repeated metadata stacks feel generated | Fixed: one metadata line; confidence moved into "How to fix it" |
-| Numbered anchors on the artwork | Deferred — only one rule has a location today (see milestones) |
+| Numbered anchors on the artwork | Done (milestone 4) — the centre-of-detail note is marked on both images; whole-image notes say so |
 | Sample current poster looks deliberately weak | Acknowledged; it is a teaching sample and is labelled "Sample" |
 
 Gemini 3.1 Pro reviewed the computer-vision and security plan in round 1 (k-means in Oklab, SSIM/dHash parameters,
@@ -58,14 +58,19 @@ failed (clipboard and CSP restrictions), so the **independent code review is sti
 - Fonts, spacing tokens and radii can't be recovered from screenshots; styles take them as user input.
 - SVG, HEIC and PDF uploads are not supported. Animated GIF/WebP are analysed on their first frame.
 - The comparison difference map uses fit-contain letterboxing when formats differ; the grey bands are visible and labelled.
+- Numbered marks: only the centre-of-detail rule has a measured location, so at most one note is marked. Marks show
+  in side by side only (layered modes letterbox the current image). A mark sits on the measured point and can cover a
+  glyph there; zoom in or resolve the note to clear it.
 - `npm` prints a deprecation notice for ESLint 9 (see AGENTS.md → Dependencies for why it is kept).
 
 ## Next milestones
 
 1. **Deploy the demo to Vercel** (Hobby, no AI key). The user approved a public demo; confirm once more before the final Deploy click.
-2. **Independent code review** of `src/lib/image/validate.ts`, `src/lib/analysis/*`, `src/lib/color/*`,
+2. ~~Independent code review~~ — done by Codex, 4 findings (0 high, 2 medium, 2 low), all verified and fixed on
+   `fix/review-findings`; see `docs/reviews/codex-review.md` on that branch. Original scope:  `src/lib/image/validate.ts`, `src/lib/analysis/*`, `src/lib/color/*`,
    `src/app/api/review/route.ts`, `src/lib/ai/provider.ts` — concrete defects only, each verified with a failing test before fixing.
 3. **Run AI review against a real key** (Anthropic or OpenAI-compatible) and add a recorded-response test fixture.
-4. **Numbered anchors on the artwork** for findings with a location (detail centroid), plus an "Overall" group for whole-image findings.
+4. ~~Numbered anchors on the artwork~~ — done on `feat/finding-anchors`. Notes stay in one priority-ordered list and are
+   labelled "On the artwork" or "Whole image" (separate groups put a low-priority note above high ones).
 5. Move analysis into a Web Worker for very large images; add a mobile E2E test for the Reference/Current toggle.
 6. P2: website screenshot analysis, PPTX analysis, Supabase sync, team review, visual regression.

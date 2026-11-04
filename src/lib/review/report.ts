@@ -60,6 +60,7 @@ export function reviewToMarkdown(project: Project, review: Review): string {
         `- **What to change:** ${mdEscape(i.recommendation)}`,
       );
       if (i.preserve) lines.push(`- **What to keep:** ${mdEscape(i.preserve)}`);
+      if (i.anchors?.length) lines.push(`- **Location:** ${i.anchors.map((a) => `${a.image} ${pct(a.x)} across, ${pct(a.y)} down`).join("; ")}`);
       if (i.evidence.length) lines.push(`- **Evidence:** ${i.evidence.map((e) => `${mdEscape(e.label)} \`${e.value.replace(/`/g, "'")}\``).join("; ")}`);
       lines.push("");
     });

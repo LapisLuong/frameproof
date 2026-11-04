@@ -26,6 +26,7 @@ export const THRESHOLDS = {
 } as const;
 
 const pct = (v: number, digits = 0) => `${(v * 100).toFixed(digits)}%`;
+const unit = (v: number) => (Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5);
 const lab = (s: StoredSwatch) => rgbToOklab(hexToRgb(s.hex)!);
 
 function nearest(target: StoredSwatch, pool: StoredSwatch[]): { swatch: StoredSwatch | null; d: number } {
@@ -302,6 +303,10 @@ export function runRules({ reference: R, current: C, comparison: X }: RuleContex
       evidence: [
         { label: "Reference centre", value: `${pct(R.structure.detailCentroid.x)}, ${pct(R.structure.detailCentroid.y)}` },
         { label: "Current centre", value: `${pct(C.structure.detailCentroid.x)}, ${pct(C.structure.detailCentroid.y)}` },
+      ],
+      anchors: [
+        { image: "reference", x: unit(R.structure.detailCentroid.x), y: unit(R.structure.detailCentroid.y), label: "Reference centre of detail" },
+        { image: "current", x: unit(C.structure.detailCentroid.x), y: unit(C.structure.detailCentroid.y), label: "Current centre of detail" },
       ],
     });
   }

@@ -5,7 +5,7 @@ import { compareBuffers } from "@/lib/analysis/analyze";
 import { pixelsFromBlob } from "@/lib/image/decode";
 import type { Asset } from "@/lib/store/models";
 import { useObjectUrl } from "@/hooks/useStore";
-import { ImageViewer } from "./ImageViewer";
+import { ImageViewer, type ArtworkMark } from "./ImageViewer";
 import { FIT, useZoomPan, type View } from "./useZoomPan";
 
 export type CompareMode = "side" | "slider" | "overlay" | "diff";
@@ -134,7 +134,23 @@ function useNarrow(query = "(max-width: 640px)") {
   return narrow;
 }
 
-export function CompareStage({ reference, current }: { reference: Asset; current: Asset }) {
+export type StageMarks = { reference: ArtworkMark[]; current: ArtworkMark[] };
+const NO_MARKS: StageMarks = { reference: [], current: [] };
+
+export function CompareStage({
+  reference,
+  current,
+  marks = NO_MARKS,
+  selectedId,
+  onSelect,
+}: {
+  reference: Asset;
+  current: Asset;
+  marks?: StageMarks;
+  selectedId?: string | null;
+  onSelect?: (id: string) => void;
+}) {
+  const hasMarks = marks.reference.length + marks.current.length > 0;
   const [mode, setMode] = useState<CompareMode>("side");
   const narrow = useNarrow();
   const [shown, setShown] = useState<"reference" | "current">("reference");
@@ -252,6 +268,9 @@ export function CompareStage({ reference, current }: { reference: Asset; current
           label={shown === "reference" ? "Reference" : "Current"}
           height="22.5rem"
           shared={{ view: sharedView, onView: setSharedView }}
+          marks={shown === "reference" ? marks.reference : marks.current}
+          selectedId={selectedId}
+          onMark={onSelect}
         />
       ) : null}
       {mode === "side" && !narrow && refUrl && curUrl ? (
@@ -262,6 +281,9 @@ export function CompareStage({ reference, current }: { reference: Asset; current
             label="Reference"
             height="min(64vh, 40rem)"
             shared={linked ? { view: sharedView, onView: setSharedView } : undefined}
+            marks={marks.reference}
+            selectedId={selectedId}
+            onMark={onSelect}
           />
           <ImageViewer
             src={curUrl}
@@ -269,6 +291,9 @@ export function CompareStage({ reference, current }: { reference: Asset; current
             label="Current"
             height="min(64vh, 40rem)"
             shared={linked ? { view: sharedView, onView: setSharedView } : undefined}
+            marks={marks.current}
+            selectedId={selectedId}
+            onMark={onSelect}
           />
         </div>
       ) : null}
@@ -284,6 +309,7 @@ export function CompareStage({ reference, current }: { reference: Asset; current
           : sameAspect
             ? "Both images are fitted into the reference's frame without stretching."
             : "The formats differ, so the current design is letterboxed inside the reference's frame — it is never stretched."}
+        {hasMarks ? (mode === "side" ? " Numbered marks point to notes in the margin." : " Numbered marks show in side by side.") : ""}
         {mode === "diff" && diffInfo
           ? ` ${(diffInfo.changed * 100).toFixed(1)}% of the area changed lightness by more than 10%. Brighter red means a bigger change; differences are amplified 2.5× for visibility. ${diffInfo.note}`
           : ""}
