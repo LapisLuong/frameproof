@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useDraftGuard, withDraftGuard } from "@/components/ConfirmDialog";
 import { Thumb } from "@/components/Thumb";
+import { DesignPreview, useDesignFonts } from "@/components/design/DesignPreview";
+import { STARTERS, starterDoc } from "@/lib/design/starters";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
-import { createProject, createSampleProject, listAllReviews, listAssets, listProjects, listStyles } from "@/lib/store/repo";
+import { createProject, createSampleProject, listAllReviews, listAssets, listProjects, listStyles, saveNewDesign } from "@/lib/store/repo";
 import type { Asset, Project, Review, StyleSystem } from "@/lib/store/models";
 
 const fmtDate = (t: number) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(t);
@@ -100,6 +102,54 @@ function NewProjectForm({ inputRef }: { inputRef: React.RefObject<HTMLInputEleme
   );
 }
 
+/** First thing on the Desk: finished designs to open and edit straight away, and the brief-led path. */
+function DesignStart() {
+  const router = useRouter();
+  const docs = useMemo(() => STARTERS.slice(0, 6).map((st) => starterDoc(st, `desk-${st.id}`, 0)), []);
+  const fontsVersion = useDesignFonts(docs);
+  const [busy, setBusy] = useState(false);
+  const open = async (i: number) => {
+    setBusy(true);
+    try {
+      const d = await saveNewDesign(starterDoc(STARTERS[i]!, "new"));
+      router.push(`/design?id=${encodeURIComponent(d.id)}`);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "The design couldn't be created.");
+      setBusy(false);
+    }
+  };
+  return (
+    <section aria-labelledby="design-start-h" className="desk-design">
+      <div className="desk-design-head">
+        <div>
+          <h2 id="design-start-h" className="t-heading">
+            Design a poster or cover
+          </h2>
+          <p className="t-meta">Start from a brief, or open a finished starter and change anything in it. Every word, colour and picture is a layer.</p>
+        </div>
+        <div className="desk-design-actions">
+          <Link href="/compose" className="btn btn-primary">
+            Create from a brief
+          </Link>
+          <Link href="/design" className="btn">
+            All templates and designs
+          </Link>
+        </div>
+      </div>
+      <ul className="design-cards desk-starters" data-testid="desk-starters">
+        {docs.map((d, i) => (
+          <li key={d.id}>
+            <button type="button" className="design-card" disabled={busy} onClick={() => void open(i)} aria-label={`Edit starter: ${STARTERS[i]!.template.name}`}>
+              <DesignPreview doc={d} fontsVersion={fontsVersion} />
+              <span className="t-small">{STARTERS[i]!.template.name}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function Desk() {
   const router = useRouter();
   const data = useStore(loadDesk, ["projects", "assets", "reviews", "styles"]);
@@ -147,6 +197,10 @@ export function Desk() {
             <h1 className="t-display">Desk</h1>
             <p className="t-meta">{projects.length === 0 ? "Nothing here yet" : `${projects.length} ${projects.length === 1 ? "project" : "projects"}`}</p>
           </div>
+
+          <DesignStart />
+
+          <h2 className="t-heading desk-review-h">Review against a reference</h2>
 
           {projects.length === 0 ? (
             <section aria-label="Getting started" style={{ display: "grid", gap: "1.25rem", marginBottom: "2.5rem" }}>

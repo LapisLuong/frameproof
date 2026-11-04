@@ -1654,3 +1654,41 @@ details.disclose[open] > summary::before {
     transform: none;
   }
 }
+
+/* ---------- desk: design first run ---------- */
+.desk-design {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--color-rule);
+}
+.desk-design-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.desk-design-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.desk-starters {
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+}
+.desk-review-h {
+  margin-bottom: 1rem;
+}
+.design-brief-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 2rem;
+  border: 1px solid var(--color-rule-strong);
+  background: var(--color-sheet);
+}

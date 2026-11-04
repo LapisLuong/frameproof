@@ -4,18 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { DesignPreview, useDesignFonts } from "@/components/design/DesignPreview";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
-import { cssFamily, loadDocFonts, measureText } from "@/lib/design/browser";
-import { getBuiltinArt } from "@/lib/design/art";
 import { MissingResourcesError, parseBundle } from "@/lib/design/export";
-import { artUrl } from "@/lib/design/exporters";
 import { docFromTemplate, type Template } from "@/lib/design/library";
-import { renderSvg } from "@/lib/design/render";
 import { FORMATS, type DesignDoc } from "@/lib/design/schema";
 import { TEMPLATES } from "@/lib/design/templates";
 import { newId } from "@/lib/store/db";
-import { createDesign, deleteDesign, getDesign, importResources, listDesigns, listResources, saveDesign } from "@/lib/store/repo";
+import { createDesign, deleteDesign, getDesign, importResources, listDesigns, listResources, saveDesign, saveNewDesign } from "@/lib/store/repo";
+import { STARTERS, starterDoc } from "@/lib/design/starters";
 
 const fmtDate = (t: number) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(t);
 const CONCEPT: Record<Template["concept"], string> = {
@@ -27,42 +25,13 @@ const CONCEPT: Record<Template["concept"], string> = {
   event: "Event",
 };
 
-/** A small, static rendering of a document for cards. Placeholders show where the user's pictures go. */
-function Preview({ doc, urls, fontsVersion }: { doc: DesignDoc; urls?: Map<string, string>; fontsVersion: number }) {
-  // Rendered only in the browser, once fonts have loaded, so line breaks use real metrics (and match hydration).
-  const svg = useMemo(
-    () =>
-      fontsVersion === 0
-        ? ""
-        : renderSvg(doc, { measure: measureText, fontFamily: cssFamily, image: (id) => urls?.get(id) ?? (getBuiltinArt(id) ? artUrl(getBuiltinArt(id)!) : null), placeholders: true, idPrefix: `pv-${doc.id}` }).replace(
-        "<svg ",
-        '<svg preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block" ',
-      ),
-    [doc, urls, fontsVersion],
-  );
-  return <span className="design-card-preview" style={{ aspectRatio: `${doc.width} / ${doc.height}` }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: svg }} />;
-}
-
-function useFonts(docs: DesignDoc[]): number {
-  const [v, setV] = useState(0);
-  const key = docs.map((d) => d.id + d.updatedAt).join(",");
-  useEffect(() => {
-    let live = true;
-    Promise.all(docs.map((d) => loadDocFonts(d))).then(() => live && setV((x) => x + 1));
-    return () => {
-      live = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-  return v;
-}
-
 export function DesignIndex() {
   const router = useRouter();
   const data = useStore(async () => ({ designs: await listDesigns(), resources: await listResources("image") }), ["designs", "resources"]);
   const templateDocs = useMemo(() => TEMPLATES.map((t) => docFromTemplate(t, `preview-${t.id.slice(4)}`, 0)), []);
+  const starterDocs = useMemo(() => STARTERS.map((st) => starterDoc(st, `preview-${st.id}`, 0)), []);
   const designs = data.status === "ready" ? data.data.designs : [];
-  const fontsVersion = useFonts([...templateDocs, ...designs]);
+  const fontsVersion = useDesignFonts([...templateDocs, ...starterDocs, ...designs]);
   const urls = useMemo(() => new Map(data.status === "ready" ? data.data.resources.map((r) => [r.id, URL.createObjectURL(r.blob)]) : []), [data]);
   useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls]);
   const [format, setFormat] = useState<string>(FORMATS[0].id);
@@ -114,9 +83,45 @@ export function DesignIndex() {
         <p className="t-meta">Posters and covers built from editable layers. Saved in this browser.</p>
       </header>
 
+      <section aria-labelledby="brief-h" className="design-brief-cta">
+        <div>
+          <h2 id="brief-h" className="t-heading">
+            Create from a brief
+          </h2>
+          <p className="t-meta">Add references, your title and pictures; get three editable concepts in your palette and fonts.</p>
+        </div>
+        <Link href="/compose" className="btn btn-primary">
+          Create from a brief
+        </Link>
+      </section>
+
+      <section aria-labelledby="starters-h">
+        <h2 id="starters-h" className="t-heading">
+          Finished starters
+        </h2>
+        <p className="t-meta" style={{ marginBottom: "1rem" }}>
+          Complete designs, ready to edit. Pictures are public-domain artworks from The Met (CC0); swap in your own any time.
+        </p>
+        <ul className="design-cards" data-testid="starters">
+          {STARTERS.map((st, i) => (
+            <li key={st.id}>
+              <button type="button" className="design-card" disabled={busy} onClick={() => start(() => saveNewDesign(starterDoc(st, "new")))} aria-label={`Edit starter: ${st.template.name}`}>
+                <DesignPreview doc={starterDocs[i]!} fontsVersion={fontsVersion} />
+                <span className="t-subhead">{st.template.name}</span>
+                <span className="hint">
+                  {CONCEPT[st.template.concept]} · {st.template.width}×{st.template.height}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <hr className="rule" />
+
       <section aria-labelledby="tpl-h">
         <h2 id="tpl-h" className="t-heading">
-          Start from a template
+          Templates with empty picture slots
         </h2>
         <p className="t-meta" style={{ marginBottom: "1rem" }}>
           Original layouts in the built-in OFL fonts. Every word, colour and shape is a layer you can change; image slots wait for your own pictures.
@@ -125,7 +130,7 @@ export function DesignIndex() {
           {TEMPLATES.map((t, i) => (
             <li key={t.id}>
               <button type="button" className="design-card" disabled={busy} onClick={() => start(() => createDesign({ template: t }))} aria-label={`Start from template: ${t.name}`}>
-                <Preview doc={templateDocs[i]!} fontsVersion={fontsVersion} />
+                <DesignPreview doc={templateDocs[i]!} fontsVersion={fontsVersion} />
                 <span className="t-subhead">{t.name}</span>
                 <span className="hint">
                   {CONCEPT[t.concept]} · {t.width}×{t.height}
@@ -199,7 +204,7 @@ export function DesignIndex() {
             {designs.map((d) => (
               <li key={d.id} className="design-card-wrap">
                 <Link href={`/design?id=${encodeURIComponent(d.id)}`} className="design-card">
-                  <Preview doc={d} urls={urls} fontsVersion={fontsVersion} />
+                  <DesignPreview doc={d} urls={urls} fontsVersion={fontsVersion} />
                   <span className="t-subhead">{d.name}</span>
                   <span className="hint">
                     {d.width}×{d.height} · edited {fmtDate(d.updatedAt)}
