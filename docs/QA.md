@@ -1,6 +1,6 @@
 # QA report
 
-Last verified: 4 Nov 2026, on Linux (Node 22, Chromium 1243) and macOS arm64 (Node 24/26).
+Last verified: 4 Nov 2026, on Linux (Node 22, Chromium 1243) and macOS arm64 (Node 24/26); live demo accepted by Codex desktop on b1ebfbe.
 
 ## Automated checks
 
@@ -51,6 +51,18 @@ The fractional-overlap resampling fix (review finding F2) moves some measured va
 SSIM 0.425 → 0.423, dHash distance 21 → 19 bits, changed area 43.6% → 43.5%. The new values are the correct area
 averages; no finding appeared or disappeared.
 
+## Independent acceptance (Codex desktop)
+
+Codex desktop tested each build on its own, from a separate checkout and with its own probe script, without seeing
+the implementation discussion. Results as it reported them:
+
+| Build | Where | Result |
+| --- | --- | --- |
+| feat/github-pages 219c9aa | static export at `/` and at `/frameproof` (local preview) | Pass after 3 test defects it found were fixed (styles URL regex, a stale "Saved" match, the responsive loop dropping `?id=`): sample assets, direct load and reload of `project/?id=`, reference/current toggle, slider, notes save and reload, JSON export, analyzer upload and reload, no overflow at 1440/1024/390, no page errors |
+| 0b69d45 | `/frameproof` preview | Pass, 5 robustness items: Discard keeps the base path (it found the doubled `/frameproof/frameproof/` bug first), invalid tokens keep the draft, `QuotaExceededError` is reported and the draft kept, a `palette: null` record doesn't crash and stays in IndexedDB, an earlier review shows its own 1080 px image after a 1240 px replacement, JSON export carries unsaved notes |
+| b1ebfbe | `/frameproof` preview | Pass after 2 G8 edge cases it found were fixed (no detail position for an image with no edges; "no opaque pixels" for a fully transparent one) |
+| b1ebfbe | live, https://lapisluong.github.io/frameproof/ | **Pass**: sample, notes persistence, JSON export, direct URL, analyzer reload, no overflow at 1440/1024/390, no page errors; solid and transparent images give the no-edges / no-opaque observations in the UI and in all four Markdown and JSON exports. GitHub run 41819307929: check and deploy succeeded |
+
 ## Known limitations
 
 - **AI review has not been run against a live provider** in this environment (no key). The provider layer, schema,
@@ -75,7 +87,8 @@ averages; no finding appeared or disappeared.
    Settings → Pages → Source: GitHub Actions. Checked on the live site: sample project (6 notes, 2 marks, real image
    sizes), direct reload of `/frameproof/project/?id=…`, analyzer upload with the six observations, AI shown as off
    with the hosted-demo reason, no console errors, no horizontal overflow. Pages has no server, so AI review runs only
-   when FrameProof runs locally with a key.
+   when FrameProof runs locally with a key. Independently accepted on the live site by Codex desktop (see
+   "Independent acceptance").
 2. ~~Independent code review~~ — done by Codex, 4 findings (0 high, 2 medium, 2 low), all verified and fixed on
    `fix/review-findings`; see `docs/reviews/codex-review.md` on that branch. Original scope:  `src/lib/image/validate.ts`, `src/lib/analysis/*`, `src/lib/color/*`,
    `src/app/api/review/route.ts`, `src/lib/ai/provider.ts` — concrete defects only, each verified with a failing test before fixing.
