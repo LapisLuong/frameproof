@@ -33,6 +33,37 @@ const plexMono = localFont({
   display: "swap",
 });
 
+/* Poster families for artwork only (src/lib/design/fonts.ts). Not preloaded: a page downloads them only when a
+   design on it uses them. Sources and hashes: src/app/fonts/SOURCES.md. */
+const anton = localFont({ src: "./fonts/Anton-Regular.ttf", weight: "400", variable: "--font-anton", display: "swap", preload: false });
+const archivo = localFont({
+  src: [
+    { path: "./fonts/Archivo-Variable.ttf", weight: "100 900", style: "normal" },
+    { path: "./fonts/Archivo-Italic-Variable.ttf", weight: "100 900", style: "italic" },
+  ],
+  variable: "--font-archivo",
+  display: "swap",
+  preload: false,
+});
+const fraunces = localFont({
+  src: [
+    { path: "./fonts/Fraunces-Variable.ttf", weight: "100 900", style: "normal" },
+    { path: "./fonts/Fraunces-Italic-Variable.ttf", weight: "100 900", style: "italic" },
+  ],
+  variable: "--font-fraunces",
+  display: "swap",
+  preload: false,
+});
+const playfair = localFont({
+  src: [
+    { path: "./fonts/PlayfairDisplay-Variable.ttf", weight: "400 900", style: "normal" },
+    { path: "./fonts/PlayfairDisplay-Italic-Variable.ttf", weight: "400 900", style: "italic" },
+  ],
+  variable: "--font-playfair",
+  display: "swap",
+  preload: false,
+});
+
 export const metadata: Metadata = {
   title: { default: "FrameProof", template: "%s — FrameProof" },
   description: "A creative direction and visual quality workspace. Design with intention.",
@@ -42,7 +73,7 @@ export const viewport: Viewport = { themeColor: "#f6f4ef" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${beVietnam.variable} ${lora.variable} ${plexMono.variable}`}>
+    <html lang="en" className={`${beVietnam.variable} ${lora.variable} ${plexMono.variable} ${anton.variable} ${archivo.variable} ${fraunces.variable} ${playfair.variable}`}>
       <body>
         <a href="#main" className="skip-link">
           Skip to content

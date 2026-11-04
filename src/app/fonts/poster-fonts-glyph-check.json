@@ -1,0 +1,44 @@
+[
+  {
+    "family": "anton",
+    "file": "Anton-Regular.ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "archivo",
+    "file": "Archivo-Italic[wdth,wght].ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "archivo",
+    "file": "Archivo[wdth,wght].ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "fraunces",
+    "file": "Fraunces-Italic[SOFT,WONK,opsz,wght].ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "fraunces",
+    "file": "Fraunces[SOFT,WONK,opsz,wght].ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "playfairdisplay",
+    "file": "PlayfairDisplay-Italic[wght].ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "playfairdisplay",
+    "file": "PlayfairDisplay[wght].ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  }
+]
