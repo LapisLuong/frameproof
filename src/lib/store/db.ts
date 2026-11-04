@@ -91,6 +91,25 @@ export async function put<T extends { id: string }>(store: StoreName, value: T):
   return value;
 }
 
+/** Write several records, possibly to several stores, in one transaction: all of them are saved, or none. */
+export async function putAll(entries: Array<{ store: StoreName; value: { id: string } }>): Promise<void> {
+  if (!entries.length) return;
+  const db = await openDb();
+  const stores = [...new Set(entries.map((e) => e.store))];
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(stores, "readwrite");
+    for (const e of entries) tx.objectStore(e.store).put(e.value);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () =>
+      reject(
+        tx.error?.name === "QuotaExceededError"
+          ? new StorageUnavailableError("The browser's storage is full. Delete unused projects or images and try again.")
+          : (tx.error ?? new StorageUnavailableError("The import couldn’t be saved. Nothing was changed.")),
+      );
+  });
+}
+
 export async function remove(store: StoreName, ids: string[]): Promise<void> {
   if (!ids.length) return;
   const db = await openDb();

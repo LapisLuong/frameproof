@@ -11,8 +11,7 @@ import { MissingResourcesError, parseBundle } from "@/lib/design/export";
 import { docFromTemplate, type Template } from "@/lib/design/library";
 import { FORMATS, type DesignDoc } from "@/lib/design/schema";
 import { TEMPLATES } from "@/lib/design/templates";
-import { newId } from "@/lib/store/db";
-import { createDesign, deleteDesign, getDesign, importResources, listDesigns, listResources, saveDesign, saveNewDesign } from "@/lib/store/repo";
+import { createDesign, deleteDesign, importDesignBundle, listDesigns, listResources, saveNewDesign } from "@/lib/store/repo";
 import { STARTERS, starterDoc } from "@/lib/design/starters";
 
 const fmtDate = (t: number) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(t);
@@ -53,12 +52,9 @@ export function DesignIndex() {
     setImportError(null);
     setBusy(true);
     try {
-      const { doc, resources } = parseBundle(await file.text());
-      // Keep ids so the document's references still match; give the document a new id if this browser has one.
-      const id = (await getDesign(doc.id)) ? newId("design") : doc.id;
-      await importResources(resources);
-      const saved = await saveDesign({ ...doc, id, projectId: null });
-      toast(`Imported ${saved.name}.`);
+      // Fresh ids for the document and everything it brings, so nothing already here is overwritten.
+      const { doc: saved, added, reused } = await importDesignBundle(parseBundle(await file.text()));
+      toast(`Imported ${saved.name}${added || reused ? ` with ${added} new picture${added === 1 ? "" : "s"} or font${added === 1 ? "" : "s"}${reused ? `, ${reused} already in your library` : ""}` : ""}.`);
       open(saved);
     } catch (e) {
       setImportError(

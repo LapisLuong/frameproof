@@ -4,7 +4,7 @@ import { compareBuffers, stripDiff } from "../analysis/analyze";
 import { decodeAndAnalyze, pixelsFromBlob } from "../image/decode";
 import { buildLocalIssues } from "../review/engine";
 import { sortIssues, type ReviewIssue } from "../review/types";
-import { getAll, getByProject, getOne, newId, put, remove, type StoreName } from "./db";
+import { getAll, getByProject, getOne, newId, put, putAll, remove, type StoreName } from "./db";
 import type { AiStatus, Asset, InspirationRef, Project, Review, StyleSystem } from "./models";
 import { recordSchemas, validateRecords, sortRecentProjects } from "./validation";
 import { toast } from "@/components/Toast";
@@ -13,7 +13,7 @@ import { blankDoc, DesignDocSchema, referencedResources, type DesignDoc } from "
 import { docFromTemplate, type Licence, type Template } from "../design/library";
 import { MAX_FONT_BYTES, ResourceMetaSchema, type Resource, type ResourceKind, type ResourceMeta } from "../design/resource";
 import { validateFontFile } from "../design/resource-validate";
-import { isBuiltinArt } from "../design/art";
+import { planImport, type IncomingResource } from "../design/import-plan";
 import { MIME_BY_KIND, validateImageFile } from "../image/validate";
 
 /* ---------- change notifications (so open views refresh after a save) ---------- */
@@ -368,13 +368,46 @@ export async function addResource(file: Blob, kind: ResourceKind, meta: { name: 
 }
 
 /** Store resources that came with an imported bundle, keeping their ids so the document's references still match. */
-export async function importResources(items: Array<{ meta: ResourceMeta; bytes: Uint8Array }>): Promise<void> {
-  for (const { meta, bytes } of items) {
-    // Built-in artworks ship with the app; a copy inside a design file isn't stored again.
-    if (isBuiltinArt(meta.id)) continue;
-    await put("resources", { ...meta, blob: new Blob([bytes as BlobPart], { type: meta.mime }) } satisfies Resource);
-  }
-  if (items.length) emit("resources");
+async function sha256(bytes: Uint8Array | Blob): Promise<string> {
+  const buf = bytes instanceof Blob ? await bytes.arrayBuffer() : bytes;
+  const digest = await crypto.subtle.digest("SHA-256", buf as BufferSource);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Import a parsed design file without touching anything already here: pictures and fonts get fresh ids (or reuse an
+ * identical one already in the library), the document's references are rewritten, and the document gets a fresh id.
+ * Resources and document are written in one transaction, so a failure leaves the library exactly as it was.
+ */
+export async function importDesignBundle(parsed: { doc: DesignDoc; resources: IncomingResource[] }): Promise<{ doc: DesignDoc; added: number; reused: number }> {
+  const existing = await listResources();
+  const hashes = new Map<string, Promise<string>>();
+  const hashOf = (r: Resource) => {
+    let h = hashes.get(r.id);
+    if (!h) hashes.set(r.id, (h = sha256(r.blob)));
+    return h;
+  };
+  const now = Date.now();
+  const plan = await planImport(parsed.doc, parsed.resources, {
+    freshId: () => newId("res"),
+    docId: newId("design"),
+    now,
+    existingSame: async (r) => {
+      const candidates = existing.filter((e) => e.kind === r.meta.kind && e.mime === r.meta.mime && e.bytes === r.bytes.length);
+      if (!candidates.length) return null;
+      const want = await sha256(r.bytes);
+      for (const c of candidates) if ((await hashOf(c)) === want) return c.id;
+      return null;
+    },
+  });
+  const doc = DesignDocSchema.parse(plan.doc);
+  await putAll([
+    ...plan.store.map((r) => ({ store: "resources" as const, value: { ...r.meta, blob: new Blob([r.bytes as BlobPart], { type: r.meta.mime }) } satisfies Resource })),
+    { store: "designs" as const, value: doc },
+  ]);
+  if (plan.store.length) emit("resources");
+  emit("designs");
+  return { doc, added: plan.store.length, reused: plan.reused };
 }
 
 /** Designs that use a resource, so deleting it can say what will show "Image missing". */
