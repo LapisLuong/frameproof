@@ -76,11 +76,15 @@ export function resample(buf: PixelBuffer, w: number, h: number): PixelBuffer {
   const sx = buf.width / w;
   const sy = buf.height / h;
   for (let y = 0; y < h; y++) {
-    const y0 = Math.floor(y * sy);
-    const y1 = Math.max(y0 + 1, Math.floor((y + 1) * sy));
+    const top = y * sy;
+    const bottom = (y + 1) * sy;
+    const y0 = Math.floor(top);
+    const y1 = Math.ceil(bottom);
     for (let x = 0; x < w; x++) {
-      const x0 = Math.floor(x * sx);
-      const x1 = Math.max(x0 + 1, Math.floor((x + 1) * sx));
+      const left = x * sx;
+      const right = (x + 1) * sx;
+      const x0 = Math.floor(left);
+      const x1 = Math.ceil(right);
       let r = 0,
         g = 0,
         b = 0,
@@ -89,12 +93,13 @@ export function resample(buf: PixelBuffer, w: number, h: number): PixelBuffer {
       for (let yy = y0; yy < Math.min(y1, buf.height); yy++) {
         for (let xx = x0; xx < Math.min(x1, buf.width); xx++) {
           const i = (yy * buf.width + xx) * 4;
-          const al = buf.data[i + 3]!;
+          const overlap = (Math.min(xx + 1, right) - Math.max(xx, left)) * (Math.min(yy + 1, bottom) - Math.max(yy, top));
+          const al = buf.data[i + 3]! * overlap;
           r += buf.data[i]! * al;
           g += buf.data[i + 1]! * al;
           b += buf.data[i + 2]! * al;
           a += al;
-          n++;
+          n += overlap;
         }
       }
       const o = (y * w + x) * 4;

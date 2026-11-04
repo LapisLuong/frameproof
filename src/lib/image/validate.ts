@@ -34,6 +34,7 @@ export function sniffKind(b: Uint8Array): ImageKind | null {
 const u16be = (b: Uint8Array, o: number) => (b[o]! << 8) | b[o + 1]!;
 const u16le = (b: Uint8Array, o: number) => b[o]! | (b[o + 1]! << 8);
 const u24le = (b: Uint8Array, o: number) => b[o]! | (b[o + 1]! << 8) | (b[o + 2]! << 16);
+const u32le = (b: Uint8Array, o: number) => u24le(b, o) + b[o + 3]! * 0x1000000;
 const u32be = (b: Uint8Array, o: number) => ((b[o]! << 24) >>> 0) + ((b[o + 1]! << 16) | (b[o + 2]! << 8) | b[o + 3]!);
 
 /** Read width/height from the header without decoding pixels. Returns null if the header is malformed. */
@@ -47,10 +48,13 @@ export function readDimensions(b: Uint8Array, kind: ImageKind): { width: number;
     case "gif":
       return b.length >= 10 ? { width: u16le(b, 6), height: u16le(b, 8) } : null;
     case "webp": {
-      if (b.length < 30) return null;
+      if (b.length < 20) return null;
       const chunk = String.fromCharCode(b[12]!, b[13]!, b[14]!, b[15]!);
+      const headerSize = chunk === "VP8L" ? 5 : 10;
+      if (b.length < 20 + headerSize || u32le(b, 16) < headerSize || u32le(b, 4) + 8 < 20 + headerSize) return null;
       if (chunk === "VP8X") return { width: u24le(b, 24) + 1, height: u24le(b, 27) + 1 };
       if (chunk === "VP8L") {
+        if (b[20] !== 0x2f || b[24]! >>> 5 !== 0) return null;
         const bits = b[21]! | (b[22]! << 8) | (b[23]! << 16) | (b[24]! << 24);
         return { width: (bits & 0x3fff) + 1, height: ((bits >>> 14) & 0x3fff) + 1 };
       }

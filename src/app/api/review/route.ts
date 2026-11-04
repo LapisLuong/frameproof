@@ -42,21 +42,57 @@ export async function POST(req: Request) {
   if (!cfg.configured) return NextResponse.json({ ok: false, error: cfg.reason, code: "not-configured" }, { status: 503 });
 
   // Two images up to 15 MB each plus a small JSON context. Reject larger bodies before parsing them.
+  const cap = MAX_UPLOAD_BYTES * 2 + 256 * 1024;
   const declared = Number(req.headers.get("content-length") ?? "0");
-  if (!declared || declared > MAX_UPLOAD_BYTES * 2 + 256 * 1024) {
+  if (!Number.isFinite(declared) || !Number.isInteger(declared) || declared <= 0 || declared > cap) {
     return NextResponse.json({ ok: false, error: "The request is missing a size or is larger than two 15 MB images." }, { status: 413 });
   }
 
   let form: FormData;
   try {
-    form = await req.formData();
+    const reader = req.body?.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    if (reader) {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > cap) {
+            await reader.cancel();
+            return NextResponse.json({ ok: false, error: "The request is larger than two 15 MB images." }, { status: 413 });
+          }
+          chunks.push(value);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    form = await new Request(req.url, {
+      method: "POST",
+      headers: { "content-type": req.headers.get("content-type") ?? "" },
+      body: bytes,
+    }).formData();
   } catch {
     return NextResponse.json({ ok: false, error: "The request wasn't valid form data." }, { status: 400 });
   }
 
   try {
     const ctxRaw = form.get("context");
-    const ctx = MeasuredContextSchema.safeParse(typeof ctxRaw === "string" ? JSON.parse(ctxRaw) : null);
+    let context: unknown;
+    try {
+      context = typeof ctxRaw === "string" ? JSON.parse(ctxRaw) : null;
+    } catch {
+      return NextResponse.json({ ok: false, error: "The measurement context was malformed." }, { status: 400 });
+    }
+    const ctx = MeasuredContextSchema.safeParse(context);
     if (!ctx.success) return NextResponse.json({ ok: false, error: "The measurement context was malformed." }, { status: 400 });
     const brief = String(form.get("brief") ?? "").slice(0, 2000);
     const images: [PreparedImage, PreparedImage] = [await prepare(form.get("reference"), "reference"), await prepare(form.get("current"), "current")];
