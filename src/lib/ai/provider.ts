@@ -6,8 +6,8 @@ export type PreparedImage = { base64: string; mime: "image/jpeg" | "image/png" }
 export interface VisionProvider {
   readonly id: "anthropic" | "openai";
   readonly model: string;
-  /** Returns raw text from the model. */
-  complete(system: string, user: string, images: [PreparedImage, PreparedImage], signal: AbortSignal): Promise<string>;
+  /** Returns raw text from the model. Callers supply 1–4 prepared images (review keeps its fixed pair). */
+  complete(system: string, user: string, images: PreparedImage[], signal: AbortSignal): Promise<string>;
 }
 
 export type ProviderConfig = { configured: false; reason: string } | { configured: true; provider: VisionProvider };
@@ -52,7 +52,7 @@ class AnthropicProvider implements VisionProvider {
     private key: string,
     readonly model: string,
   ) {}
-  async complete(system: string, user: string, images: [PreparedImage, PreparedImage], signal: AbortSignal) {
+  async complete(system: string, user: string, images: PreparedImage[], signal: AbortSignal) {
     const data = (await postJson(
       "https://api.anthropic.com/v1/messages",
       { "x-api-key": this.key, "anthropic-version": "2023-06-01" },
@@ -64,10 +64,10 @@ class AnthropicProvider implements VisionProvider {
           {
             role: "user",
             content: [
-              { type: "text", text: "Image 1 — REFERENCE" },
-              { type: "image", source: { type: "base64", media_type: images[0].mime, data: images[0].base64 } },
-              { type: "text", text: "Image 2 — CURRENT" },
-              { type: "image", source: { type: "base64", media_type: images[1].mime, data: images[1].base64 } },
+              ...images.flatMap((image, i) => [
+                { type: "text", text: images.length === 2 ? (i === 0 ? "Image 1 — REFERENCE" : "Image 2 — CURRENT") : `Image ${i + 1}` },
+                { type: "image", source: { type: "base64", media_type: image.mime, data: image.base64 } },
+              ]),
               { type: "text", text: user },
             ],
           },
@@ -91,7 +91,7 @@ class OpenAICompatibleProvider implements VisionProvider {
     readonly model: string,
     private baseUrl: string,
   ) {}
-  async complete(system: string, user: string, images: [PreparedImage, PreparedImage], signal: AbortSignal) {
+  async complete(system: string, user: string, images: PreparedImage[], signal: AbortSignal) {
     const data = (await postJson(
       `${this.baseUrl.replace(/\/$/, "")}/chat/completions`,
       { authorization: `Bearer ${this.key}` },
@@ -103,10 +103,10 @@ class OpenAICompatibleProvider implements VisionProvider {
           {
             role: "user",
             content: [
-              { type: "text", text: "Image 1 — REFERENCE" },
-              { type: "image_url", image_url: { url: `data:${images[0].mime};base64,${images[0].base64}` } },
-              { type: "text", text: "Image 2 — CURRENT" },
-              { type: "image_url", image_url: { url: `data:${images[1].mime};base64,${images[1].base64}` } },
+              ...images.flatMap((image, i) => [
+                { type: "text", text: images.length === 2 ? (i === 0 ? "Image 1 — REFERENCE" : "Image 2 — CURRENT") : `Image ${i + 1}` },
+                { type: "image_url", image_url: { url: `data:${image.mime};base64,${image.base64}` } },
+              ]),
               { type: "text", text: user },
             ],
           },
