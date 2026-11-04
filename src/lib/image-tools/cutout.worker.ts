@@ -30,11 +30,17 @@ self.onmessage = async (event: MessageEvent<CutoutRequest>) => {
     runtime.env.remotePathTemplate = `{model}/resolve/${BEN2_REVISION}/`;
     runtime.env.backends.onnx.wasm.numThreads = 1;
     runtime.env.backends.onnx.wasm.wasmPaths = wasmBase;
+    let lastDownloadProgress = 0;
     segmenter = await runtime.pipeline("background-removal", "onnx-community/BEN2-ONNX", {
       device: "wasm", dtype: "fp16", revision: BEN2_REVISION,
       progress_callback: (p) => {
         if (p.status === "progress" && typeof p.loaded === "number") {
-          progress({ stage: "download", loaded: p.loaded, total: typeof p.total === "number" ? p.total : null });
+          const now = performance.now();
+          // Large weights arrive in many tiny chunks. Keep the UI responsive without inventing a percentage.
+          if (now - lastDownloadProgress >= 100 || p.loaded === p.total) {
+            lastDownloadProgress = now;
+            progress({ stage: "download", loaded: p.loaded, total: typeof p.total === "number" ? p.total : null });
+          }
         }
       },
     });
