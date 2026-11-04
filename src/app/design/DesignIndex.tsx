@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DesignPreview, useDesignFonts } from "@/components/design/DesignPreview";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
+import { useObjectUrls } from "@/hooks/useObjectUrls";
 import { MAX_BUNDLE_TEXT, MissingResourcesError, parseBundle } from "@/lib/design/export";
 import { docFromTemplate, type Template } from "@/lib/design/library";
 import { FORMATS, type DesignDoc } from "@/lib/design/schema";
@@ -31,8 +32,7 @@ export function DesignIndex() {
   const starterDocs = useMemo(() => STARTERS.map((st) => starterDoc(st, `preview-${st.id}`, 0)), []);
   const designs = data.status === "ready" ? data.data.designs : [];
   const fontsVersion = useDesignFonts([...templateDocs, ...starterDocs, ...designs]);
-  const urls = useMemo(() => new Map(data.status === "ready" ? data.data.resources.map((r) => [r.id, URL.createObjectURL(r.blob)]) : []), [data]);
-  useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls]);
+  const urls = useObjectUrls(data.status === "ready" ? data.data.resources : undefined);
   const [format, setFormat] = useState<string>(FORMATS[0].id);
   const [busy, setBusy] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { PaletteEditor } from "@/components/design/PaletteEditor";
 import { useDraftGuard } from "@/components/ConfirmDialog";
 import { toast } from "@/components/Toast";
 import { useAiStatus } from "@/hooks/useAiStatus";
-import { useStore } from "@/hooks/useStore";
+import { useObjectUrl, useStore } from "@/hooks/useStore";
+import { useObjectUrls } from "@/hooks/useObjectUrls";
 import { BUILTIN_ART, getBuiltinArt } from "@/lib/design/art";
 import { cssFamily, loadDocFonts, measureText } from "@/lib/design/browser";
 import { composeConcepts, type Concept } from "@/lib/design/compose";
@@ -22,7 +23,7 @@ import { newId } from "@/lib/store/db";
 import { addResource, listResources, saveNewDesign } from "@/lib/store/repo";
 import { requestAiDirection, type AiDirectionResult } from "./ai-direction";
 
-type Ref = { id: string; name: string; url: string; file: Blob; swatches: Array<{ hex: string; share: number; chroma: number }> };
+type Ref = { id: string; name: string; file: Blob; swatches: Array<{ hex: string; share: number; chroma: number }> };
 
 const CONCEPT_LABEL: Record<Template["concept"], string> = {
   exhibition: "Exhibition",
@@ -51,13 +52,18 @@ function ConceptPreview({ concept, urls, fontsVersion }: { concept: Concept; url
   return <span className="design-card-preview" style={{ aspectRatio: `${concept.doc.width} / ${concept.doc.height}` }} role="img" aria-label={`Concept preview: ${concept.doc.name}`} dangerouslySetInnerHTML={{ __html: svg }} />;
 }
 
+function ReferenceImage({ file, name }: { file: Blob; name: string }) {
+  const url = useObjectUrl(file);
+  // eslint-disable-next-line @next/next/no-img-element -- local Blob URL, released on removal or navigation
+  return url ? <img src={url} alt={`Reference: ${name}`} /> : null;
+}
+
 export function Composer() {
   const router = useRouter();
   const ai = useAiStatus();
   const lib = useStore(() => listResources("image"), ["resources"]);
   const userImages = useMemo(() => (lib.status === "ready" ? lib.data : []), [lib]);
-  const urls = useMemo(() => new Map(userImages.map((r) => [r.id, URL.createObjectURL(r.blob)])), [userImages]);
-  useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls]);
+  const urls = useObjectUrls(userImages);
 
   const [refs, setRefs] = useState<Ref[]>([]);
   const [refError, setRefError] = useState<string | null>(null);
@@ -84,7 +90,7 @@ export function Composer() {
     for (const file of Array.from(files ?? []).slice(0, 3 - refs.length)) {
       try {
         const d = await decodeAndAnalyze(file);
-        const ref: Ref = { id: newId("ref"), name: file.name, url: URL.createObjectURL(file), file, swatches: d.analysis.palette.swatches.map((s) => ({ hex: s.hex, share: s.share, chroma: s.chroma })) };
+        const ref: Ref = { id: newId("ref"), name: file.name, file, swatches: d.analysis.palette.swatches.map((s) => ({ hex: s.hex, share: s.share, chroma: s.chroma })) };
         setRefs((r) => {
           const next = [...r, ref];
           // The palette follows the references until the user edits it.
@@ -195,8 +201,7 @@ export function Composer() {
           <div className="compose-refs">
             {refs.map((r) => (
               <figure key={r.id} className="compose-ref">
-                {/* eslint-disable-next-line @next/next/no-img-element -- local blob: URL */}
-                <img src={r.url} alt={`Reference: ${r.name}`} />
+                <ReferenceImage file={r.file} name={r.name} />
                 <figcaption className="t-small">
                   {r.name}{" "}
                   <button type="button" className="btn btn-sm btn-quiet" onClick={() => setRefs((x) => x.filter((y) => y.id !== r.id))}>

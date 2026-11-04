@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "@/components/Toast";
 import { DesignPreview, useDesignFonts } from "@/components/design/DesignPreview";
 import { useStore } from "@/hooks/useStore";
+import { useObjectUrls } from "@/hooks/useObjectUrls";
 import { measureText } from "@/lib/design/browser";
 import { CAMPAIGN_FORMATS, campaignVariants, printDpi, type Recomposed } from "@/lib/design/campaign";
 import { newId } from "@/lib/store/db";
@@ -98,8 +99,7 @@ function Variants({ source, urls }: { source: DesignDoc; urls: Map<string, strin
 export function Campaign() {
   const id = useSearchParams().get("id") ?? "";
   const data = useStore(async () => ({ doc: await getDesign(id), images: await listResources("image") }), ["designs", "resources"]);
-  const urls = useMemo(() => new Map(data.status === "ready" ? data.data.images.map((r) => [r.id, URL.createObjectURL(r.blob)]) : []), [data]);
-  useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls]);
+  const urls = useObjectUrls(data.status === "ready" ? data.data.images : undefined);
   return (
     <div className="page">
       <header className="folio">

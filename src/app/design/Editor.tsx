@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDraftGuard } from "@/components/ConfirmDialog";
 import { AddPanel, type ResourceCard, type StarterKind } from "@/components/design/AddPanel";
 import { Canvas } from "@/components/design/Canvas";
@@ -14,6 +14,7 @@ import { CutoutDialog, type CutoutSource } from "@/components/design/CutoutDialo
 import type { ToolResult } from "@/lib/image-tools/types";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
+import { useObjectUrls } from "@/hooks/useObjectUrls";
 import { loadDocFonts, registerUserFont } from "@/lib/design/browser";
 import { addLayer, duplicateLayer, hitTest, moveLayer, removeLayer, starterLayer, updateLayer } from "@/lib/design/edit";
 import { BUILTIN_ART, getBuiltinArt, isBuiltinArt } from "@/lib/design/art";
@@ -83,8 +84,7 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
   const [cutout, setCutout] = useState<{ layerId: string; source: CutoutSource } | null>(null);
 
   /* ---------- resources: object URLs and user fonts ---------- */
-  const urls = useMemo(() => new Map(resources.filter((r) => r.kind === "image").map((r) => [r.id, URL.createObjectURL(r.blob)])), [resources]);
-  useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls]);
+  const urls = useObjectUrls(resources);
   const imageUrl = useCallback((rid: string) => urls.get(rid) ?? (getBuiltinArt(rid) ? artUrl(getBuiltinArt(rid)!) : null), [urls]);
   const fontKey = doc.layers.map((l) => (l.type === "text" ? `${l.font}/${l.weight}/${l.italic}` : "")).join("|");
   useEffect(() => {
