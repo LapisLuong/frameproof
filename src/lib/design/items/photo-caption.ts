@@ -9,6 +9,7 @@ export const item: ItemInput = {
     {
       "id": "photo1",
       "name": "Photo slot 1",
+      "role": "photo",
       "type": "image",
       "resourceId": null,
       "x": 10,
@@ -20,6 +21,7 @@ export const item: ItemInput = {
     {
       "id": "mask",
       "name": "Mask",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 380,
@@ -31,6 +33,7 @@ export const item: ItemInput = {
     {
       "id": "caption",
       "name": "Caption",
+      "role": "info",
       "type": "text",
       "text": "Ảnh / Ký ức",
       "x": 10,

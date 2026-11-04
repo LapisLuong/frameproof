@@ -5,5 +5,7 @@ import { template as t2 } from "./editorial-image";
 import { template as t3 } from "./editorial-type";
 import { template as t4 } from "./music";
 import { template as t5 } from "./collage";
-export const TEMPLATES: Template[] = [t0,t1,t2,t3,t4,t5].map((t) => TemplateSchema.parse(t));
+import { template as t6 } from "./music-columns";
+import { template as t7 } from "./collage-grid";
+export const TEMPLATES: Template[] = [t0,t1,t2,t3,t4,t5,t6,t7].map((t) => TemplateSchema.parse(t));
 export const getTemplate = (id: string): Template | undefined => TEMPLATES.find((t) => t.id === id);

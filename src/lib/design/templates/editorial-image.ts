@@ -11,6 +11,7 @@ export const template: TemplateInput = {
     {
       "id": "masthead",
       "name": "Masthead",
+      "role": "title",
       "type": "text",
       "text": "Khoảng",
       "x": 65,
@@ -25,6 +26,7 @@ export const template: TemplateInput = {
     {
       "id": "aperture-ground",
       "name": "Aperture Ground",
+      "role": "ground",
       "type": "shape",
       "shape": "rect",
       "x": 65,
@@ -36,6 +38,7 @@ export const template: TemplateInput = {
     {
       "id": "photo1",
       "name": "Photo slot 1",
+      "role": "photo",
       "type": "image",
       "resourceId": null,
       "x": 65,
@@ -46,6 +49,7 @@ export const template: TemplateInput = {
     {
       "id": "cover-line",
       "name": "Cover Line",
+      "role": "subtitle",
       "type": "text",
       "text": "Những khoảng lặng của Hà Nội",
       "x": 65,
@@ -59,6 +63,7 @@ export const template: TemplateInput = {
     {
       "id": "folio",
       "name": "Folio",
+      "role": "info",
       "type": "text",
       "text": "01 / Nghệ thuật & đời sống / Tháng Mười",
       "x": 65,

@@ -9,6 +9,7 @@ export const item: ItemInput = {
     {
       "id": "stacked",
       "name": "Stacked",
+      "role": "title",
       "type": "text",
       "text": "CHỮ\nVÀ HÌNH",
       "x": 0,

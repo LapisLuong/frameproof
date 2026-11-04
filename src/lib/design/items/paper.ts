@@ -9,6 +9,7 @@ export const item: ItemInput = {
     {
       "id": "paper",
       "name": "Paper",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 0,

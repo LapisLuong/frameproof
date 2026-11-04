@@ -11,6 +11,7 @@ export const template: TemplateInput = {
     {
       "id": "top-rule",
       "name": "Top Rule",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 70,
@@ -22,6 +23,7 @@ export const template: TemplateInput = {
     {
       "id": "folio",
       "name": "Folio",
+      "role": "number",
       "type": "text",
       "text": "Nếp / Tập 02 / Hà Nội",
       "x": 70,
@@ -35,6 +37,7 @@ export const template: TemplateInput = {
     {
       "id": "headline",
       "name": "Headline",
+      "role": "title",
       "type": "text",
       "text": "Điều\ncòn lại",
       "x": 70,
@@ -50,6 +53,7 @@ export const template: TemplateInput = {
     {
       "id": "contrast",
       "name": "Contrast",
+      "role": "subtitle",
       "type": "text",
       "text": "sau một mùa",
       "x": 90,
@@ -64,6 +68,7 @@ export const template: TemplateInput = {
     {
       "id": "bottom-rule",
       "name": "Bottom Rule",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 70,
@@ -75,6 +80,7 @@ export const template: TemplateInput = {
     {
       "id": "details",
       "name": "Details",
+      "role": "info",
       "type": "text",
       "text": "Văn hoá thị giác / Tháng Mười 2026",
       "x": 70,

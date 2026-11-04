@@ -9,6 +9,7 @@ export const item: ItemInput = {
     {
       "id": "rule",
       "name": "Rule",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 0,
@@ -20,6 +21,7 @@ export const item: ItemInput = {
     {
       "id": "ticket",
       "name": "Ticket",
+      "role": "info",
       "type": "text",
       "text": "24.10 / 20:00\nÂm nhạc / Hà Nội",
       "x": 20,
@@ -33,6 +35,7 @@ export const item: ItemInput = {
     {
       "id": "rule-bottom",
       "name": "Rule Bottom",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 0,

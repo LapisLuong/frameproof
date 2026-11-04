@@ -11,6 +11,7 @@ export const template: TemplateInput = {
     {
       "id": "title",
       "name": "Title (cropped)",
+      "role": "title",
       "type": "text",
       "text": "VÒNG",
       "x": -45,
@@ -24,6 +25,7 @@ export const template: TemplateInput = {
     {
       "id": "circle-0",
       "name": "Circle 0",
+      "role": "motif",
       "type": "shape",
       "shape": "ellipse",
       "x": 80,
@@ -35,6 +37,7 @@ export const template: TemplateInput = {
     {
       "id": "circle-1",
       "name": "Circle 1",
+      "role": "motif",
       "type": "shape",
       "shape": "ellipse",
       "x": 350,
@@ -46,6 +49,7 @@ export const template: TemplateInput = {
     {
       "id": "circle-2",
       "name": "Circle 2",
+      "role": "motif",
       "type": "shape",
       "shape": "ellipse",
       "x": 620,
@@ -57,6 +61,7 @@ export const template: TemplateInput = {
     {
       "id": "circle-3",
       "name": "Circle 3",
+      "role": "motif",
       "type": "shape",
       "shape": "ellipse",
       "x": 890,
@@ -68,6 +73,7 @@ export const template: TemplateInput = {
     {
       "id": "subtitle",
       "name": "Subtitle",
+      "role": "subtitle",
       "type": "text",
       "text": "Triển lãm những chuyển động",
       "x": 80,
@@ -81,6 +87,7 @@ export const template: TemplateInput = {
     {
       "id": "info-rule",
       "name": "Info Rule",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 80,
@@ -92,6 +99,7 @@ export const template: TemplateInput = {
     {
       "id": "dates",
       "name": "Dates",
+      "role": "info",
       "type": "text",
       "text": "12–30 / Tháng Mười / 2026",
       "x": 80,
@@ -105,6 +113,7 @@ export const template: TemplateInput = {
     {
       "id": "venue",
       "name": "Venue",
+      "role": "info",
       "type": "text",
       "text": "Bảo tàng Hà Nội\n09:00–18:00 · Thiết kế: Studio",
       "x": 650,
