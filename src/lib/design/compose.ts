@@ -78,16 +78,22 @@ export function pickTemplates(templates: Template[], concepts: ArtDirection["con
  * used and whether it fits. Layers named "(cropped)" run off the side on purpose: they keep their size while the text
  * fits the box's height, and their box never grows.
  */
-export function fitText(l: TextLayer, measure: Measure, canvasHeight = Infinity, sample?: string): { size: number; h: number; fits: boolean } {
+export function fitText(l: TextLayer, measure: Measure, opts: { canvas?: { width: number; height: number }; sample?: string } = {}): { size: number; h: number; fits: boolean } {
+  const canvasHeight = opts.canvas?.height ?? Infinity;
+  const sample = opts.sample;
   const cropped = /\(cropped\)/i.test(l.name);
   const words = l.text.split(/\s+/).filter(Boolean);
   // A cropped title may overhang its box as the template's own sample does; it may not take more lines than that.
-  const maxLines = cropped ? layoutText({ ...l, text: sample ?? l.text }, measure).lines.length : Infinity;
+  const sampleLayout = cropped ? layoutText({ ...l, text: sample ?? l.text }, measure) : null;
+  const maxLines = sampleLayout ? sampleLayout.lines.length : Infinity;
+  // ...and its lines may overhang the canvas edge no more than the sample does, so the user's own words aren't cut off.
+  const visible = opts.canvas ? Math.max(0, Math.min(l.x + l.w, opts.canvas.width) - Math.max(l.x, 0)) : Infinity;
+  const maxWidth = sampleLayout ? Math.max(visible, ...sampleLayout.lines.map((x) => x.width)) : Infinity;
   const check = (size: number, h: number) => {
     const out = layoutText({ ...l, size, h }, measure);
     // A split word shows up as line fragments that aren't whole words of the text.
     const whole = out.lines.every((line) => line.text.split(/\s+/).filter(Boolean).every((w) => words.includes(w)));
-    const ok = whole && (cropped ? out.lines.length <= maxLines : !out.overflows);
+    const ok = whole && (cropped ? out.lines.length <= maxLines && out.lines.every((x) => lineExtent(l, x.width) <= maxWidth) : !out.overflows);
     return { ok, whole, blockHeight: out.blockHeight };
   };
   let size = l.size;
@@ -103,6 +109,9 @@ export function fitText(l: TextLayer, measure: Measure, canvasHeight = Infinity,
   const h = Math.min(room, Math.ceil(r.blockHeight + 1));
   return { size, h, fits: check(size, h).ok };
 }
+
+/** How far a line reaches from the visible start of its box, given the alignment. */
+const lineExtent = (l: TextLayer, width: number) => (l.align === "left" ? width + Math.max(0, l.x < 0 ? l.x : 0) : width);
 
 function setFont(l: TextLayer, font: FontRef): TextLayer {
   if (!isBuiltinFont(font)) return { ...l, font };
@@ -141,7 +150,9 @@ function composeOne(t: Template, input: ComposeInput, index: number, pictures: s
       return { ...l, resourceId: id };
     }
     if (l.type !== "text") return l;
-    let next: TextLayer = setFont(l, usesDisplay(role, l) ? direction.fonts.display : direction.fonts.text);
+    // Script faces on ornamental layers (a swash word, an initial) are part of the layout's typography: keep them.
+    const ornamental = isBuiltinFont(l.font) && SCRIPT_FONTS.has(l.font) && (role === "kicker" || role === "motif");
+    let next: TextLayer = ornamental ? l : setFont(l, usesDisplay(role, l) ? direction.fonts.display : direction.fonts.text);
     const hide = () => {
       next = { ...next, hidden: true };
       hidden++;
@@ -149,6 +160,12 @@ function composeOne(t: Template, input: ComposeInput, index: number, pictures: s
     // Templates that set their sample words in capitals keep doing so: that's a type decision, not content.
     const cased = (text: string) => (isCaps(l.text) ? text.toLocaleUpperCase("vi") : text);
     if (role === "title") next = { ...next, text: cased(brief.title) };
+    else if (role === "motif" && /\binitial\b/i.test(l.name)) {
+      // An ornamental initial takes the first letter of the brief's title (with its accent), not the sample letter.
+      const first = [...new Intl.Segmenter("vi", { granularity: "grapheme" }).segment(brief.title.trim())][0]?.segment ?? "";
+      if (first) next = { ...next, text: cased(first) };
+      else hide();
+    }
     else if (role === "subtitle" || (role === "kicker" && subtitleGoesTo === l.id)) {
       if (brief.subtitle) next = { ...next, text: cased(brief.subtitle) };
       else hide();
@@ -170,7 +187,7 @@ function composeOne(t: Template, input: ComposeInput, index: number, pictures: s
       hide();
     }
     if (!next.hidden && (role === "title" || role === "subtitle" || role === "info" || role === "kicker" || role === "body")) {
-      const fit = fitText(next, measure, doc.height, l.text);
+      const fit = fitText(next, measure, { canvas: doc, sample: l.text });
       if (fit.size !== next.size || fit.h !== next.h) next = { ...next, size: fit.size, h: fit.h };
       if (!fit.fits) tooLong.push(next.name);
     }
@@ -194,6 +211,9 @@ function composeOne(t: Template, input: ComposeInput, index: number, pictures: s
   const method: ComposeMethod = choice && input.model ? { kind: "ai-directed", templateId: t.id, model: input.model } : { kind: "deterministic", templateId: t.id };
   return { doc, method, notes };
 }
+
+/** Script faces kept on ornamental layers when the direction's fonts are applied. */
+const SCRIPT_FONTS = new Set<string>(["great-vibes", "dancing-script"]);
 
 /** Display-size "body" text (rhythm bands) versus small prose. */
 const RHYTHM_SIZE = 90;

@@ -108,10 +108,17 @@ describe("concept composer", () => {
 
   it("keeps a deliberately cropped title at its size while it fits the height, and never grows its box", () => {
     const l = TEMPLATES.flatMap((t) => t.layers).find((x): x is TextLayer => x.type === "text" && /\(cropped\)/i.test(x.name))!;
-    expect(fitText({ ...l, text: "ĐÊM" }, approxMeasure, 5000, l.text).size).toBe(l.size);
-    const long = fitText({ ...l, text: "Dạ hành khúc mùa đông" }, approxMeasure, 5000, l.text);
+    expect(fitText({ ...l, text: "ĐÊM" }, approxMeasure, { sample: l.text }).size).toBe(l.size);
+    const long = fitText({ ...l, text: "Dạ hành khúc mùa đông" }, approxMeasure, { canvas: { width: 1200, height: 5000 }, sample: l.text });
     expect(long.size).toBeLessThan(l.size);
     expect(long.h).toBe(l.h);
+  });
+
+  it("doesn't cut the user's title off at the canvas edge in a cropped layout", () => {
+    const ex = TEMPLATES.find((t) => t.id === "tpl_exhibition")!;
+    const [c] = composeConcepts({ ...base, templates: [ex], brief: { ...brief, title: "Dạ hành khúc" } }, 1);
+    const t = c!.doc.layers.find((l): l is TextLayer => l.type === "text" && layerRole(l) === "title")!;
+    for (const line of layoutText(t, approxMeasure).lines) expect(t.x + line.width).toBeLessThanOrEqual(c!.doc.width);
   });
 
   it("puts the subtitle in a kicker when there's no subtitle slot, and repeats brief words in rhythm bands", () => {
@@ -124,6 +131,18 @@ describe("concept composer", () => {
     const brieftext = ["Dạ hành khúc", "Coming soon", ...brief.lines].join(" ").toLocaleUpperCase("vi");
     for (const t of texts) for (const w of t.split(/\s+/)) expect(brieftext).toContain(w.toLocaleUpperCase("vi"));
     expect(c!.notes.join(" ")).toContain("rhythm band");
+  });
+});
+
+describe("ornamental type in composed concepts", () => {
+  it("keeps script faces on ornament layers and takes the initial from the brief's title", () => {
+    const nc = TEMPLATES.find((t) => t.id === "tpl_new-chapter")!;
+    const [c] = composeConcepts({ ...base, templates: [nc], brief: { ...brief, title: "Ước mơ mùa đông" } }, 1);
+    const initial = c!.doc.layers.find((l): l is TextLayer => l.type === "text" && /initial/i.test(l.name))!;
+    expect(initial.text.toLocaleLowerCase("vi")).toBe("ư");
+    expect(initial.font).toBe("great-vibes");
+    const title = c!.doc.layers.find((l): l is TextLayer => l.type === "text" && layerRole(l) === "title")!;
+    expect(title.font).toBe(direction.fonts.display);
   });
 });
 

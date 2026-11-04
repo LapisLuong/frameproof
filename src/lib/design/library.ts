@@ -52,6 +52,8 @@ export const ItemSchema = z.object({
   height: z.number().positive().max(CANVAS_MAX),
   layers: z.array(LayerSchema).min(1).max(40),
   licence: LicenceSchema,
+  /** Search words (e.g. "swash", "light"). */
+  tags: z.array(z.string().trim().min(1).max(40)).max(12).default([]),
 });
 export type Item = z.infer<typeof ItemSchema>;
 export type ItemInput = z.input<typeof ItemSchema>;
