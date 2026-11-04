@@ -332,7 +332,7 @@ export const getResource = (id: string) => readOne<Resource>("resources", id);
  * Add an image or font after checking its bytes (magic bytes, size, image header dimensions) before anything decodes
  * it. The licence is what the user entered; it's recorded, not verified.
  */
-export async function addResource(file: Blob, kind: ResourceKind, meta: { name: string; licence: Licence; tags?: string[] }): Promise<Resource> {
+export async function addResource(file: Blob, kind: ResourceKind, meta: { name: string; licence: Licence; tags?: string[]; derivedFrom?: ResourceMeta["derivedFrom"] }): Promise<Resource> {
   let mime: ResourceMeta["mime"];
   let size: { width?: number; height?: number } = {};
   if (kind === "image") {
@@ -356,6 +356,7 @@ export async function addResource(file: Blob, kind: ResourceKind, meta: { name: 
     ...size,
     licence: meta.licence,
     tags: meta.tags ?? [],
+    ...(meta.derivedFrom ? { derivedFrom: meta.derivedFrom } : {}),
     createdAt: now,
     updatedAt: now,
     blob: new Blob([file], { type: mime }),

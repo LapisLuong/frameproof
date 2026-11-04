@@ -10,6 +10,8 @@ import { Inspector } from "@/components/design/Inspector";
 import { LayersPanel } from "@/components/design/LayersPanel";
 import { useHistory } from "@/components/design/useHistory";
 import { DocPalette } from "@/components/design/DocPalette";
+import { CutoutDialog, type CutoutSource } from "@/components/design/CutoutDialog";
+import type { ToolResult } from "@/lib/image-tools/types";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
 import { loadDocFonts, registerUserFont } from "@/lib/design/browser";
@@ -77,6 +79,8 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
   const projectId = useRef<string | null>(initial.projectId);
   const [linked, setLinked] = useState(initial.projectId !== null);
   const textRef = useRef<HTMLTextAreaElement>(null);
+  // Background removal for one picture layer: which layer, and the picture it showed when the dialog opened.
+  const [cutout, setCutout] = useState<{ layerId: string; source: CutoutSource } | null>(null);
 
   /* ---------- resources: object URLs and user fonts ---------- */
   const urls = useMemo(() => new Map(resources.filter((r) => r.kind === "image").map((r) => [r.id, URL.createObjectURL(r.blob)])), [resources]);
@@ -115,6 +119,42 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
     return () => clearTimeout(t);
   }, [doc]);
   const guard = useDraftGuard(saveState !== "saved");
+
+  /* ---------- background removal ---------- */
+  const sourceFor = (rid: string): CutoutSource | null => {
+    const own = resources.find((r) => r.id === rid && r.kind === "image");
+    if (own) return { resourceId: rid, name: own.name, width: own.width, height: own.height, load: async () => own.blob, url: urls.get(rid) ?? null };
+    const art = getBuiltinArt(rid);
+    if (!art) return null;
+    const url = artUrl(art);
+    return {
+      resourceId: rid,
+      name: art.name,
+      url,
+      load: async () => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("The picture couldn't be read.");
+        return res.blob();
+      },
+    };
+  };
+  const licenceFor = (rid: string) => {
+    const own = resources.find((r) => r.id === rid);
+    if (own) return own.licence;
+    const art = getBuiltinArt(rid);
+    return { id: "CC0-1.0", author: art?.author ?? "Unknown", source: art?.source ?? "FrameProof" };
+  };
+  // The cut-out becomes a new picture linked to its source; the layer switches to it as one undo step.
+  const acceptCutout = async (layerId: string, source: CutoutSource, result: ToolResult) => {
+    const res = await addResource(result.png, "image", {
+      name: `${source.name} (cut-out)`,
+      licence: licenceFor(source.resourceId),
+      tags: ["cut-out"],
+      derivedFrom: { resourceId: source.resourceId, tool: "cutout", model: result.model.name },
+    });
+    h.commit((d) => updateLayer(d, layerId, { resourceId: res.id }));
+    toast("Cut-out saved as a new picture; the original is unchanged.");
+  };
 
   /* ---------- edits ---------- */
   const selected = doc.layers.find((l) => l.id === selectedId) ?? null;
@@ -359,11 +399,20 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
               images={[...resources.filter((r) => r.kind === "image").map((r) => ({ id: r.id, label: r.name })), ...BUILTIN_ART.map((a) => ({ id: a.id, label: `${a.name} (${a.author.split(",")[0]}, public domain)` }))]}
               textRef={textRef}
               onNudge={nudge}
+              onCutout={() => {
+                if (selected?.type !== "image" || !selected.resourceId) return;
+                const source = sourceFor(selected.resourceId);
+                if (source) setCutout({ layerId: selected.id, source });
+                else toast("This picture isn't in the library any more.");
+              }}
             />
             </fieldset>
           </div>
         </div>
       </div>
+      {cutout ? (
+        <CutoutDialog source={cutout.source} onAccept={(r) => acceptCutout(cutout.layerId, cutout.source, r)} onClose={() => setCutout(null)} />
+      ) : null}
     </div>
   );
 }

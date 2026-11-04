@@ -18,6 +18,8 @@ type Props = {
   images: ImageOption[];
   textRef?: React.Ref<HTMLTextAreaElement>;
   onNudge: (dx: number, dy: number) => void;
+  /** Open background removal for the selected picture (absent when the tool isn't offered). */
+  onCutout?: () => void;
 };
 
 /** Numeric field that only commits valid numbers, and shows what was typed until then. */
@@ -171,7 +173,7 @@ function TextFields({ layer, onLayer, userFonts, textRef }: { layer: TextLayer; 
   );
 }
 
-export function Inspector({ doc, layer, onLayer, onDoc, userFonts, images, textRef, onNudge }: Props) {
+export function Inspector({ doc, layer, onLayer, onDoc, userFonts, images, textRef, onNudge, onCutout }: Props) {
   const swatches = usedColours(doc);
   if (!layer) {
     const format = FORMATS.find((f) => f.width === doc.width && f.height === doc.height)?.id ?? "custom";
@@ -259,6 +261,11 @@ export function Inspector({ doc, layer, onLayer, onDoc, userFonts, images, textR
             onChange={(v) => onLayer({ resourceId: v || null }, `${layer.id}:res`)}
           />
           {!images.length ? <p className="hint">Add your own pictures under Add → Your images. Nothing is generated.</p> : null}
+          {layer.resourceId && onCutout ? (
+            <button type="button" className="btn btn-sm" onClick={onCutout}>
+              Remove background…
+            </button>
+          ) : null}
           <div className="design-row">
             <Select label="Fit" value={layer.fit} options={[{ value: "cover", label: "Fill the frame" }, { value: "contain", label: "Show all" }]} onChange={(v) => onLayer({ fit: v }, `${layer.id}:fit`)} />
             <NumberField label="Corner radius" suffix="px" value={layer.radius} min={0} max={6000} onChange={(v) => onLayer({ radius: v }, `${layer.id}:radius`)} />

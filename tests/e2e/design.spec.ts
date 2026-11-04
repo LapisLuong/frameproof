@@ -86,6 +86,70 @@ test.describe("Campaign formats", () => {
   });
 });
 
+test.describe("Background removal", () => {
+  // The model itself is exercised by the runtime's own tests; here a stand-in worker checks the editor's flow:
+  // confirmation before any download, progress, cancel, preview, and accept as a new linked picture.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      class FakeWorker {
+        onmessage: ((e: { data: unknown }) => void) | null = null;
+        onerror: (() => void) | null = null;
+        onmessageerror: (() => void) | null = null;
+        terminated = false;
+        terminate() {
+          this.terminated = true;
+          (window as unknown as { __terminated: number }).__terminated = ((window as unknown as { __terminated?: number }).__terminated ?? 0) + 1;
+        }
+        async postMessage() {
+          const send = (data: unknown) => !this.terminated && this.onmessage?.({ data });
+          send({ type: "progress", progress: { stage: "download", loaded: 50 * 1048576, total: 200 * 1048576 } });
+          if ((window as unknown as { __hang?: boolean }).__hang) return;
+          await new Promise((r) => setTimeout(r, 150));
+          const c = new OffscreenCanvas(40, 30);
+          const g = c.getContext("2d")!;
+          g.fillStyle = "#c65a42";
+          g.fillRect(10, 5, 20, 20);
+          const png = await c.convertToBlob({ type: "image/png" });
+          const model = { name: "BEN2", licence: "MIT", source: "https://huggingface.co/onnx-community/BEN2-ONNX", bytes: 219121675 };
+          send({ type: "result", result: { png, width: 40, height: 30, model, ms: { load: 1, run: 2 } } });
+        }
+      }
+      (window as unknown as { Worker: unknown }).Worker = FakeWorker;
+    });
+  });
+
+  test("asks first, can be cancelled, and saves the result as a new picture", async ({ page }) => {
+    const external: string[] = [];
+    page.on("request", (r) => !r.url().startsWith("http://localhost") && !r.url().startsWith("data:") && !r.url().startsWith("blob:") && external.push(r.url()));
+    await freshStart(page);
+    await page.getByTestId("desk-starters").getByRole("button").first().click();
+    await page.getByRole("button", { name: /^Portrait slot/ }).first().click();
+    await page.getByRole("button", { name: "Remove background…" }).click();
+    const dialog = page.getByRole("dialog", { name: "Remove background" });
+    await expect(dialog).toContainText("about 209 MB");
+    await expect(dialog).toContainText("your picture is not sent anywhere");
+
+    await page.evaluate(() => ((window as unknown as { __hang: boolean }).__hang = true));
+    await dialog.getByRole("button", { name: "Remove background" }).click();
+    await expect(dialog).toContainText("Downloading the model: 50 MB of 200 MB");
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog.getByRole("button", { name: "Remove background" })).toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { __terminated?: number }).__terminated)).toBe(1);
+
+    await page.evaluate(() => ((window as unknown as { __hang: boolean }).__hang = false));
+    await dialog.getByRole("button", { name: "Remove background" }).click();
+    await expect(dialog.getByRole("img", { name: /background removed/ })).toBeVisible();
+    await expect(dialog).toContainText("40 × 30 px");
+    await dialog.getByRole("button", { name: "Use the cut-out" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByLabel("Picture")).toHaveValue(/^res_/);
+    await expect(page.getByLabel("Picture").locator("option:checked")).toContainText("(cut-out)");
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(page.getByLabel("Picture").locator("option:checked")).not.toContainText("(cut-out)");
+    expect(external).toEqual([]);
+  });
+});
+
 test.describe("Design file import", () => {
   test("a file over the size limit is refused before it's read", async ({ page }) => {
     await freshStart(page);

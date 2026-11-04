@@ -26,6 +26,10 @@ export const ResourceMetaSchema = z.object({
   height: z.number().int().positive().optional(),
   licence: LicenceSchema,
   tags: z.array(z.string().max(40)).max(20).default([]),
+  /** Made in FrameProof from another picture (a cut-out, a filled area); the source is kept unchanged. */
+  derivedFrom: z
+    .object({ resourceId: z.string().max(80), tool: z.enum(["cutout", "inpaint"]), model: z.string().max(80) })
+    .optional(),
   createdAt: z.number().int().nonnegative(),
   updatedAt: z.number().int().nonnegative(),
 });
