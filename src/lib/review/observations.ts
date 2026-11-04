@@ -1,4 +1,5 @@
 import type { ImageAnalysis } from "../analysis/analyze";
+import { EDGE_THRESHOLD } from "../analysis/structure";
 import { formatRatio } from "../color/contrast";
 import { bestContrastPair, THRESHOLDS } from "./engine";
 import type { EvidenceType, ReviewIssue } from "./types";
@@ -47,7 +48,16 @@ export function observeImage(a: ImageAnalysis): Observation[] {
   });
 
   const largest = swatches[0];
-  if (largest) {
+  if (!largest) {
+    // A fully transparent image has no opaque pixels, so there is no colour to describe, neutral or otherwise.
+    out.push({
+      id: "largest-colour",
+      title: "No opaque pixels to measure",
+      detail: "Every pixel is transparent, so the image has no measured palette, strong colour or contrast pair.",
+      evidenceType: "measured",
+      evidence: [{ label: "Transparent", value: pct(a.palette.transparentShare, 1) }],
+    });
+  } else {
     out.push({
       id: "largest-colour",
       title: largest.share >= 0.5 ? "One colour covers most of the image" : "No single colour covers half the image",
@@ -58,26 +68,28 @@ export function observeImage(a: ImageAnalysis): Observation[] {
     });
   }
 
-  const strong = swatches.filter((s) => s.chroma >= THRESHOLDS.accentChroma).sort((x, y) => y.chroma - x.chroma);
-  const top = strong[0];
-  out.push(
-    top
-      ? {
-          id: "strong-colour",
-          title: strong.length === 1 ? "One strong colour" : `${strong.length} strong colours`,
-          detail: `The most saturated main colour is ${top.hex} (Oklab chroma ${top.chroma.toFixed(3)}), covering ${pct(top.share, 1)}.`,
-          evidenceType: "measured",
-          evidence: strong.map((s) => ({ label: s.hex, value: `chroma ${s.chroma.toFixed(3)}, ${pct(s.share, 1)}` })),
-          limit: `"Strong" means Oklab chroma of at least ${THRESHOLDS.accentChroma}, the threshold the review uses for an accent.`,
-        }
-      : {
-          id: "strong-colour",
-          title: "No strong colour",
-          detail: `Every main colour has Oklab chroma under ${THRESHOLDS.accentChroma}, so the palette reads as neutral or muted.`,
-          evidenceType: "measured",
-          evidence: swatches.slice(0, 3).map((s) => ({ label: s.hex, value: `chroma ${s.chroma.toFixed(3)}` })),
-        },
-  );
+  if (largest) {
+    const strong = swatches.filter((s) => s.chroma >= THRESHOLDS.accentChroma).sort((x, y) => y.chroma - x.chroma);
+    const top = strong[0];
+    out.push(
+      top
+        ? {
+            id: "strong-colour",
+            title: strong.length === 1 ? "One strong colour" : `${strong.length} strong colours`,
+            detail: `The most saturated main colour is ${top.hex} (Oklab chroma ${top.chroma.toFixed(3)}), covering ${pct(top.share, 1)}.`,
+            evidenceType: "measured",
+            evidence: strong.map((s) => ({ label: s.hex, value: `chroma ${s.chroma.toFixed(3)}, ${pct(s.share, 1)}` })),
+            limit: `"Strong" means Oklab chroma of at least ${THRESHOLDS.accentChroma}, the threshold the review uses for an accent.`,
+          }
+        : {
+            id: "strong-colour",
+            title: "No strong colour",
+            detail: `Every main colour has Oklab chroma under ${THRESHOLDS.accentChroma}, so the palette reads as neutral or muted.`,
+            evidenceType: "measured",
+            evidence: swatches.slice(0, 3).map((s) => ({ label: s.hex, value: `chroma ${s.chroma.toFixed(3)}` })),
+          },
+    );
+  }
 
   const pair = bestContrastPair(swatches, THRESHOLDS.minShareForPair);
   if (pair) {
@@ -93,21 +105,34 @@ export function observeImage(a: ImageAnalysis): Observation[] {
   }
 
   const grid = a.structure.detailGrid;
-  const peak = grid.reduce((best, v, i) => (v > (grid[best] ?? -1) ? i : best), 0);
-  const peakShare = grid[peak] ?? 0;
-  const c = a.structure.detailCentroid;
-  out.push({
-    id: "detail",
-    title: peakShare >= CONCENTRATED_DETAIL ? `Detail gathers in the ${NINTHS[peak]}` : "Detail is spread across the frame",
-    detail: `The ${NINTHS[peak]} ninth carries ${pct(peakShare)} of the edge strength (an even spread is 11%). The detail-weighted centre sits ${pct(c.x)} across and ${pct(c.y)} down.`,
-    evidenceType: "measured",
-    evidence: [
-      { label: "Densest ninth", value: `${NINTHS[peak]}, ${pct(peakShare)}` },
-      { label: "Detail centre", value: `${pct(c.x)}, ${pct(c.y)}` },
-      { label: "Edge density", value: pct(a.structure.edgeDensity, 1) },
-    ],
-    limit: "Edges come from type, texture and photographs alike; this shows where detail is, not what it is or whether it reads first.",
-  });
+  // With no edges at all, the detail centre and 3×3 shares are structure.ts's neutral defaults (0.5, 0.5 and 1/9),
+  // not a measured position, so nothing is said about where detail sits.
+  if (a.structure.edgeDensity === 0) {
+    out.push({
+      id: "detail",
+      title: "No edges to locate",
+      detail: `No pixel passes the edge threshold (Sobel magnitude ${EDGE_THRESHOLD} on 0–1 lightness), so there is no detail to place in the frame.`,
+      evidenceType: "measured",
+      evidence: [{ label: "Edge density", value: pct(0, 1) }],
+      limit: "Very soft gradients stay under the threshold and aren't counted as detail.",
+    });
+  } else {
+    const peak = grid.reduce((best, v, i) => (v > (grid[best] ?? -1) ? i : best), 0);
+    const peakShare = grid[peak] ?? 0;
+    const c = a.structure.detailCentroid;
+    out.push({
+      id: "detail",
+      title: peakShare >= CONCENTRATED_DETAIL ? `Detail gathers in the ${NINTHS[peak]}` : "Detail is spread across the frame",
+      detail: `The ${NINTHS[peak]} ninth carries ${pct(peakShare)} of the edge strength (an even spread is 11%). The detail-weighted centre sits ${pct(c.x)} across and ${pct(c.y)} down.`,
+      evidenceType: "measured",
+      evidence: [
+        { label: "Densest ninth", value: `${NINTHS[peak]}, ${pct(peakShare)}` },
+        { label: "Detail centre", value: `${pct(c.x)}, ${pct(c.y)}` },
+        { label: "Edge density", value: pct(a.structure.edgeDensity, 1) },
+      ],
+      limit: "Edges come from type, texture and photographs alike; this shows where detail is, not what it is or whether it reads first.",
+    });
+  }
 
   out.push({
     id: "quiet",

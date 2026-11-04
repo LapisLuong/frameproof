@@ -68,6 +68,31 @@ describe("observeImage", () => {
     expect(byId(observeImage(even), "detail")!.title).toBe("Detail is spread across the frame");
   });
 
+  it("claims no detail position for a solid image (the centre and ninths are only defaults there)", () => {
+    const solid = analyzeBuffer(paint(300, 200, paper), meta(300, 200));
+    expect(solid.structure.edgeDensity).toBe(0);
+    const obs = observeImage(solid);
+    const detail = byId(obs, "detail")!;
+    expect(detail.title).toBe("No edges to locate");
+    expect(detail.detail).not.toMatch(/ninth|across|down|spread/);
+    expect(detail.evidence.map((e) => e.label)).toEqual(["Edge density"]);
+    const md = observationsToMarkdown(obs).join("\n");
+    expect(md).toContain("### No edges to locate");
+    expect(md).not.toMatch(/Detail is spread|Detail gathers|Densest ninth|Detail centre/);
+  });
+
+  it("says a fully transparent image has no opaque pixels instead of calling its colour neutral", () => {
+    const clear = analyzeBuffer(paint(200, 200, [0, 0, 0, 0]), meta(200, 200));
+    expect(clear.palette.swatches).toHaveLength(0);
+    const obs = observeImage(clear);
+    expect(byId(obs, "largest-colour")!.title).toBe("No opaque pixels to measure");
+    expect(byId(obs, "strong-colour")).toBeUndefined();
+    expect(byId(obs, "contrast")).toBeUndefined();
+    expect(byId(obs, "transparency")!.detail).toContain("100.0%");
+    const md = observationsToMarkdown(obs).join("\n");
+    expect(md).not.toMatch(/neutral|muted/i);
+  });
+
   it("mentions transparency only above 1%, and exports every observation to Markdown", () => {
     const clear = analyzeBuffer(paint(200, 200, paper, [{ x0: 0, y0: 0, x1: 0.5, y1: 1, c: [0, 0, 0, 0] }]), meta(200, 200));
     const obs = observeImage(clear);

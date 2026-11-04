@@ -71,6 +71,10 @@ the same way in the analyzer and in a review. It measures nothing new and makes 
 has an evidence type (`measured`, or `estimated` for flat area), the values it rests on, and what it can't tell you.
 Its own two thresholds are named constants: `CONCENTRATED_DETAIL` (a ninth holding twice an even share of edge
 strength) and `TRANSPARENCY_SHARE` (1%). The Markdown and JSON analysis exports include the same list.
+Two cases have no evidence and say so: with edge density 0 the detail centre and 3×3 shares are only
+`measureStructure`'s neutral defaults, so no position is claimed ("No edges to locate"); with an empty palette (every
+pixel transparent) there is no colour to describe ("No opaque pixels to measure"), and the colour and contrast
+observations are left out.
 
 ## Migration path
 
