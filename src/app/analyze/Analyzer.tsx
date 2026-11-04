@@ -170,12 +170,12 @@ export function Analyzer() {
 
       {asset ? (
         <>
-          <Result asset={asset} />
+          <Result key={asset.id} asset={asset} />
           <hr className="rule" style={{ margin: "3rem 0 2rem" }} />
         </>
       ) : null}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(18rem, 1fr))", gap: "2rem", alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 18rem), 1fr))", gap: "2rem", alignItems: "start" }}>
         <section aria-label="Analyze an image">
           <h2 className="t-heading" style={{ marginBottom: "0.75rem" }}>
             {asset ? "Analyze another image" : "Analyze an image"}

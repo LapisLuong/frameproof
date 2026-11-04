@@ -113,6 +113,20 @@ test.describe("Event poster journey", () => {
 });
 
 test.describe("Libraries", () => {
+  test("switching analyzer images resets contrast to the displayed palette", async ({ page }) => {
+    await freshStart(page);
+    await page.goto("/analyze");
+    await page.getByTestId("upload-analyze").setInputFiles(REF);
+    await page.waitForURL(/asset=/);
+    const firstUrl = page.url();
+    await page.getByTestId("contrast-a").selectOption("#C65B43");
+    await page.getByTestId("upload-analyze").setInputFiles(CUR);
+    await page.waitForURL((url) => url.href !== firstUrl && url.searchParams.has("asset"));
+    const colours = await page.getByTestId("contrast-a").locator("option").allTextContents();
+    await expect(page.getByTestId("contrast-a")).toHaveValue(colours[1]!);
+    await expect(page.getByTestId("contrast-b")).toHaveValue(colours[0]!);
+  });
+
   test("inspiration library: add, search, filter, persist, delete", async ({ page }) => {
     await freshStart(page);
     await page.goto("/library");
@@ -201,6 +215,22 @@ test.describe("Server and platform", () => {
     await page.waitForURL(/\/projects\//);
     await expect(page.getByText("Sample", { exact: true }).first()).toBeVisible();
     await expect(page.getByTestId("proofnote").first()).toBeVisible({ timeout: 20_000 });
+    const measurements = page.getByRole("region", { name: /Measurements and methods/ });
+    await measurements.focus();
+    await expect(measurements).toBeFocused();
+    await expect(measurements).toHaveCSS("overflow-x", "auto");
+    if (page.viewportSize()!.width <= 640) {
+      await expect(page.locator(".file-row").first()).toHaveCSS("display", "grid");
+      await page.getByRole("button", { name: "Current", exact: true }).click();
+      await expect(page.getByRole("img", { name: "Current design", exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Reference", exact: true }).click();
+      await expect(page.getByRole("img", { name: "Reference", exact: true })).toBeVisible();
+      await measurements.scrollIntoViewIfNeeded();
+      await measurements.evaluate((el) => {
+        el.scrollLeft = el.scrollWidth;
+      });
+      expect(await measurements.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+    }
     for (const path of ["/", "/analyze", "/library", "/styles", new URL(page.url()).pathname]) {
       await page.goto(path);
       await page.waitForLoadState("networkidle");

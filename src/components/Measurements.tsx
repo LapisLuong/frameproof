@@ -124,7 +124,7 @@ export function MeasurementTable({ reference, current, comparison }: { reference
   add("Quiet area", (a) => pct(a.structure.quietShare), "estimated");
 
   return (
-    <div style={{ overflowX: "auto" }}>
+    <div className="measurement-region" role="region" aria-label="Measurements and methods (scroll horizontally for all columns)" tabIndex={0}>
       <table className="ptable">
         <caption>Measurements</caption>
         <thead>
