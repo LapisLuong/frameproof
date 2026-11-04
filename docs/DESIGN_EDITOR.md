@@ -95,6 +95,32 @@ SVG export saves it with fonts and images embedded, PNG export rasterises it. Te
 `layoutText` (`layout.ts`) with an injected `measure`, so lines break in the same place on screen and in exports;
 text taller than its box is never clipped and the editor says so.
 
+## Campaign formats
+
+`/campaign?id=` (opened from the editor's "Campaign formats", which saves first) recomposes one design for square,
+4:5, story, banner, page cover, an 80 × 180 cm standee and a circle-safe avatar (`src/lib/design/campaign.ts`).
+Rules, not stretching: words, fonts, colours, pictures and brand locks are kept; only placement and scale change.
+Strategies: `anchor` (each layer keeps the edge or centre it was aligned to) and `split` / `split-mirrored`
+(pictures in one zone, type in the other). Content is recomposed into `safeBox(format)`: the square inside the
+avatar circle, the story area between the platform's top and bottom bands (approximate). Full-bleed layers refill
+the canvas. Every scaled size is capped at the schema limit, and a capped layer is named in the notes. Each saved
+variant is a new design with `sourceDesignId`. Notes are honest: overflow, very small type, crop by the circle
+(using rotated corners), and the standee's real print DPI (about 85 at 2667 × 6000 px) with a pointer to SVG.
+
+Not yet: a transparent avatar frame with a non-destructive centre cut-out (needs a transparent-canvas schema
+change), and per-format recipes with group distribution for several info or photo layers
+(see the Codex/Gemini campaign handoff).
+
+## Image tools
+
+Contract: `src/lib/image-tools/types.ts`. Runtimes run in a worker in the browser; the runtime is served
+same-origin (`npm run prepare:image-tools`, run before dev and build); weights are fetched from a pinned
+revision only after the user starts the tool. Background removal (BEN2) is wired in the Inspector for picture
+layers (`CutoutDialog`): a confirmation names the model, licence, size and source; there's progress with Cancel;
+the preview compares the result with the original and states its real size. Accepting stores a new resource with
+`derivedFrom: { resourceId, tool, model }` and switches the layer as one undo step. Inpainting (LaMa) gets the same
+treatment, plus a brush mask, once its module lands; until then it isn't offered.
+
 ## Ownership
 
 | Area | Owner | Files |
@@ -107,8 +133,9 @@ text taller than its box is never clipped and the editor says so.
 | Resource file validation (font and image magic bytes, limits) | Codex CLI | `src/lib/design/resource-validate.ts`, `tests/unit/resource-validate.test.ts` |
 | Poster font pack (OFL, from github.com/google/fonts): manifest, licences, Vietnamese coverage | Codex desktop | delivered to `work/poster-fonts`; Claude integrates into `fonts.ts` |
 | Palette tools (HSL, linked colours, roles), layer roles on the pack, AI direction route | Codex CLI | `src/lib/design/palette.ts`, `src/lib/ai/direction.ts`, `src/app/api/direction/route.ts`, tests |
-| Deterministic composer, compose flow UI, palette panel, Desk gallery, motion, LaMa inpaint | Claude Code | `src/lib/design/compose.ts`, `src/app/compose/*`, `src/lib/design/inpaint*` |
-| BEN2 background-removal runtime prototype, resource packs, acceptance | Codex desktop | isolated prototype → handed to Claude to integrate |
+| Deterministic composer, compose flow UI, palette panel, Desk gallery, campaign formats, image-tool UI, motion | Claude Code | `src/lib/design/{compose,campaign,doc-palette}.ts`, `src/app/{compose,campaign}/*`, `src/components/design/CutoutDialog.tsx` |
+| Image-tool runtimes (BEN2 cutout, LaMa inpaint), workers, runtime packaging | Codex desktop | `src/lib/image-tools/*` except `types.ts`, `scripts/prepare-image-tools.mjs`, `package.json` deps |
+| API request guard (Origin, Fetch Metadata, multipart) | Codex desktop | `src/lib/security/request.ts`, `tests/unit/security-request.test.ts` |
 | Independent review, licence check, acceptance | Codex desktop | `docs/reviews/*` |
 
 Nobody edits another owner's files; changes go through a note to the owner.
