@@ -8,9 +8,9 @@ Last verified: 4 Nov 2026, on Linux (Node 22, Chromium 1243) and macOS arm64 (No
 | --- | --- |
 | `npm run typecheck` (strict, `noUncheckedIndexedAccess`) | pass |
 | `npm run lint` (eslint-config-next core-web-vitals + TypeScript) | pass, 0 warnings |
-| `npm test` (Vitest) | 43 / 43 pass on `feat/finding-anchors` (adds `tests/unit/anchors.test.ts`) — colour conversion, WCAG, palette, structure, similarity, aspect labels, upload validation (PNG/JPEG headers, bombs, fake files), review rules, AI config/validation/retry |
+| `npm test` (Vitest) | 55 / 55 pass on merged `main` (adds `tests/unit/anchors.test.ts` and the four review-finding regressions) — colour conversion, WCAG, palette, structure, similarity, aspect labels, upload validation (PNG/JPEG headers, bombs, fake files), review rules, AI config/validation/retry |
 | `npm run build` | pass on Linux and macOS |
-| `npm run test:e2e` (Playwright) | 12 / 12 with the e2e save-race fix on `fix/style-save-e2e` (11 / 12 without it); adds `tests/e2e/anchors.spec.ts` (marks at 1440 and 390 px, mark → note focus, resolve hides marks, layered modes) — full journey, fake-image rejection, library, analyzer → style → CSS, AI route unconfigured, keyboard skip link, sample project with no horizontal overflow at 1440 and 390 px, reduced motion |
+| `npm run test:e2e` (Playwright) | 12 / 12 pass on merged `main`, 4 Nov 2026; adds `tests/e2e/anchors.spec.ts` (marks at 1440 and 390 px, mark → note focus, resolve hides marks, layered modes) — full journey, fake-image rejection, library, analyzer → style → CSS, AI route unconfigured, keyboard skip link, sample project with no horizontal overflow at 1440 and 390 px, reduced motion |
 
 The end-to-end journey covers: create project → upload reference and current → automatic local review → genuine
 sizes in the measurement table → slider, overlay and difference modes → mark a note resolved → save notes →
@@ -47,6 +47,10 @@ magic bytes and pixel caps were adopted; its proposal to let the model fill a "m
 In round 2 it could not open the GitHub links and said so rather than guessing; the in-browser hand-off of the source
 failed (clipboard and CSP restrictions), so the **independent code review is still open** (milestone 2).
 
+The fractional-overlap resampling fix (review finding F2) moves some measured values slightly on the sample pair:
+SSIM 0.425 → 0.423, dHash distance 21 → 19 bits, changed area 43.6% → 43.5%. The new values are the correct area
+averages; no finding appeared or disappeared.
+
 ## Known limitations
 
 - **AI review has not been run against a live provider** in this environment (no key). The provider layer, schema,
@@ -65,11 +69,12 @@ failed (clipboard and CSP restrictions), so the **independent code review is sti
 
 ## Next milestones
 
-1. **Deploy the demo to Vercel** (Hobby, no AI key). The user approved a public demo; confirm once more before the final Deploy click.
+1. **Hosted demo** — on hold: the user wants the finished code on GitHub for now and no hosting. Vercel Hobby is
+   free if this is picked up later (no AI key; its ~4.5 MB request limit would block AI review with large images).
 2. ~~Independent code review~~ — done by Codex, 4 findings (0 high, 2 medium, 2 low), all verified and fixed on
    `fix/review-findings`; see `docs/reviews/codex-review.md` on that branch. Original scope:  `src/lib/image/validate.ts`, `src/lib/analysis/*`, `src/lib/color/*`,
    `src/app/api/review/route.ts`, `src/lib/ai/provider.ts` — concrete defects only, each verified with a failing test before fixing.
-3. **Run AI review against a real key** (Anthropic or OpenAI-compatible) and add a recorded-response test fixture.
+3. **Run AI review against a real key** (free route: Gemini via its OpenAI-compatible endpoint, see `.env.example`) (Anthropic or OpenAI-compatible) and add a recorded-response test fixture.
 4. ~~Numbered anchors on the artwork~~ — done on `feat/finding-anchors`. Notes stay in one priority-ordered list and are
    labelled "On the artwork" or "Whole image" (separate groups put a low-priority note above high ones).
 5. Move analysis into a Web Worker for very large images; add a mobile E2E test for the Reference/Current toggle.
