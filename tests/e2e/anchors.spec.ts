@@ -11,7 +11,7 @@ async function openSample(page: Page) {
   );
   await page.reload();
   await page.getByRole("button", { name: "Open the sample project" }).click();
-  await page.waitForURL(/\/projects\//);
+  await page.waitForURL(/\/project\/?\?id=/);
   await expect(page.getByTestId("proofnote").first()).toBeVisible({ timeout: 20_000 });
 }
 

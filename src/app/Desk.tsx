@@ -44,7 +44,7 @@ function NewProjectForm({ inputRef }: { inputRef: React.RefObject<HTMLInputEleme
         try {
           const p = await createProject(name, brief);
           toast("Project created");
-          router.push(`/projects/${p.id}`);
+          router.push(`/project?id=${p.id}`);
         } catch (err) {
           setError(err instanceof Error ? err.message : "The project couldn't be saved.");
           setBusy(false);
@@ -127,7 +127,7 @@ export function Desk() {
     setSampleError(null);
     try {
       const p = await createSampleProject();
-      router.push(`/projects/${p.id}`);
+      router.push(`/project?id=${p.id}`);
     } catch (e) {
       setSampleError(e instanceof Error ? e.message : "The sample project couldn't be created.");
       setSampleBusy(false);
@@ -171,7 +171,7 @@ export function Desk() {
                 const cur = p.currentAssetId ? assets.get(p.currentAssetId) : undefined;
                 return (
                   <li key={p.id}>
-                    <Link href={`/projects/${p.id}`} className="ledger-row" data-testid="project-row">
+                    <Link href={`/project?id=${p.id}`} className="ledger-row" data-testid="project-row">
                       <span className="pair" aria-hidden="true">
                         <Thumb blob={ref?.thumb} alt="" />
                         <Thumb blob={cur?.thumb} alt="" />
@@ -234,7 +234,7 @@ export function Desk() {
                     const p = projects.find((x) => x.id === r.projectId);
                     return (
                       <li key={r.id}>
-                        <Link className="link" href={`/projects/${r.projectId}?review=${r.id}`}>
+                        <Link className="link" href={`/project?id=${r.projectId}&review=${r.id}`}>
                           {p?.name ?? "Deleted project"}, review {r.version}
                         </Link>
                         <p className="t-small">

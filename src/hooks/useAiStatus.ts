@@ -1,13 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { STATIC_EXPORT, withBase } from "@/lib/base-path";
 
 export type AiAvailability = { state: "loading" } | { state: "on"; provider: string; model: string } | { state: "off"; reason: string };
 
 let cache: Promise<AiAvailability> | null = null;
 
 function load(): Promise<AiAvailability> {
-  cache ??= fetch("/api/review", { cache: "no-store" })
+  if (STATIC_EXPORT)
+    return Promise.resolve({
+      state: "off" as const,
+      reason: "This hosted demo has no server, so AI review is off. Run FrameProof on your own machine with an API key to use it.",
+    });
+  cache ??= fetch(withBase("/api/review"), { cache: "no-store" })
     .then((r) => r.json())
     .then((d: { configured: boolean; provider?: string; model?: string; reason?: string }) =>
       d.configured

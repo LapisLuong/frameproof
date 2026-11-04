@@ -18,3 +18,4 @@ qa/screenshots/tmp/
 qa/council/
 ._*
 .sync/
+.api-parked/

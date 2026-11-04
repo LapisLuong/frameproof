@@ -71,7 +71,7 @@ Direction "Galley proof": artwork is the hero, decisions sit in the margin like 
   (this is the seam for a future Supabase sync).
 - `src/lib/ai` — provider abstraction (Anthropic Messages API, OpenAI-compatible chat completions via `fetch`).
 - `src/components` — CompareStage (side/slider/overlay/difference), ImageViewer (zoom/pan), ProofNotes, Measurements.
-- `src/app` — routes: `/` Desk, `/projects/[id]` review, `/analyze`, `/library`, `/styles`, `/api/review`.
+- `src/app` — routes: `/` Desk, `/project?id=` review, `/analyze`, `/library`, `/styles`, `/api/review`.
 - `tests/unit` (Vitest), `tests/e2e` (Playwright), `scripts/` (sample posters, QA screenshots).
 
 ## Dependencies

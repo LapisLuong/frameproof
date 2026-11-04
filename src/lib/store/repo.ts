@@ -6,6 +6,7 @@ import { buildLocalIssues } from "../review/engine";
 import { sortIssues, type ReviewIssue } from "../review/types";
 import { getAll, getByProject, getOne, newId, put, remove, type StoreName } from "./db";
 import type { AiStatus, Asset, InspirationRef, Project, Review, StyleSystem } from "./models";
+import { withBase } from "../base-path";
 
 /* ---------- change notifications (so open views refresh after a save) ---------- */
 
@@ -231,7 +232,7 @@ export async function createSampleProject(): Promise<Project> {
     if (!res.ok) throw new Error(`The sample image ${url} couldn't be loaded.`);
     return res.blob();
   };
-  const [refBlob, curBlob] = await Promise.all([fetchBlob("/samples/reference-poster.png"), fetchBlob("/samples/current-poster.png")]);
+  const [refBlob, curBlob] = await Promise.all([fetchBlob(withBase("/samples/reference-poster.png")), fetchBlob(withBase("/samples/current-poster.png"))]);
   const project = await createProject(
     "Sample: Night Market poster",
     "Student club poster for a night market. The reference sets the tone: warm paper, one red accent, big serif title. Readable from three metres.",

@@ -2,17 +2,21 @@
 
 **Design with intention.** FrameProof is a creative-direction and visual-QA workspace. Pair a design you admire with the one you are making; FrameProof measures both in your browser, shows where they differ, and turns that into a revision brief you can act on.
 
+**Try it:** https://lapisluong.github.io/frameproof/ — the full app as static files on GitHub Pages. Open the
+sample project, or upload two of your own images. Everything you add stays in your browser; nothing is uploaded.
+AI review is off in this demo because it needs a server and an API key (see "AI review" below to run it locally).
+
 ![Review workspace](qa/screenshots/02-project-1440.png)
 
 ## What it does
 
-| Workspace | What you can do |
-| --- | --- |
-| **Desk** | Projects, recent reviews and analyses, saved styles, a labelled sample project |
-| **Review** (`/projects/[id]`) | Upload a reference and a current design; compare side by side (linked zoom/pan), with a slider, as an overlay, or as a difference map; get prioritised margin notes; mark them resolved; keep notes; keep review versions; export Markdown or JSON |
-| **Analyzer** | One image: dimensions, aspect ratio, palette with pixel share, colour frequency, WCAG contrast for any palette pair, tonal and structural measures; export; save the palette as a style |
-| **Library** | Save references (link, image, credit, category, tags, collection, notes); search and filter; open the original; send the image to the analyzer |
-| **Styles** | Palette, typography, layout principles, spacing and radius tokens, motion notes, linked references; export JSON tokens and CSS variables |
+| Workspace                    | What you can do                                                                                                                                                                                                                                    |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Desk**                     | Projects, recent reviews and analyses, saved styles, a labelled sample project                                                                                                                                                                     |
+| **Review** (`/project?id=…`) | Upload a reference and a current design; compare side by side (linked zoom/pan), with a slider, as an overlay, or as a difference map; get prioritised margin notes; mark them resolved; keep notes; keep review versions; export Markdown or JSON |
+| **Analyzer**                 | One image: dimensions, aspect ratio, palette with pixel share, colour frequency, WCAG contrast for any palette pair, tonal and structural measures; export; save the palette as a style                                                            |
+| **Library**                  | Save references (link, image, credit, category, tags, collection, notes); search and filter; open the original; send the image to the analyzer                                                                                                     |
+| **Styles**                   | Palette, typography, layout principles, spacing and radius tokens, motion notes, linked references; export JSON tokens and CSS variables                                                                                                           |
 
 ### Evidence, not scores
 
@@ -29,7 +33,7 @@ Each note states what's wrong, why it matters, what to change, and what to keep.
 Requirements: **Node.js 20.9+** (tested with Node 22 and 24), npm 10+.
 
 ```bash
-git clone https://github.com/<your-account>/frameproof.git
+git clone https://github.com/LapisLuong/frameproof.git
 cd frameproof
 npm install
 npm run dev          # http://localhost:3000
@@ -37,15 +41,16 @@ npm run dev          # http://localhost:3000
 
 Open the folder in VS Code (`File → Open Folder…`). Recommended extensions: ESLint, Tailwind CSS IntelliSense.
 
-| Script | What it runs |
-| --- | --- |
-| `npm run dev` | Next.js dev server |
-| `npm run build` / `npm start` | Production build / server |
-| `npm run typecheck` | `tsc --noEmit` (strict, `noUncheckedIndexedAccess`) |
-| `npm run lint` | ESLint flat config (`eslint-config-next` core-web-vitals + TypeScript) |
-| `npm test` | Vitest unit tests (analysis engine, validation, review rules, AI layer) |
-| `npm run test:e2e` | Playwright end-to-end tests (run `npx playwright install chromium` once) |
-| `npm run samples` | Regenerates the two sample posters in `public/samples/` |
+| Script                        | What it runs                                                                                                                  |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                 | Next.js dev server                                                                                                            |
+| `npm run build` / `npm start` | Production build / server                                                                                                     |
+| `npm run typecheck`           | `tsc --noEmit` (strict, `noUncheckedIndexedAccess`)                                                                           |
+| `npm run lint`                | ESLint flat config (`eslint-config-next` core-web-vitals + TypeScript)                                                        |
+| `npm test`                    | Vitest unit tests (analysis engine, validation, review rules, AI layer)                                                       |
+| `npm run test:e2e`            | Playwright end-to-end tests (run `npx playwright install chromium` once)                                                      |
+| `npm run build:static`        | Static files for GitHub Pages in `out/` (no AI route). Set `NEXT_PUBLIC_BASE_PATH=/frameproof` when serving from a sub-folder |
+| `npm run samples`             | Regenerates the two sample posters in `public/samples/`                                                                       |
 
 ### Hướng dẫn nhanh (tiếng Việt)
 
@@ -64,9 +69,14 @@ cp .env.example .env.local
 # or AI_PROVIDER=openai, OPENAI_API_KEY=..., AI_MODEL=<a vision model id>, optional OPENAI_BASE_URL
 ```
 
+No paid key? Google's Gemini API has a free tier and an OpenAI-compatible endpoint. Create a key at
+https://aistudio.google.com/apikey and use the Gemini block in `.env.example` (`AI_PROVIDER=openai`,
+`OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/`, a vision-capable `AI_MODEL`). On the free
+tier Google may use what you send to improve its products, so don't send client work you can't share.
+
 - Calls happen only in `src/app/api/review/route.ts` (Node runtime). Keys are never sent to the browser.
 - Images are re-validated, metadata-stripped and downscaled to 1280 px with sharp before being sent.
-- The model receives the brief and the *measured* facts, and must answer with a strict JSON schema (Zod). Invalid output is retried once, then the review is marked "failed" — nothing is invented.
+- The model receives the brief and the _measured_ facts, and must answer with a strict JSON schema (Zod). Invalid output is retried once, then the review is marked "failed" — nothing is invented.
 - When AI is off, the UI says so and the API returns `503 not-configured`.
 - On Vercel, set the same variables under Project Settings → Environment Variables.
 
@@ -81,7 +91,7 @@ cp .env.example .env.local
 
 ```
 src/
-  app/                 routes: / (Desk), /projects/[id], /analyze, /library, /styles, /api/review
+  app/                 routes: / (Desk), /project?id=, /analyze, /library, /styles, /api/review
   components/          CompareStage, ImageViewer, ProofNotes, Measurements, Dropzone, ...
   hooks/               useStore (IndexedDB + change events), useAiStatus
   lib/

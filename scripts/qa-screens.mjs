@@ -19,7 +19,7 @@ await page.getByRole("heading", { name: "Desk" }).waitFor();
 await page.screenshot({ path: `${out}/01-desk-empty-1440.png`, fullPage: true });
 
 await page.getByRole("button", { name: "Open the sample project" }).click();
-await page.waitForURL(/\/projects\//);
+await page.waitForURL(/\/project\/?\?id=/);
 await page.getByTestId("proofnote").first().waitFor({ timeout: 20000 });
 const projectUrl = page.url();
 

@@ -25,7 +25,7 @@ test.describe("Event poster journey", () => {
     await page.getByLabel("Name").fill("Event Poster");
     await page.getByLabel("Brief (optional)").fill("Student event poster, readable from three metres.");
     await page.getByRole("button", { name: "Create project" }).click();
-    await page.waitForURL(/\/projects\/prj_/);
+    await page.waitForURL(/\/project\/?\?id=prj_/);
     await expect(page.getByRole("heading", { level: 1, name: /Event Poster/ })).toBeVisible();
 
     // Upload both images — the review runs automatically once both are in
@@ -102,7 +102,7 @@ test.describe("Event poster journey", () => {
     await freshStart(page);
     await page.getByLabel("Name").fill("Bad upload");
     await page.getByRole("button", { name: "Create project" }).click();
-    await page.waitForURL(/\/projects\//);
+    await page.waitForURL(/\/project\/?\?id=/);
     await page
       .getByTestId("upload-reference")
       .setInputFiles({ name: "poster.png", mimeType: "image/png", buffer: Buffer.from("<svg onload=alert(1)>not an image</svg>") });
@@ -193,6 +193,7 @@ test.describe("Libraries", () => {
 
 test.describe("Server and platform", () => {
   test("AI route reports it is unconfigured and refuses to fabricate", async ({ request }) => {
+    test.skip(process.env.STATIC_E2E === "1", "The static (GitHub Pages) build has no server and no AI route.");
     const status = await request.get("/api/review");
     expect(await status.json()).toMatchObject({ configured: false });
     const res = await request.post("/api/review", { multipart: { brief: "x" } });
@@ -212,7 +213,7 @@ test.describe("Server and platform", () => {
   test("sample project loads with live findings @responsive", async ({ page }) => {
     await freshStart(page);
     await page.getByRole("button", { name: "Open the sample project" }).click();
-    await page.waitForURL(/\/projects\//);
+    await page.waitForURL(/\/project\/?\?id=/);
     await expect(page.getByText("Sample", { exact: true }).first()).toBeVisible();
     await expect(page.getByTestId("proofnote").first()).toBeVisible({ timeout: 20_000 });
     const measurements = page.getByRole("region", { name: /Measurements and methods/ });

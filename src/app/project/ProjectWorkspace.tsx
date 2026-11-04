@@ -11,6 +11,7 @@ import { ProofNotes, type NoteSelection } from "@/components/ProofNotes";
 import { toast } from "@/components/Toast";
 import { useAiStatus } from "@/hooks/useAiStatus";
 import { useStore } from "@/hooks/useStore";
+import { withBase } from "@/lib/base-path";
 import { AiReviewSchema, toIssues, type MeasuredContext } from "@/lib/ai/schema";
 import { download, fileSlug, reviewToJson, reviewToMarkdown } from "@/lib/review/report";
 import { noteNumber, type ReviewIssue } from "@/lib/review/types";
@@ -184,7 +185,7 @@ function ReviewControls({
     form.set("brief", data.project.brief);
     form.set("context", JSON.stringify(ctx));
     try {
-      const res = await fetch("/api/review", { method: "POST", body: form });
+      const res = await fetch(withBase("/api/review"), { method: "POST", body: form });
       const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; provider?: string; model?: string; review?: unknown } | null;
       if (!res.ok || !body?.ok) {
         const message = body?.error ?? `The AI review failed (${res.status}).`;
