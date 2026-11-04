@@ -204,6 +204,14 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
   const exportPng = () => run("png", async () => downloadBlob(`${fileName(doc)}.png`, await designPng(doc, resources, 1)));
   const exportSvgFile = () => run("svg", async () => downloadBlob(`${fileName(doc)}.svg`, new Blob([await designSvg(doc, resources)], { type: "image/svg+xml" })));
   const exportJson = () => run("json", async () => downloadBlob(`${fileName(doc)}.frameproof.json`, new Blob([await designBundle(doc, resources)], { type: "application/json" })));
+  // Save first, so the formats are recomposed from what's on screen, then open them.
+  const campaign = () =>
+    run("campaign", async () => {
+      await saveDesign({ ...doc, projectId: projectId.current });
+      saved.current = doc;
+      setSaveState("saved");
+      router.push(`/campaign?id=${encodeURIComponent(doc.id)}`);
+    });
   const review = () =>
     run("review", async () => {
       const png = await designPng(doc, resources, 1);
@@ -247,6 +255,9 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
         </button>
         <button type="button" className="btn btn-sm" onClick={exportJson} disabled={!!busy}>
           {busy === "json" ? "Exporting…" : "Export design file"}
+        </button>
+        <button type="button" className="btn btn-sm" onClick={campaign} disabled={!!busy}>
+          Campaign formats
         </button>
         <button type="button" className="btn btn-sm btn-primary" onClick={review} disabled={!!busy}>
           {busy === "review" ? "Sending…" : linked ? "Update review image" : "Review this design"}

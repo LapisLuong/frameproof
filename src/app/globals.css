@@ -1704,3 +1704,64 @@ details.disclose[open] > summary::before {
   border: 1px solid var(--color-rule-strong);
   background: var(--color-sheet);
 }
+
+/* ---------- campaign formats ---------- */
+.campaign {
+  display: grid;
+  gap: 1rem;
+}
+.campaign-formats {
+  flex-wrap: wrap;
+}
+.campaign-variants {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 2rem 1.5rem;
+  align-items: start;
+}
+.campaign-variant {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+  animation: rise-in 200ms var(--ease-out) both;
+}
+.campaign-variant:nth-child(2) {
+  animation-delay: 60ms;
+}
+.campaign-variant:nth-child(3) {
+  animation-delay: 120ms;
+}
+.campaign-preview {
+  position: relative;
+  width: 100%;
+  border: 1px solid var(--color-rule);
+  background: var(--color-sheet);
+}
+.campaign-preview .design-card-preview {
+  display: block;
+  width: 100%;
+  max-height: 28rem;
+}
+/* Avatar: the circle a round profile picture keeps, drawn over the preview (not part of the design). */
+.campaign-preview[data-circle]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--safe) * 100%);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 999px rgb(32 35 35 / 0.45);
+  outline: 1px dashed var(--color-sheet);
+  pointer-events: none;
+}
+.campaign-preview[data-circle] {
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .campaign-variant {
+    animation: none;
+  }
+}

@@ -64,6 +64,28 @@ test.describe("Designer first run", () => {
   });
 });
 
+test.describe("Campaign formats", () => {
+  test("recomposes a design for a banner and saves a variant as its own design", async ({ page }) => {
+    await freshStart(page);
+    await page.getByTestId("desk-starters").getByRole("button").first().click();
+    await expect(page.getByTestId("design-canvas")).toBeVisible();
+    const sourceUrl = page.url();
+    await page.getByRole("button", { name: "Campaign formats" }).click();
+    await expect(page).toHaveURL(/\/campaign\/?\?id=/);
+    await page.getByRole("button", { name: "Banner 3:1" }).click();
+    const variants = page.getByTestId("campaign-variants").locator("> li");
+    await expect(variants).toHaveCount(3);
+    await expect(variants.first()).toContainText("Recomposed by rule");
+    await page.getByRole("button", { name: "Standee 80 × 180 cm" }).click();
+    await expect(page.getByText("85 DPI").first()).toBeVisible();
+    await page.getByRole("button", { name: "Banner 3:1" }).click();
+    await variants.first().getByRole("button", { name: "Save and edit" }).click();
+    await expect(page).toHaveURL(/\/design\?id=/);
+    expect(page.url()).not.toBe(sourceUrl);
+    await expect(page.getByLabel("Width")).toHaveValue("1500");
+  });
+});
+
 test.describe("Design file import", () => {
   test("a file over the size limit is refused before it's read", async ({ page }) => {
     await freshStart(page);

@@ -41,6 +41,7 @@ function ItemPreview({ item, fontsVersion }: { item: Item; fontsVersion: number 
       templateId: null,
       projectId: null,
       lockedColours: [],
+      sourceDesignId: null,
       createdAt: 0,
       updatedAt: 0,
     };

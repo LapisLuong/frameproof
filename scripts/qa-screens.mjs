@@ -114,5 +114,19 @@ await page.setViewportSize({ width: 390, height: 844 });
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/10-compose-390.png`, fullPage: true });
 
+// Campaign formats from the editor's design: banner and avatar.
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.goto(editorUrl);
+await page.getByRole("button", { name: "Campaign formats" }).click();
+await page.waitForURL(/\/campaign\/?\?id=/);
+for (const [fmt, file] of [["Banner 3:1", "11-campaign-banner"], ["Avatar 1:1 (circle-safe)", "11-campaign-avatar"]]) {
+  await page.getByRole("button", { name: fmt }).click();
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: `${out}/${file}-1440.png`, fullPage: true });
+}
+await page.setViewportSize({ width: 390, height: 844 });
+await page.waitForTimeout(400);
+await page.screenshot({ path: `${out}/11-campaign-avatar-390.png`, fullPage: true });
+
 await browser.close();
 process.stdout.write(errors.length ? `ERRORS:\n${errors.join("\n")}\n` : "no page errors\n");
