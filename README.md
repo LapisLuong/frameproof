@@ -95,6 +95,8 @@ tests/unit, tests/e2e  Vitest and Playwright
 docs/                  ART_DIRECTION.md, ARCHITECTURE.md, QA.md
 ```
 
+Working with a coding agent? Codex reads [AGENTS.md](AGENTS.md) and Claude Code reads [CLAUDE.md](CLAUDE.md) (which imports AGENTS.md): product rules, commands, code map and open work.
+
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for data flow and decisions, [docs/ART_DIRECTION.md](docs/ART_DIRECTION.md) for the three directions and why "Galley proof" was chosen, and [docs/QA.md](docs/QA.md) for test results and known limitations.
 
 ## Credits
