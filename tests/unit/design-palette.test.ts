@@ -77,3 +77,43 @@ it("breaks text area ties by hex and keeps ground priority", () => {
   doc.layers = [LayerSchema.parse({ ...text, id: "a", color: "#222222" }), LayerSchema.parse({ ...text, id: "b", color: "#111111" })];
   expect(inferColourRoles(doc)).toEqual({ "#111111": "ink", "#222222": "support", "#ffffff": "ground" });
 });
+
+const effectLayer = (id: string, effect: "glow" | "beam" | "trail" | "sparkle" | "grain" | "vignette", color: string) => LayerSchema.parse({ id, name: id, type: "effect", effect, color, x: 0, y: 0, w: 100, h: 100 });
+it("counts effect colour as a fill and replaces linked colours immutably in one pass", () => {
+  const doc = linked(); doc.layers.push(effectLayer("glow", "glow", "#112233"));
+  const before = structuredClone(doc);
+  expect(docColours(doc)).toEqual([{ hex: "#112233", uses: 4, roles: ["background", "text", "fill", "stroke"] }]);
+  const mapped = applyColourMap(doc, { "#112233": "#abcdef", "#abcdef": "#ffffff" });
+  expect(mapped.layers[2]).toMatchObject({ color: "#abcdef" });
+  expect(doc).toEqual(before);
+  expect(applyColourMap(doc, {})).toBe(doc);
+});
+it.each(["glow", "beam", "trail", "sparkle"] as const)("gives light %s colours accent roles without stealing ink or ground", (kind) => {
+  const doc = linked();
+  doc.layers.push(effectLayer("light", kind, "#eee9fb"), effectLayer("shared", kind, "#112233"));
+  expect(inferColourRoles(doc)["#eee9fb"]).toBe("accent");
+  expect(inferColourRoles(doc)["#112233"]).toBe("ground");
+  doc.background = "#000000";
+  doc.layers.push(effectLayer("ink-light", kind, "#112233"));
+  expect(inferColourRoles(doc)["#112233"]).toBe("ink");
+});
+it("keeps unique texture colours while remapping textures linked to existing roles", () => {
+  const doc = linked();
+  doc.layers.push(effectLayer("grain", "grain", "#abc123"), effectLayer("vignette", "vignette", "#123abc"), effectLayer("linked-grain", "grain", "#112233"));
+  expect(docColours(doc).map((c) => c.hex)).toEqual(["#112233", "#123abc", "#abc123"]);
+  const roles = inferColourRoles(doc);
+  expect(roles["#abc123"]).toBeUndefined(); expect(roles["#123abc"]).toBeUndefined();
+  const map = mapToDirection(doc, [{ hex: "#ffffff", role: "ground", origin: "manual" }]);
+  const out = applyColourMap(doc, map);
+  expect(out.layers.slice(2)).toMatchObject([{ color: "#abc123" }, { color: "#123abc" }, { color: "#ffffff" }]);
+  // Explicit user colour edits still work for texture-only colours.
+  expect(applyColourMap(doc, { "#abc123": "#eeeeee" }).layers[2]).toMatchObject({ color: "#eeeeee" });
+});
+it("preserves light ink precedence and treats dark neutral lights as support", () => {
+  const doc = linked(); doc.background = "#000000";
+  doc.layers[0] = LayerSchema.parse({ ...doc.layers[0], color: "#eee9fb" });
+  doc.layers.push(effectLayer("ink", "sparkle", "#eee9fb"), effectLayer("dark", "glow", "#333333"));
+  const roles = inferColourRoles(doc);
+  expect(roles["#eee9fb"]).toBe("ink");
+  expect(roles["#333333"]).toBe("support");
+});

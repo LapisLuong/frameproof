@@ -1,3 +1,6 @@
+import { template as lyrical } from "./lyrical-night";
+import { template as chapter } from "./new-chapter";
+import { template as spotlight } from "./spotlight";
 import { TemplateSchema, type Template } from "../library";
 import { template as t0 } from "./exhibition";
 import { template as t1 } from "./exhibition-type";
@@ -7,5 +10,5 @@ import { template as t4 } from "./music";
 import { template as t5 } from "./collage";
 import { template as t6 } from "./music-columns";
 import { template as t7 } from "./collage-grid";
-export const TEMPLATES: Template[] = [t0,t1,t2,t3,t4,t5,t6,t7].map((t) => TemplateSchema.parse(t));
+export const TEMPLATES: Template[] = [t0,t1,t2,t3,t4,t5,t6,t7,lyrical,chapter,spotlight].map((t) => TemplateSchema.parse(t));
 export const getTemplate = (id: string): Template | undefined => TEMPLATES.find((t) => t.id === id);

@@ -37,6 +37,7 @@ export function docColours(doc: DesignDoc): Array<{ hex: string; uses: number; r
   add(doc.background, ["background"]);
   for (const layer of doc.layers) {
     if (layer.type === "text") add(layer.color, ["text"]);
+    if (layer.type === "effect") add(layer.color, ["fill"]);
     if (layer.type === "shape") {
       if (layer.fill && layer.stroke && layer.fill.toLowerCase() === layer.stroke.toLowerCase()) add(layer.fill, ["fill", "stroke"]);
       else { if (layer.fill) add(layer.fill, ["fill"]); if (layer.stroke) add(layer.stroke, ["stroke"]); }
@@ -45,14 +46,22 @@ export function docColours(doc: DesignDoc): Array<{ hex: string; uses: number; r
   return [...colours.values()].sort((a, b) => a.hex.localeCompare(b.hex));
 }
 /** Estimated heuristic: ground first; largest text w*h*size is ink; highest OKLCH chroma >= .08
- * among remaining colours is accent. Remaining colours support. Ties use ascending hex order. */
+ * among remaining colours is accent; light effects also use accent. Remaining colours support.
+ * Texture-only colours have no inferred role and are excluded from direction mapping. Ties use ascending hex order. */
 export function inferColourRoles(doc: DesignDoc): Record<string, ColourRole> {
-  const roles: Record<string, ColourRole> = Object.fromEntries(docColours(doc).map(({ hex }) => [hex, "support"]));
+  // Texture-only colours are deliberately absent: direction mapping leaves them unchanged.
+  const colourDoc = { ...doc, layers: doc.layers.filter((l) => l.type !== "effect" || (l.effect !== "grain" && l.effect !== "vignette")) };
+  const roles: Record<string, ColourRole> = Object.fromEntries(docColours(colourDoc).map(({ hex }) => [hex, "support"]));
   const ground = doc.background.toLowerCase(); roles[ground] = "ground";
   const texts = doc.layers.filter((l): l is TextLayer => l.type === "text" && l.color.toLowerCase() !== ground).sort((a, b) => b.w * b.h * b.size - a.w * a.h * a.size || a.color.localeCompare(b.color));
   if (texts[0]) roles[texts[0].color.toLowerCase()] = "ink";
   const accents = Object.keys(roles).filter((hex) => roles[hex] === "support" && chroma(lab(hex)) >= .08).sort((a, b) => chroma(lab(b)) - chroma(lab(a)) || a.localeCompare(b));
   if (accents[0]) roles[accents[0]] = "accent";
+  // Oklab L >= .7 is an estimated light-colour threshold; ground and ink retain precedence.
+  for (const l of colourDoc.layers) if (l.type === "effect" && lab(l.color).L >= .7) {
+    const hex = l.color.toLowerCase();
+    if (roles[hex] === "support") roles[hex] = "accent";
+  }
   return roles;
 }
 export function applyColourMap(doc: DesignDoc, map: Record<string, string>): DesignDoc {
@@ -60,7 +69,7 @@ export function applyColourMap(doc: DesignDoc, map: Record<string, string>): Des
   const replace = (hex: string) => normalized.get(hex.toLowerCase()) ?? hex;
   const background = replace(doc.background);
   const layers = doc.layers.map((l) => {
-    if (l.type === "text") { const color = replace(l.color); return color === l.color ? l : { ...l, color }; }
+    if (l.type === "text" || l.type === "effect") { const color = replace(l.color); return color === l.color ? l : { ...l, color }; }
     if (l.type === "shape") { const fill = l.fill && replace(l.fill), stroke = l.stroke && replace(l.stroke); return fill === l.fill && stroke === l.stroke ? l : { ...l, fill, stroke }; }
     return l;
   });

@@ -1,3 +1,4 @@
+import { ORNAMENTS, type TaggedItem } from "./ornaments";
 import { ItemSchema, type Item } from "../library";
 import { item as i0 } from "./title";
 import { item as i1 } from "./date";
@@ -17,5 +18,5 @@ import { item as i14 } from "./arrow";
 import { item as i15 } from "./caption";
 import { item as i16 } from "./corners";
 import { item as i17 } from "./stacked";
-export const ITEMS: Item[] = [i0,i5,i6,i7,i11,i17,i3,i10,i9,i16,i4,i12,i14,i1,i2,i8,i13,i15].map((i) => ItemSchema.parse(i));
+export const ITEMS: (Item | TaggedItem)[] = [i0,i5,i6,i7,i11,i17,i3,i10,i9,i16,i4,i12,i14,i1,i2,i8,i13,i15].map((i) => ItemSchema.parse(i)).concat(ORNAMENTS);
 export const getItem = (id: string): Item | undefined => ITEMS.find((i) => i.id === id);
