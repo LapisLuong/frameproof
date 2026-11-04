@@ -175,6 +175,15 @@ test.describe("Libraries", () => {
     await page.getByTestId("contrast-a").selectOption("#C65B43");
     await page.getByTestId("contrast-b").selectOption("#F4F1EA");
     await expect(page.getByTestId("contrast-ratio")).toHaveText("3.73:1");
+    // Structured observations restate the measurements; the same text goes into the export.
+    const obs = page.getByTestId("observation");
+    await expect(obs.first()).toContainText("Format ≈ ISO A portrait");
+    await expect(obs.filter({ hasText: "No main colour pair reaches 4.5:1" })).toContainText("3.73:1");
+    await expect(obs.filter({ hasText: "flat" })).toContainText("Estimated");
+    const [md] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Export analysis (.md)" }).click()]);
+    const mdText = await readFile((await md.path())!, "utf8");
+    expect(mdText).toContain("## What the pixels show");
+    expect(mdText).toContain("### No main colour pair reaches 4.5:1");
     await page.getByRole("button", { name: "Save palette as a style" }).click();
     await page.waitForURL(/\/styles\/?\?id=/);
     await expect(page.getByText("Measured, 62% of pixels")).toBeVisible();

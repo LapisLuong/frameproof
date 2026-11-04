@@ -6,11 +6,13 @@ import { useState } from "react";
 import { Dropzone } from "@/components/Dropzone";
 import { ImageViewer } from "@/components/ImageViewer";
 import { ContrastPicker, MeasurementTable, PaletteList } from "@/components/Measurements";
+import { EvidenceLabel } from "@/components/ProofNotes";
 import { Thumb } from "@/components/Thumb";
 import { toast } from "@/components/Toast";
 import { useObjectUrl, useStore } from "@/hooks/useStore";
 import type { ImageAnalysis } from "@/lib/analysis/analyze";
 import { newId } from "@/lib/store/db";
+import { observationsToMarkdown, observeImage, type Observation } from "@/lib/review/observations";
 import { download, fileSlug, mdEscape } from "@/lib/review/report";
 import { getAsset, listAssets, saveAsset, saveStyle } from "@/lib/store/repo";
 import type { Asset, StyleSystem } from "@/lib/store/models";
@@ -23,6 +25,9 @@ function analysisMarkdown(a: Asset): string {
     "",
     `${x.width}×${x.height} px, ${x.aspect.label}, ${x.kind.toUpperCase()}`,
     "",
+    "## What the pixels show",
+    "",
+    ...observationsToMarkdown(observeImage(x)),
     "## Palette (measured)",
     "",
     "| Colour | Share |",
@@ -65,15 +70,62 @@ function styleFromAsset(a: Asset): StyleSystem {
   };
 }
 
+function Observations({ items }: { items: Observation[] }) {
+  return (
+    <section aria-labelledby="obs-h" style={{ display: "grid", gap: "1rem" }}>
+      <div>
+        <h2 id="obs-h" className="t-heading">
+          What the pixels show
+        </h2>
+        <p className="t-small t-measure" style={{ marginTop: "0.25rem" }}>
+          Read from the measurements below, with the threshold each one uses. They describe the image; they don&apos;t judge it.
+        </p>
+      </div>
+      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "1.25rem" }} data-testid="observations">
+        {items.map((o) => (
+          <li key={o.id} data-testid="observation" style={{ borderTop: "1px solid var(--color-rule)", paddingTop: "0.9rem" }}>
+            <h3 className="t-subhead">{o.title}</h3>
+            <p className="proofnote-meta">
+              <EvidenceLabel type={o.evidenceType} />
+            </p>
+            <p className="t-measure" style={{ fontSize: "var(--text-sm)" }}>
+              {o.detail}
+            </p>
+            <details className="disclose" style={{ marginTop: "0.5rem" }}>
+              <summary>Evidence</summary>
+              <dl>
+                {o.evidence.map((e) => (
+                  <div key={e.label}>
+                    <dt>{e.label}</dt>
+                    <dd className="t-value">{e.value}</dd>
+                  </div>
+                ))}
+                {o.limit ? (
+                  <div>
+                    <dt>What this can&apos;t tell you</dt>
+                    <dd>{o.limit}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            </details>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function Result({ asset }: { asset: Asset }) {
   const router = useRouter();
   const url = useObjectUrl(asset.blob);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const observations = observeImage(asset.analysis);
   return (
     <div className="spread">
       <div style={{ minWidth: 0, display: "grid", gap: "2rem" }}>
         {url ? <ImageViewer src={url} alt={asset.name} label={asset.name} /> : null}
+        <Observations items={observations} />
         <MeasurementTable reference={asset.analysis} />
       </div>
       <aside className="margin" aria-label="Colour" style={{ display: "grid", gap: "1.75rem", alignContent: "start" }}>
@@ -125,7 +177,7 @@ function Result({ asset }: { asset: Asset }) {
               onClick={() =>
                 download(
                   `${fileSlug(asset.name)}-analysis.json`,
-                  JSON.stringify({ schema: "frameproof.analysis/v1", name: asset.name, analysis: asset.analysis }, null, 2),
+                  JSON.stringify({ schema: "frameproof.analysis/v1", name: asset.name, analysis: asset.analysis, observations }, null, 2),
                   "application/json",
                 )
               }

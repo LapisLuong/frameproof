@@ -59,8 +59,18 @@ A finding may carry `anchors`: points on the reference or current image, as frac
 (`AnchorSchema` in `src/lib/review/types.ts`). Only a deterministic rule sets them, and only from a measured position;
 today that is the centre-of-detail rule. The AI schema has no location field, and Zod strips one if a model sends it,
 so an AI observation can never be drawn on the artwork as if it were measured. `anchors` is optional so reviews saved
-before it existed still load. Marks use the note's number (`noteNumber`), are shown only for open notes and only
-while the review was measured on the images currently in the project.
+before it existed still load. Marks use the note's number (`noteNumber`), are shown only for open notes and only on
+the image pair the review measured: the current pair, or the review's own pair when an earlier version is selected
+(each review stores `referenceAssetId`/`currentAssetId`, and replaced images are kept).
+
+### Single-image observations
+
+The analyzer's "What the pixels show" list comes from `observeImage()` in `src/lib/review/observations.ts`. It reads
+only an existing `ImageAnalysis` and reuses the engine's `THRESHOLDS` and `bestContrastPair`, so one image is described
+the same way in the analyzer and in a review. It measures nothing new and makes no quality judgement: each observation
+has an evidence type (`measured`, or `estimated` for flat area), the values it rests on, and what it can't tell you.
+Its own two thresholds are named constants: `CONCENTRATED_DETAIL` (a ninth holding twice an even share of edge
+strength) and `TRANSPARENCY_SHARE` (1%). The Markdown and JSON analysis exports include the same list.
 
 ## Migration path
 
