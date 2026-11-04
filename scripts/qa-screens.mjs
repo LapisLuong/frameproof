@@ -78,5 +78,41 @@ await page.getByRole("heading", { name: "Palette" }).waitFor();
 await page.waitForTimeout(300);
 await page.screenshot({ path: `${out}/07-styles-1440.png`, fullPage: true });
 
+// Designer: Designs page, editor opened from a finished starter, and the brief composer with three concepts.
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.goto(`${base}/`);
+await page.getByTestId("desk-starters").getByRole("button").nth(1).click();
+await page.waitForURL(/\/design\/?\?id=/);
+await page.getByTestId("design-canvas").waitFor();
+const editorUrl = page.url();
+await page.goto(`${base}/compose`);
+await page.getByLabel("Title", { exact: true }).fill("Dạ hành khúc");
+await page.getByLabel("Subtitle (optional)", { exact: true }).fill("Coming soon");
+await page.getByLabel("Information, one line each", { exact: true }).fill("Đêm 14 · 12 · 2026\nNhà hát Lớn Hà Nội");
+await page.getByRole("button", { name: "The Great Wave" }).click();
+await page.getByRole("button", { name: "Compose three concepts" }).click();
+await page.getByTestId("concepts").waitFor();
+for (const w of [1440, 1024, 390]) {
+  await page.setViewportSize({ width: w, height: w === 390 ? 844 : 900 });
+  for (const [name, url] of [["08-designs", `${base}/design`], ["09-editor", editorUrl]]) {
+    await page.goto(url);
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: `${out}/${name}-${w}.png`, fullPage: true });
+  }
+}
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.goto(`${base}/compose`);
+await page.getByLabel("Title", { exact: true }).fill("Dạ hành khúc");
+await page.getByLabel("Subtitle (optional)", { exact: true }).fill("Coming soon");
+await page.getByRole("button", { name: "The Great Wave" }).click();
+await page.getByRole("button", { name: "Compose three concepts" }).click();
+await page.getByTestId("concepts").waitFor();
+await page.waitForTimeout(900);
+await page.screenshot({ path: `${out}/10-compose-1440.png`, fullPage: true });
+await page.setViewportSize({ width: 390, height: 844 });
+await page.waitForTimeout(400);
+await page.screenshot({ path: `${out}/10-compose-390.png`, fullPage: true });
+
 await browser.close();
 process.stdout.write(errors.length ? `ERRORS:\n${errors.join("\n")}\n` : "no page errors\n");
