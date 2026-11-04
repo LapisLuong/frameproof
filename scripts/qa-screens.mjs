@@ -115,11 +115,20 @@ await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/10-compose-390.png`, fullPage: true });
 
 // Picture tools: the "Fill an area" dialog (brush and typed rectangle) at each width. No model is loaded for this step.
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.goto(`${base}/`);
+await page.getByTestId("desk-starters").getByRole("button").first().click();
+await page.waitForURL(/\/design\/?\?id=/);
+const pictureUrl = page.url();
 for (const w of [1440, 1024, 390]) {
   await page.setViewportSize({ width: w, height: w === 390 ? 844 : 900 });
-  await page.goto(editorUrl);
+  await page.goto(pictureUrl);
   await page.getByTestId("design-canvas").waitFor();
+  // On a phone the panels are tabs: pick the layer under Layers, then the tools are under Edit.
+  const narrow = w < 768;
+  if (narrow) await page.getByRole("button", { name: "Layers", exact: true }).click();
   await page.getByRole("button", { name: /^Portrait slot/ }).first().click();
+  if (narrow) await page.getByRole("button", { name: "Edit", exact: true }).click();
   await page.getByRole("button", { name: "Fill an area…" }).click();
   await page.getByRole("button", { name: "Fill painted area" }).waitFor();
   await page.waitForTimeout(400);
