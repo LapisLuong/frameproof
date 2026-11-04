@@ -8,9 +8,9 @@ Last verified: 4 Nov 2026, on Linux (Node 22, Chromium 1243) and macOS arm64 (No
 | --- | --- |
 | `npm run typecheck` (strict, `noUncheckedIndexedAccess`) | pass |
 | `npm run lint` (eslint-config-next core-web-vitals + TypeScript) | pass, 0 warnings |
-| `npm test` (Vitest) | 55 / 55 pass on merged `main` (adds `tests/unit/anchors.test.ts` and the four review-finding regressions) — colour conversion, WCAG, palette, structure, similarity, aspect labels, upload validation (PNG/JPEG headers, bombs, fake files), review rules, AI config/validation/retry |
+| `npm test` (Vitest) | 65 / 65 pass on `feat/github-pages` 3a6d6a4 (adds `tests/unit/store-validation.test.ts`: stored-record validation, token lines, recent-project order) — colour conversion, WCAG, palette, structure, similarity, aspect labels, upload validation (PNG/JPEG headers, bombs, fake files), review rules, AI config/validation/retry |
 | `npm run build` | pass on Linux and macOS |
-| `npm run test:e2e` (Playwright) | 12 / 12 pass on merged `main`, 4 Nov 2026; adds `tests/e2e/anchors.spec.ts` (marks at 1440 and 390 px, mark → note focus, resolve hides marks, layered modes) — full journey, fake-image rejection, library, analyzer → style → CSS, AI route unconfigured, keyboard skip link, sample project with no horizontal overflow at 1440 and 390 px, reduced motion |
+| `npm run test:e2e` (Playwright) | 18 / 18 pass in server mode and 17 / 17 (+1 skipped: the AI route) against the static export on `feat/github-pages` 3a6d6a4, 4 Nov 2026; the base-path test also passes against the `/frameproof` preview (`BASE_PATH=/frameproof PORT=3300`). Adds `tests/e2e/robustness.spec.ts` (draft guards, failed IndexedDB writes keep text, invalid token lines refused, discard link under the base path) and `tests/e2e/history.spec.ts` (an earlier review shows the pair it measured; unsaved notes ask before a version switch). Earlier: adds `tests/e2e/anchors.spec.ts` (marks at 1440 and 390 px, mark → note focus, resolve hides marks, layered modes) — full journey, fake-image rejection, library, analyzer → style → CSS, AI route unconfigured, keyboard skip link, sample project with no horizontal overflow at 1440 and 390 px, reduced motion |
 
 The end-to-end journey covers: create project → upload reference and current → automatic local review → genuine
 sizes in the measurement table → slider, overlay and difference modes → mark a note resolved → save notes →
@@ -69,8 +69,10 @@ averages; no finding appeared or disappeared.
 
 ## Next milestones
 
-1. **Hosted demo** — on hold: the user wants the finished code on GitHub for now and no hosting. Vercel Hobby is
-   free if this is picked up later (no AI key; its ~4.5 MB request limit would block AI review with large images).
+1. **Hosted demo on GitHub Pages** — built and checked locally (`npm run build:static`, `.github/workflows/pages.yml`,
+   preview at `/frameproof` passes Codex desktop's independent probe). Left: push `main`, then in the repo's
+   Settings → Pages choose "GitHub Actions", and re-check the live URL https://lapisluong.github.io/frameproof/.
+   Pages has no server, so AI review is off there and says why.
 2. ~~Independent code review~~ — done by Codex, 4 findings (0 high, 2 medium, 2 low), all verified and fixed on
    `fix/review-findings`; see `docs/reviews/codex-review.md` on that branch. Original scope:  `src/lib/image/validate.ts`, `src/lib/analysis/*`, `src/lib/color/*`,
    `src/app/api/review/route.ts`, `src/lib/ai/provider.ts` — concrete defects only, each verified with a failing test before fixing.
@@ -78,4 +80,8 @@ averages; no finding appeared or disappeared.
 4. ~~Numbered anchors on the artwork~~ — done on `feat/finding-anchors`. Notes stay in one priority-ordered list and are
    labelled "On the artwork" or "Whole image" (separate groups put a low-priority note above high ones).
 5. Move analysis into a Web Worker for very large images; add a mobile E2E test for the Reference/Current toggle.
-6. P2: website screenshot analysis, PPTX analysis, Supabase sync, team review, visual regression.
+6. **Master-prompt audit** (`docs/reviews/codex-master-prompt-audit.md`): G1–G7, G9 (motion) partly and G10 are done
+   (G1–G3, G5–G7 by Codex CLI, reviewed and fixed on merge; G4 by Claude Code). Open: **G8** structured observations in
+   the single-image analyzer (Low; needs plan mode, it touches the rule layer) and **G9** the 60 ms linear zoom
+   transform in `ImageViewer`/`CompareStage`.
+7. P2: website screenshot analysis, PPTX analysis, Supabase sync, team review, visual regression.
