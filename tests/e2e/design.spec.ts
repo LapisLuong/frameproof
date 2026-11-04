@@ -279,6 +279,31 @@ test.describe("Picture tools without a pointer", () => {
     await expect(page.getByLabel("Picture", { exact: true }).locator("option:checked")).toContainText("(filled)");
     expect(await page.evaluate(() => (window as unknown as { __runs: number }).__runs)).toBe(1); // no second model run
   });
+
+  test("on a phone the dialog's actions stay on screen while the rectangle fields are in use", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await freshStart(page);
+    await page.getByTestId("desk-starters").getByRole("button").first().click();
+    await page.getByRole("button", { name: "Layers", exact: true }).click();
+    await page.getByRole("button", { name: /^Portrait slot/ }).first().click();
+    await page.getByRole("button", { name: "Edit", exact: true }).click();
+    await page.getByRole("button", { name: "Fill an area…" }).click();
+    const dialog = page.getByRole("dialog", { name: "Fill an area" });
+    const rect = dialog.getByRole("group", { name: /Or mark a rectangle/ });
+    await rect.getByLabel("Height", { exact: true }).fill("40");
+    await rect.getByRole("button", { name: "Add this rectangle" }).click();
+    const fill = dialog.getByRole("button", { name: "Fill painted area" });
+    // The actions are sticky at the bottom of the dialog: visible in the viewport without scrolling to them.
+    const box = await fill.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.y + box!.height).toBeLessThanOrEqual(844);
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    await expect(fill).toBeEnabled();
+    await fill.click();
+    await expect(dialog.getByRole("button", { name: "Use the filled picture" })).toBeInViewport();
+  });
 });
 
 test.describe("Logo and avatar frame", () => {
