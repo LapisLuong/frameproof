@@ -165,6 +165,27 @@ export const BUILTIN_FONTS = {
     files: [{ file: "DancingScript-Variable.ttf", weight: "400 700", style: "normal" }],
     source: "github.com/google/fonts (ofl/dancingscript)",
   },
+  "cormorant-garamond": {
+    label: "Cormorant Garamond",
+    weights: [300, 400, 500, 600, 700],
+    italic: true,
+    cssVar: "--font-cormorant-garamond",
+    fallback: "Georgia, serif",
+    files: [
+      { file: "CormorantGaramond-Variable.ttf", weight: "300 700", style: "normal" },
+      { file: "CormorantGaramond-Italic-Variable.ttf", weight: "300 700", style: "italic" },
+    ],
+    source: "github.com/google/fonts (ofl/cormorantgaramond)",
+  },
+  "great-vibes": {
+    label: "Great Vibes",
+    weights: [400],
+    italic: false,
+    cssVar: "--font-great-vibes",
+    fallback: "cursive",
+    files: [{ file: "GreatVibes-Regular.ttf", weight: "400", style: "normal" }],
+    source: "github.com/google/fonts (ofl/greatvibes)",
+  },
 } as const satisfies Record<string, BuiltinFont>;
 
 export type BuiltinFontId = keyof typeof BUILTIN_FONTS;

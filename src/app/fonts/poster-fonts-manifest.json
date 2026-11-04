@@ -383,5 +383,82 @@
         "bytes": 4443
       }
     ]
+  },
+  {
+    "family": "cormorantgaramond",
+    "vietnameseMetadata": true,
+    "license": "OFL-1.1",
+    "files": [
+      {
+        "file": "CormorantGaramond-Italic[wght].ttf",
+        "source": "https://github.com/google/fonts/blob/main/ofl/cormorantgaramond/CormorantGaramond-Italic[wght].ttf",
+        "gitBlobSha": "0d914e7663b7a1429d06ec60a5c5bb026031a2ef",
+        "sha256": "0f48ea6abb2084537854f7174c470991a463b13036309e3b50a81511611c530d",
+        "bytes": 715644
+      },
+      {
+        "file": "CormorantGaramond[wght].ttf",
+        "source": "https://github.com/google/fonts/blob/main/ofl/cormorantgaramond/CormorantGaramond[wght].ttf",
+        "gitBlobSha": "d992a83ce525c330fad3a19087746bcb2dc038ee",
+        "sha256": "b20b7d9626dd956b2c5e558692ad328b1f19e3275e2782db4fa07670d83f35e0",
+        "bytes": 1195560
+      },
+      {
+        "file": "DESCRIPTION.en_us.html",
+        "source": "https://github.com/google/fonts/blob/main/ofl/cormorantgaramond/DESCRIPTION.en_us.html",
+        "gitBlobSha": "7c4636145aff3e22cea74e141274301b72d69285",
+        "sha256": "aa8fde2fd467c8ddbe736992b1d7419a94cc05726160a1458785c8f42af13233",
+        "bytes": 1796
+      },
+      {
+        "file": "METADATA.pb",
+        "source": "https://github.com/google/fonts/blob/main/ofl/cormorantgaramond/METADATA.pb",
+        "gitBlobSha": "f013f7293318fe0b84fd8f72c2ec7a1c3e402966",
+        "sha256": "faa16a5e79613ca7cadd599ada1f4cf6891f3cb6731631fbed2a0b18a342e556",
+        "bytes": 1426
+      },
+      {
+        "file": "OFL.txt",
+        "source": "https://github.com/google/fonts/blob/main/ofl/cormorantgaramond/OFL.txt",
+        "gitBlobSha": "507d70f4565352dbfcf2dfc9b42eb092b57c0be8",
+        "sha256": "60700d351cac4650c51f3f9db318d2a420f8b45052dba2715eb5fec41f0f6956",
+        "bytes": 4387
+      }
+    ]
+  },
+  {
+    "family": "greatvibes",
+    "vietnameseMetadata": true,
+    "license": "OFL-1.1",
+    "files": [
+      {
+        "file": "DESCRIPTION.en_us.html",
+        "source": "https://github.com/google/fonts/blob/main/ofl/greatvibes/DESCRIPTION.en_us.html",
+        "gitBlobSha": "9ae4d2266704b1f638088f171ade877035f150b4",
+        "sha256": "08782c9e096dd820f893a33bde65af0e546a72c997dc451c7123a15825c33a28",
+        "bytes": 483
+      },
+      {
+        "file": "GreatVibes-Regular.ttf",
+        "source": "https://github.com/google/fonts/blob/main/ofl/greatvibes/GreatVibes-Regular.ttf",
+        "gitBlobSha": "a1327ff3b862246f1f253639040edcc473e5f3a9",
+        "sha256": "8d509802186f1b51572531ecf313e8098f9a5bfdfaca93f0c9b34467f9982d15",
+        "bytes": 457588
+      },
+      {
+        "file": "METADATA.pb",
+        "source": "https://github.com/google/fonts/blob/main/ofl/greatvibes/METADATA.pb",
+        "gitBlobSha": "afe7a8f5ca5d7d09c1b0ebddda4613c28df8ddd4",
+        "sha256": "9acaa7e4a6ff0598c8ed6f53b6dc572dfdccfeebde4e80d65064c922f4426362",
+        "bytes": 1426
+      },
+      {
+        "file": "OFL.txt",
+        "source": "https://github.com/google/fonts/blob/main/ofl/greatvibes/OFL.txt",
+        "gitBlobSha": "70025926f5684ebed9d119424b178faa4e0a5cc6",
+        "sha256": "61093a21f5e63dedf54222b3c09997e54c0fe43e3851d21386e02ddcbc246d49",
+        "bytes": 4399
+      }
+    ]
   }
 ]

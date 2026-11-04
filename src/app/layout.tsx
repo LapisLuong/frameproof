@@ -80,7 +80,17 @@ const bungee = localFont({ src: "./fonts/Bungee-Regular.ttf", weight: "400", var
 const spaceGrotesk = localFont({ src: "./fonts/SpaceGrotesk-Variable.ttf", weight: "300 700", variable: "--font-space-grotesk", display: "swap", preload: false });
 const unbounded = localFont({ src: "./fonts/Unbounded-Variable.ttf", weight: "200 900", variable: "--font-unbounded", display: "swap", preload: false });
 const dancingScript = localFont({ src: "./fonts/DancingScript-Variable.ttf", weight: "400 700", variable: "--font-dancing-script", display: "swap", preload: false });
-const artworkFonts = [anton, archivo, fraunces, playfair, oswald, barlowCondensed, bungee, spaceGrotesk, unbounded, dancingScript];
+const cormorant = localFont({
+  src: [
+    { path: "./fonts/CormorantGaramond-Variable.ttf", weight: "300 700", style: "normal" },
+    { path: "./fonts/CormorantGaramond-Italic-Variable.ttf", weight: "300 700", style: "italic" },
+  ],
+  variable: "--font-cormorant-garamond",
+  display: "swap",
+  preload: false,
+});
+const greatVibes = localFont({ src: "./fonts/GreatVibes-Regular.ttf", weight: "400", variable: "--font-great-vibes", display: "swap", preload: false });
+const artworkFonts = [anton, archivo, fraunces, playfair, oswald, barlowCondensed, bungee, spaceGrotesk, unbounded, dancingScript, cormorant, greatVibes];
 
 export const metadata: Metadata = {
   title: { default: "FrameProof", template: "%s — FrameProof" },

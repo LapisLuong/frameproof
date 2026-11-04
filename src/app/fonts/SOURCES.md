@@ -5,8 +5,8 @@ Copies in `public/fonts` are byte-identical and exist so exported SVGs can embed
 
 Interface and artwork: Lora, Be Vietnam Pro, IBM Plex Mono (github.com/google/fonts).
 
-Artwork only (poster pack, ten families: Anton, Archivo, Fraunces, Playfair Display, Oswald, Barlow Condensed, Bungee,
-Space Grotesk, Unbounded, Dancing Script; checked by Codex desktop on 2026-11-04: source URL, git blob id and SHA-256 in
+Artwork only (poster pack, twelve families: Anton, Archivo, Fraunces, Playfair Display, Oswald, Barlow Condensed, Bungee,
+Space Grotesk, Unbounded, Dancing Script, Cormorant Garamond, Great Vibes; checked by Codex desktop on 2026-11-04/05: source URL, git blob id and SHA-256 in
 `poster-fonts-manifest.json`; all 134 Vietnamese code points present in every file, `poster-fonts-glyph-check.json`).
 Files were renamed only to drop the axis brackets; bytes are unchanged (SHA-256 below re-checked on copy).
 
@@ -28,5 +28,8 @@ Files were renamed only to drop the axis brackets; bytes are unchanged (SHA-256 
 | SpaceGrotesk-Variable.ttf | ofl/spacegrotesk/SpaceGrotesk[wght].ttf | acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72 |
 | Unbounded-Variable.ttf | ofl/unbounded/Unbounded[wght].ttf | 323b511be380c8d474ef030686b71aedde501f8d9cd46da558b7c40454372c3f |
 | DancingScript-Variable.ttf | ofl/dancingscript/DancingScript[wght].ttf | 21808625578fe8d8cd10cb684be546dca077b27cd03a53a2f1ec11dc743c924c |
+| CormorantGaramond-Variable.ttf | ofl/cormorantgaramond/CormorantGaramond[wght].ttf | b20b7d9626dd956b2c5e558692ad328b1f19e3275e2782db4fa07670d83f35e0 |
+| CormorantGaramond-Italic-Variable.ttf | ofl/cormorantgaramond/CormorantGaramond-Italic[wght].ttf | 0f48ea6abb2084537854f7174c470991a463b13036309e3b50a81511611c530d |
+| GreatVibes-Regular.ttf | ofl/greatvibes/GreatVibes-Regular.ttf | 8d509802186f1b51572531ecf313e8098f9a5bfdfaca93f0c9b34467f9982d15 |
 
 Bodoni Moda was considered and left out: its metadata doesn't declare Vietnamese support.

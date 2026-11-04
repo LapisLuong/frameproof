@@ -94,5 +94,23 @@
     "file": "DancingScript[wght].ttf",
     "vietnameseCodepointsChecked": 134,
     "missing": 0
+  },
+  {
+    "family": "cormorantgaramond",
+    "file": "CormorantGaramond-Italic[wght].ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "cormorantgaramond",
+    "file": "CormorantGaramond[wght].ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "greatvibes",
+    "file": "GreatVibes-Regular.ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
   }
 ]
