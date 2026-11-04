@@ -2,7 +2,8 @@
 
 import { useId, useState } from "react";
 import { hasItalic, nearestWeight } from "@/lib/design/fonts";
-import { BUILTIN_FONT_IDS, BUILTIN_FONTS, FORMATS, isBuiltinFont, type DesignDoc, type FontRef, type Layer, type TextLayer } from "@/lib/design/schema";
+import { BLEND_LABEL, EFFECT_LABEL, SPREAD_LABEL, layerKind } from "@/lib/design/labels";
+import { BLEND_MODES, BUILTIN_FONT_IDS, BUILTIN_FONTS, EFFECTS, FORMATS, isBuiltinFont, type DesignDoc, type FontRef, type Layer, type TextLayer } from "@/lib/design/schema";
 
 export type FontOption = { id: FontRef; label: string };
 export type ImageOption = { id: string; label: string };
@@ -109,7 +110,7 @@ function Select<T extends string>({ label, value, options, onChange }: { label: 
 export function usedColours(doc: DesignDoc): string[] {
   const set = new Set<string>([doc.background]);
   for (const l of doc.layers) {
-    if (l.type === "text") set.add(l.color);
+    if (l.type === "text" || l.type === "effect") set.add(l.color);
     if (l.type === "shape") {
       if (l.fill) set.add(l.fill);
       if (l.stroke) set.add(l.stroke);
@@ -202,7 +203,7 @@ export function Inspector({ doc, layer, onLayer, onDoc, userFonts, images, textR
     );
   }
 
-  const kind = layer.type === "shape" ? (layer.shape === "line" ? "Rule" : layer.shape === "rect" ? "Rectangle" : "Ellipse") : layer.type === "text" ? "Text" : "Image";
+  const kind = layerKind(layer);
   return (
     <section className="design-panel" aria-labelledby="insp-layer">
       <h2 id="insp-layer" className="t-subhead">
@@ -219,13 +220,33 @@ export function Inspector({ doc, layer, onLayer, onDoc, userFonts, images, textR
 
       {layer.type === "shape" ? (
         <>
-          <Select label="Shape" value={layer.shape} options={[{ value: "rect", label: "Rectangle" }, { value: "ellipse", label: "Ellipse" }, { value: "line", label: "Rule" }]} onChange={(v) => onLayer({ shape: v }, `${layer.id}:shape`)} />
+          {layer.shape === "path" ? null : (
+            <Select label="Shape" value={layer.shape} options={[{ value: "rect", label: "Rectangle" }, { value: "ellipse", label: "Ellipse" }, { value: "line", label: "Rule" }]} onChange={(v) => onLayer({ shape: v }, `${layer.id}:shape`)} />
+          )}
           <ColourField label="Fill" value={layer.fill} allowNone swatches={swatches} onChange={(v) => onLayer({ fill: v }, `${layer.id}:fill`)} />
           <ColourField label="Outline" value={layer.stroke} allowNone swatches={swatches} onChange={(v) => onLayer({ stroke: v, strokeWidth: v && !layer.strokeWidth ? 4 : layer.strokeWidth }, `${layer.id}:stroke`)} />
           <div className="design-row">
             <NumberField label="Outline width" suffix="px" value={layer.strokeWidth} min={0} max={500} onChange={(v) => onLayer({ strokeWidth: v }, `${layer.id}:sw`)} />
             {layer.shape === "rect" ? <NumberField label="Corner radius" suffix="px" value={layer.radius} min={0} max={6000} onChange={(v) => onLayer({ radius: v }, `${layer.id}:radius`)} /> : null}
           </div>
+        </>
+      ) : null}
+
+      {layer.type === "effect" ? (
+        <>
+          <Select label="Effect" value={layer.effect} options={EFFECTS.map((e) => ({ value: e, label: EFFECT_LABEL[e] }))} onChange={(v) => onLayer({ effect: v }, `${layer.id}:fx`)} />
+          <ColourField label="Light colour" value={layer.color} swatches={swatches} onChange={(v) => v && onLayer({ color: v }, `${layer.id}:color`)} />
+          <div className="design-row">
+            <NumberField label="Intensity" suffix="%" value={Math.round(layer.intensity * 100)} min={0} max={100} onChange={(v) => onLayer({ intensity: v / 100 }, `${layer.id}:k`)} />
+            <NumberField label={SPREAD_LABEL[layer.effect]} suffix="%" value={Math.round(layer.spread * 100)} min={0} max={100} onChange={(v) => onLayer({ spread: v / 100 }, `${layer.id}:s`)} />
+          </div>
+          <div className="design-row">
+            <NumberField label="Blur" suffix="px" value={layer.blur} min={0} max={400} onChange={(v) => onLayer({ blur: v }, `${layer.id}:blur`)} />
+            {layer.effect === "trail" ? <NumberField label="Bend" suffix="%" value={Math.round(layer.curve * 100)} min={-100} max={100} onChange={(v) => onLayer({ curve: v / 100 }, `${layer.id}:curve`)} /> : null}
+            {layer.effect === "sparkle" || layer.effect === "grain" ? <NumberField label="Pattern" value={layer.seed} min={0} max={999999} onChange={(v) => onLayer({ seed: Math.round(v) }, `${layer.id}:seed`)} /> : null}
+          </div>
+          <Select label="Blend" value={layer.blend} options={BLEND_MODES.map((b) => ({ value: b, label: BLEND_LABEL[b] }))} onChange={(v) => onLayer({ blend: v }, `${layer.id}:blend`)} />
+          <p className="hint">Light is drawn on its own layer over the layers beneath; your pictures aren&apos;t changed.</p>
         </>
       ) : null}
 

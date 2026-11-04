@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CANVAS_MAX, CANVAS_MIN, HexSchema, LayerSchema, MAX_LAYERS, STROKE_MAX, TEXT_SIZE_MAX, type DesignDoc, type Layer, DESIGN_SCHEMA, DESIGN_VERSION, DesignDocSchema } from "./schema";
+import { CANVAS_MAX, CANVAS_MIN, EFFECT_BLUR_MAX, HexSchema, LayerSchema, MAX_LAYERS, STROKE_MAX, TEXT_SIZE_MAX, type DesignDoc, type Layer, DESIGN_SCHEMA, DESIGN_VERSION, DesignDocSchema } from "./schema";
 
 /**
  * Starter templates and reusable items: both are layer stacks we wrote ourselves (MIT, like the app), set in the
@@ -86,7 +86,8 @@ export function placeItem(item: Item, doc: DesignDoc, makeId: (prefix: string) =
     (doc.height * fraction) / item.height,
     limit(item.layers.flatMap((l) => (l.type === "text" ? [l.size] : [])), TEXT_SIZE_MAX),
     limit(item.layers.flatMap((l) => (l.type === "shape" ? [l.strokeWidth] : [])), STROKE_MAX),
-    limit(item.layers.flatMap((l) => (l.type === "text" ? [] : [l.radius])), CANVAS_MAX),
+    limit(item.layers.flatMap((l) => (l.type === "shape" || l.type === "image" ? [l.radius] : [])), CANVAS_MAX),
+    limit(item.layers.flatMap((l) => (l.type === "effect" ? [l.blur] : [])), EFFECT_BLUR_MAX),
     limit(item.layers.flatMap((l) => [l.w, l.h]), CANVAS_MAX * 2),
   );
   const ox = (doc.width - item.width * scale) / 2;
@@ -100,6 +101,7 @@ export function placeItem(item: Item, doc: DesignDoc, makeId: (prefix: string) =
     if (placed.type === "text") placed.size = l.type === "text" ? l.size * scale : placed.size;
     if (placed.type === "shape") placed.strokeWidth *= scale;
     if (placed.type === "shape" || placed.type === "image") placed.radius *= scale;
+    if (placed.type === "effect") placed.blur *= scale;
     return LayerSchema.parse(placed);
   });
 }

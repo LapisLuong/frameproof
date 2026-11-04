@@ -1,7 +1,8 @@
 "use client";
 
+import { layerKind } from "@/lib/design/labels";
 import type { StackMove } from "@/lib/design/edit";
-import type { DesignDoc, Layer } from "@/lib/design/schema";
+import type { DesignDoc } from "@/lib/design/schema";
 
 type Props = {
   doc: DesignDoc;
@@ -13,7 +14,7 @@ type Props = {
   onDelete: (id: string) => void;
 };
 
-const kindLabel = (l: Layer) => (l.type === "text" ? "Text" : l.type === "image" ? (l.resourceId ? "Image" : "Image slot") : l.shape === "line" ? "Rule" : l.shape === "rect" ? "Rectangle" : "Ellipse");
+const kindLabel = layerKind;
 
 /** The stack, top layer first (as designers read it), with buttons rather than drag so it works by touch and keyboard. */
 export function LayersPanel({ doc, selectedId, onSelect, onToggle, onMove, onDuplicate, onDelete }: Props) {

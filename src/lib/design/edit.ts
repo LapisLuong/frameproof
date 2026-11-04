@@ -1,4 +1,5 @@
-import { LayerSchema, MAX_LAYERS, type DesignDoc, type Layer, type LayerInput } from "./schema";
+import { EFFECT_LABEL } from "./labels";
+import { LayerSchema, MAX_LAYERS, type BlendMode, type DesignDoc, type EffectKind, type Layer, type LayerInput } from "./schema";
 
 /**
  * Pure document edits used by the editor. Each returns a new document (or the same one when nothing changes),
@@ -103,7 +104,24 @@ export function resizeBox(box: { x: number; y: number; w: number; h: number }, h
 }
 
 /** Sensible starting layers for the "Add" buttons, centred on the canvas. */
-export function starterLayer(doc: DesignDoc, kind: "text" | "rect" | "ellipse" | "line" | "image", id: string): LayerInput {
+export type StarterKind = "text" | "rect" | "ellipse" | "line" | "image" | EffectKind;
+
+/** Sensible first look for each light: warm glow, pale beam from the top, gold trail, white sparkles, neutral grain/vignette. */
+const EFFECT_STARTER: Record<EffectKind, { color: string; blend: BlendMode; box: (W: number, H: number) => { x: number; y: number; w: number; h: number }; extra?: object }> = {
+  glow: { color: "#f3c76b", blend: "screen", box: (W, H) => ({ x: W * 0.2, y: H * 0.3, w: W * 0.6, h: W * 0.6 }) },
+  beam: { color: "#f5ecd2", blend: "screen", box: (W, H) => ({ x: W * 0.2, y: 0, w: W * 0.6, h: H * 0.8 }), extra: { intensity: 0.6 } },
+  trail: { color: "#f0c96a", blend: "screen", box: (W, H) => ({ x: W * 0.05, y: H * 0.35, w: W * 0.9, h: H * 0.25 }), extra: { blur: 2 } },
+  sparkle: { color: "#ffffff", blend: "screen", box: (W, H) => ({ x: W * 0.1, y: H * 0.1, w: W * 0.8, h: H * 0.5 }), extra: { spread: 0.4 } },
+  grain: { color: "#ffffff", blend: "overlay", box: (W, H) => ({ x: 0, y: 0, w: W, h: H }), extra: { intensity: 0.25 } },
+  vignette: { color: "#000000", blend: "multiply", box: (W, H) => ({ x: 0, y: 0, w: W, h: H }), extra: { intensity: 0.55 } },
+};
+
+export function starterLayer(doc: DesignDoc, kind: StarterKind, id: string): LayerInput {
+  if (kind in EFFECT_STARTER) {
+    const fx = EFFECT_STARTER[kind as EffectKind];
+    const b = fx.box(doc.width, doc.height);
+    return { id, type: "effect", name: EFFECT_LABEL[kind as EffectKind], effect: kind as EffectKind, color: fx.color, blend: fx.blend, x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.w), h: Math.round(b.h), ...fx.extra };
+  }
   const w = Math.round(doc.width * 0.6);
   const h = kind === "line" ? Math.max(4, Math.round(doc.width / 200)) : kind === "text" ? Math.round(doc.width * 0.12) : Math.round(doc.width * 0.4);
   const base = { id, x: Math.round((doc.width - w) / 2), y: Math.round((doc.height - h) / 2), w, h };
@@ -115,7 +133,7 @@ export function starterLayer(doc: DesignDoc, kind: "text" | "rect" | "ellipse" |
     case "line":
       return { ...base, type: "shape", name: "Rule", shape: "line", fill: "#202323" };
     default:
-      return { ...base, type: "shape", name: kind === "rect" ? "Rectangle" : "Ellipse", shape: kind, fill: "#c65a42" };
+      return { ...base, type: "shape", name: kind === "rect" ? "Rectangle" : "Ellipse", shape: kind as "rect" | "ellipse", fill: "#c65a42" };
   }
 }
 

@@ -91,21 +91,61 @@ export const ImageLayerSchema = z.object({
   radius: n(0, CANVAS_MAX).default(0),
 });
 
+/**
+ * Path data for ornaments (swashes, flourishes, stars), drawn in a 1000 × 1000 unit box that is scaled to the layer's
+ * w × h. Only path commands and numbers are allowed: no markup, no references, nothing executable.
+ */
+export const PathDataSchema = z.string().max(20_000).regex(/^[MmLlHhVvCcSsQqTtAaZz0-9eE.,\s+-]+$/, "Path data may contain only path commands and numbers.");
+export const PATH_UNITS = 1000;
+
 export const ShapeLayerSchema = z.object({
   ...LayerBase,
   type: z.literal("shape"),
-  shape: z.enum(["rect", "ellipse", "line"]),
+  shape: z.enum(["rect", "ellipse", "line", "path"]),
+  /** Only for shape "path". */
+  path: PathDataSchema.nullable().default(null),
   fill: HexSchema.nullable(),
   stroke: HexSchema.nullable().default(null),
   strokeWidth: n(0, STROKE_MAX).default(0),
   radius: n(0, CANVAS_MAX).default(0),
 });
 
-export const LayerSchema = z.discriminatedUnion("type", [TextLayerSchema, ImageLayerSchema, ShapeLayerSchema]);
+/**
+ * Light and texture layers for the artwork (not the app's interface): glows, light beams, light trails, sparkles,
+ * grain and vignettes. Each is its own editable layer drawn by deterministic SVG (gradients, blur, seeded noise)
+ * over whatever is beneath it; nothing is baked into a picture. The same seed always draws the same sparkles/grain.
+ */
+export const EFFECT_BLUR_MAX = 400;
+export const EFFECTS = ["glow", "beam", "trail", "sparkle", "grain", "vignette"] as const;
+export type EffectKind = (typeof EFFECTS)[number];
+export const BLEND_MODES = ["normal", "screen", "lighten", "multiply", "overlay", "soft-light"] as const;
+export type BlendMode = (typeof BLEND_MODES)[number];
+
+export const EffectLayerSchema = z.object({
+  ...LayerBase,
+  type: z.literal("effect"),
+  effect: z.enum(EFFECTS),
+  color: HexSchema,
+  /** Peak strength, 0..1 (separate from the layer's opacity, which fades the whole layer). */
+  intensity: n(0, 1).default(0.8),
+  /** Effect-specific spread, 0..1: glow falloff, beam taper, trail width, sparkle density, grain coarseness, vignette reach. */
+  spread: n(0, 1).default(0.5),
+  /** Extra Gaussian blur in canvas px. */
+  blur: n(0, EFFECT_BLUR_MAX).default(0),
+  /** How it combines with the layers beneath (CSS mix-blend-mode in the SVG). */
+  blend: z.enum(BLEND_MODES).default("screen"),
+  /** Deterministic randomness for sparkle positions and grain. */
+  seed: z.number().int().min(0).max(999_999).default(1),
+  /** Trail bend, -1..1 (0 is straight). */
+  curve: n(-1, 1).default(0.3),
+});
+
+export const LayerSchema = z.discriminatedUnion("type", [TextLayerSchema, ImageLayerSchema, ShapeLayerSchema, EffectLayerSchema]);
 
 export type TextLayer = z.infer<typeof TextLayerSchema>;
 export type ImageLayer = z.infer<typeof ImageLayerSchema>;
 export type ShapeLayer = z.infer<typeof ShapeLayerSchema>;
+export type EffectLayer = z.infer<typeof EffectLayerSchema>;
 export type Layer = z.infer<typeof LayerSchema>;
 export type LayerType = Layer["type"];
 

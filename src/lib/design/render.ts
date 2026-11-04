@@ -1,5 +1,6 @@
 import { layoutText, type Measure } from "./layout";
-import { BUILTIN_FONTS, isBuiltinFont, type DesignDoc, type FontRef, type ImageLayer, type Layer, type ShapeLayer, type TextLayer } from "./schema";
+import { effectSvg } from "./effects";
+import { BUILTIN_FONTS, isBuiltinFont, PATH_UNITS, type DesignDoc, type FontRef, type ImageLayer, type Layer, type ShapeLayer, type TextLayer } from "./schema";
 
 /**
  * Renders a design document to one SVG string. This is the only renderer: the editor shows it, SVG export saves it,
@@ -30,7 +31,7 @@ export function escapeXml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]!);
 }
 
-const r = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(2).replace(/\.?0+$/, ""));
+const r = (v: number, digits = 2) => (Number.isInteger(v) ? String(v) : v.toFixed(digits).replace(/\.?0+$/, ""));
 
 function frame(l: Layer): string {
   const attrs: string[] = [];
@@ -65,6 +66,14 @@ function shapeSvg(l: ShapeLayer): string {
   const fill = ` fill="${l.fill ?? "none"}"`;
   if (l.shape === "ellipse")
     return `<ellipse data-layer="${l.id}" cx="${r(l.x + l.w / 2)}" cy="${r(l.y + l.h / 2)}" rx="${r(l.w / 2)}" ry="${r(l.h / 2)}"${fill}${stroke} ${frame(l)}/>`;
+  if (l.shape === "path") {
+    if (!l.path) return "";
+    // The path is drawn in a 1000-unit box scaled to the layer; non-scaling-stroke keeps the stroke width in canvas px.
+    const sx = l.w / PATH_UNITS;
+    const sy = l.h / PATH_UNITS;
+    const sw = stroke ? ` vector-effect="non-scaling-stroke"` : "";
+    return `<g data-layer="${l.id}" ${frame(l)}><path d="${escapeXml(l.path)}" transform="translate(${r(l.x)} ${r(l.y)}) scale(${r(sx, 5)} ${r(sy, 5)})"${fill}${stroke}${sw}/></g>`;
+  }
   if (l.shape === "line") {
     // A rule across the box at its vertical centre; its weight is the stroke width, or the box height without one.
     const y = l.y + l.h / 2;
@@ -106,6 +115,7 @@ export function renderLayer(l: Layer, o: RenderOptions, index = 0): string {
   if (l.hidden) return "";
   if (l.type === "text") return textSvg(l, o);
   if (l.type === "shape") return shapeSvg(l);
+  if (l.type === "effect") return effectSvg(l, `${o.idPrefix ?? "fp"}-fx-${index}`, frame(l));
   return imageSvg(l, o, `${o.idPrefix ?? "fp"}-clip-${index}`);
 }
 

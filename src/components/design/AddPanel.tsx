@@ -6,7 +6,10 @@ import type { Item, Licence } from "@/lib/design/library";
 import { renderSvg } from "@/lib/design/render";
 import { BUILTIN_FONT_IDS, BUILTIN_FONTS, DESIGN_SCHEMA, DESIGN_VERSION, type DesignDoc } from "@/lib/design/schema";
 
-export type StarterKind = "text" | "rect" | "ellipse" | "line" | "image";
+export type { StarterKind } from "@/lib/design/edit";
+import type { StarterKind } from "@/lib/design/edit";
+import { EFFECTS } from "@/lib/design/schema";
+import { EFFECT_LABEL } from "@/lib/design/labels";
 export type ResourceCard = { id: string; name: string; url: string | null; licence: Licence; kind: "image" | "font"; credit?: string };
 
 type Props = {
@@ -147,6 +150,15 @@ export function AddPanel({ items, images, art, fonts, onStarter, onItem, onImage
         <button type="button" className="btn btn-sm" onClick={() => onStarter("image")}>
           Image slot
         </button>
+      </div>
+      <h3 className="t-meta design-sub">Light and texture</h3>
+      <p className="hint">Each light is its own layer over the ones beneath, so pictures stay untouched.</p>
+      <div className="design-row design-starters">
+        {EFFECTS.map((e) => (
+          <button key={e} type="button" className="btn btn-sm" onClick={() => onStarter(e)}>
+            {EFFECT_LABEL[e]}
+          </button>
+        ))}
       </div>
 
       {groups.length ? <h3 className="t-meta design-sub">Items</h3> : null}
