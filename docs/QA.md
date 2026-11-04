@@ -69,10 +69,13 @@ averages; no finding appeared or disappeared.
 
 ## Next milestones
 
-1. **Hosted demo on GitHub Pages** — built and checked locally (`npm run build:static`, `.github/workflows/pages.yml`,
-   preview at `/frameproof` passes Codex desktop's independent probe). Left: push `main`, then in the repo's
-   Settings → Pages choose "GitHub Actions", and re-check the live URL https://lapisluong.github.io/frameproof/.
-   Pages has no server, so AI review is off there and says why.
+1. ~~Hosted demo on GitHub Pages~~ — live at https://lapisluong.github.io/frameproof/ since 4 Nov 2026 (run
+   41819307929 on b1ebfbe: check and deploy both green). The first three runs had a green check job and failed only at
+   `deploy-pages@v4` with 404 "Ensure GitHub Pages has been enabled" — a publish setting, not a build error; fixed by
+   Settings → Pages → Source: GitHub Actions. Checked on the live site: sample project (6 notes, 2 marks, real image
+   sizes), direct reload of `/frameproof/project/?id=…`, analyzer upload with the six observations, AI shown as off
+   with the hosted-demo reason, no console errors, no horizontal overflow. Pages has no server, so AI review runs only
+   when FrameProof runs locally with a key.
 2. ~~Independent code review~~ — done by Codex, 4 findings (0 high, 2 medium, 2 low), all verified and fixed on
    `fix/review-findings`; see `docs/reviews/codex-review.md` on that branch. Original scope:  `src/lib/image/validate.ts`, `src/lib/analysis/*`, `src/lib/color/*`,
    `src/app/api/review/route.ts`, `src/lib/ai/provider.ts` — concrete defects only, each verified with a failing test before fixing.
