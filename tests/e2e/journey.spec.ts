@@ -165,6 +165,8 @@ test.describe("Libraries", () => {
     await page.getByLabel("Display").fill("Lora");
     await page.getByLabel("Spacing tokens").fill("sm: 8px\nmd: 16px\nbad: url(x);}");
     await page.getByRole("button", { name: "Save style" }).click();
+    // A click starts the async save; wait for the IndexedDB commit before reloading.
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
     await page.reload();
     await expect(page.getByLabel("Display")).toHaveValue("Lora");
     const [css] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Export CSS variables" }).click()]);
