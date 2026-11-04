@@ -3,7 +3,7 @@ import { contrastRatio, formatRatio, gradeContrast } from "@/lib/color/contrast"
 import { deltaEOK, hexToRgb, oklabToRgb, rgbToHex, rgbToOklab } from "@/lib/color/convert";
 import { analyzeBuffer, describeAspect, compareBuffers, stripDiff } from "@/lib/analysis/analyze";
 import { extractPalette, colorFrequency } from "@/lib/analysis/palette";
-import { createBuffer, fillRect, fitContain } from "@/lib/analysis/pixels";
+import { createBuffer, fillRect, fitContain, resample } from "@/lib/analysis/pixels";
 import { measureStructure } from "@/lib/analysis/structure";
 import { dHash, hamming64 } from "@/lib/analysis/similarity";
 
@@ -144,4 +144,25 @@ describe("analyzeBuffer", () => {
     const x = rgbToOklab({ r: 1, g: 2, b: 3 });
     expect(deltaEOK(x, x)).toBe(0);
   });
+});
+
+it("weights fractional source pixel coverage", () => {
+  const input = createBuffer(3, 1, [255, 255, 255, 255]);
+  input.data.set([0, 0, 0, 255], 0);
+  const output = resample(input, 2, 1);
+  // The first destination pixel covers source [0, 1.5): black + half white.
+  // (0 * 1 + 255 * 0.5) / 1.5 = 85. The second covers only white.
+  expect(Array.from(output.data)).toEqual([85, 85, 85, 255, 255, 255, 255, 255]);
+});
+
+it("preserves integer-ratio area averages including alpha exactly", () => {
+  const input = createBuffer(4, 2);
+  input.data.set([10, 20, 30, 255, 100, 110, 120, 0, 60, 70, 80, 128, 200, 210, 220, 128, 30, 40, 50, 255, 50, 60, 70, 255, 0, 10, 20, 0, 100, 110, 120, 0]);
+  expect(Array.from(resample(input, 2, 1).data)).toEqual([30, 40, 50, 191, 130, 140, 150, 64]);
+});
+
+it("weights fractional overlap in both axes and divides alpha by area", () => {
+  const input = createBuffer(3, 3, [200, 100, 50, 0]);
+  input.data.set([30, 60, 90, 255], 0);
+  expect(Array.from(resample(input, 2, 2).data.slice(0, 4))).toEqual([30, 60, 90, 113]);
 });

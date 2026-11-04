@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { POST } from "@/app/api/review/route";
+import { MAX_UPLOAD_BYTES } from "@/lib/image/validate";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getProviderConfig, ProviderError, requestReview, type PreparedImage, type VisionProvider } from "@/lib/ai/provider";
 import { AiReviewSchema, extractJson, toIssues } from "@/lib/ai/schema";
 
@@ -85,4 +87,74 @@ describe("AI review requests", () => {
   it("extractJson throws when no object is present", () => {
     expect(() => extractJson("no braces here")).toThrow();
   });
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
+
+function configureAi() {
+  vi.stubEnv("AI_PROVIDER", "anthropic");
+  vi.stubEnv("ANTHROPIC_API_KEY", "unit-test-placeholder");
+}
+
+it("rejects actual multipart bodies over the cap despite a small declared length", async () => {
+  configureAi();
+  // Real multipart bytes, deliberately larger than the aggregate cap. No network call.
+  const boundary = "frameproof-review-test";
+  const body = `--${boundary}\r\nContent-Disposition: form-data; name="unused"\r\n\r\n${"x".repeat(MAX_UPLOAD_BYTES * 2 + 256 * 1024)}\r\n--${boundary}--\r\n`;
+  const req = new Request("http://localhost/api/review", {
+    method: "POST",
+    headers: { "content-type": `multipart/form-data; boundary=${boundary}`, "content-length": "1" },
+    body,
+  });
+  const response = await POST(req);
+  expect(await response.json()).toMatchObject({ error: "The request is larger than two 15 MB images." });
+  expect(response.status).toBe(413);
+});
+
+it("returns malformed-context 400 for invalid JSON", async () => {
+  configureAi();
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const form = new FormData();
+  form.set("context", "{");
+  const encoded = new Request("http://localhost/api/review", { method: "POST", body: form });
+  const bytes = await encoded.arrayBuffer();
+  const headers = new Headers(encoded.headers);
+  headers.set("content-length", String(bytes.byteLength));
+  const response = await POST(new Request(encoded.url, { method: "POST", headers, body: bytes }));
+  expect(response.status).toBe(400);
+  expect(await response.json()).toMatchObject({ error: "The measurement context was malformed." });
+});
+
+it("cancels an oversized stream before reading further chunks", async () => {
+  configureAi();
+  const cancel = vi.fn();
+  let reads = 0;
+  const body = new ReadableStream<Uint8Array>(
+    {
+      pull(controller) {
+        reads++;
+        controller.enqueue(new Uint8Array(MAX_UPLOAD_BYTES + 256 * 1024));
+      },
+      cancel,
+    },
+    { highWaterMark: 0 },
+  );
+  const request = new Request("http://localhost/api/review", {
+    method: "POST",
+    headers: { "content-length": "1" },
+    body,
+    duplex: "half",
+  } as RequestInit);
+  expect((await POST(request)).status).toBe(413);
+  expect(cancel).toHaveBeenCalledOnce();
+  expect(reads).toBe(2);
+});
+
+it.each(["NaN", "Infinity", "-1", "1.5"])("rejects invalid declared length %s", async (length) => {
+  configureAi();
+  const request = new Request("http://localhost/api/review", { method: "POST", headers: { "content-length": length }, body: "x" });
+  expect((await POST(request)).status).toBe(413);
 });

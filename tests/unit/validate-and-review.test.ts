@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { readDimensions, sniffKind, validateImageBytes, MAX_UPLOAD_BYTES } from "@/lib/image/validate";
 import { analyzeBuffer, compareBuffers, stripDiff } from "@/lib/analysis/analyze";
@@ -126,4 +127,38 @@ describe("review engine", () => {
     ];
     expect(sortIssues(list).map((i) => i.id)).toEqual(["c", "b", "a"]);
   });
+});
+
+it("rejects a corrupt WebP lossless signature", async () => {
+  const original = await sharp({ create: { width: 1, height: 1, channels: 3, background: "white" } })
+    .webp({ lossless: true })
+    .toBuffer();
+  expect(original.toString("ascii", 12, 16)).toBe("VP8L");
+  expect(original[20]).toBe(0x2f);
+  const corrupt = Buffer.from(original);
+  corrupt[20] = 0; // Mandatory VP8L signature byte, before packed dimensions.
+  await expect(sharp(corrupt).raw().toBuffer()).rejects.toThrow();
+  expect(validateImageBytes(corrupt, corrupt.length).ok).toBe(false);
+});
+
+it("rejects VP8L version bits and headers outside buffer or declared lengths", async () => {
+  const original = await sharp({ create: { width: 1, height: 1, channels: 3, background: "white" } })
+    .webp({ lossless: true })
+    .toBuffer();
+  expect(validateImageBytes(original, original.length).ok).toBe(true);
+  for (const bit of [0x20, 0x40, 0x80]) {
+    const bad = Buffer.from(original);
+    bad[24] = bad[24]! | bit;
+    expect(readDimensions(bad, "webp")).toBeNull();
+  }
+  expect(readDimensions(original.subarray(0, 24), "webp")).toBeNull();
+  expect(readDimensions(original.subarray(0, 25), "webp")).toEqual({ width: 1, height: 1 });
+  for (const [offset, length] of [
+    [16, 4],
+    [4, 16],
+  ]) {
+    const bad = Buffer.from(original);
+    bad.writeUInt32LE(length!, offset!);
+    expect(readDimensions(bad, "webp")).toBeNull();
+  }
 });
