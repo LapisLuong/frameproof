@@ -80,8 +80,8 @@ averages; no finding appeared or disappeared.
 4. ~~Numbered anchors on the artwork~~ — done on `feat/finding-anchors`. Notes stay in one priority-ordered list and are
    labelled "On the artwork" or "Whole image" (separate groups put a low-priority note above high ones).
 5. Move analysis into a Web Worker for very large images; add a mobile E2E test for the Reference/Current toggle.
-6. **Master-prompt audit** (`docs/reviews/codex-master-prompt-audit.md`): G1–G7, G9 (motion) partly and G10 are done
-   (G1–G3, G5–G7 by Codex CLI, reviewed and fixed on merge; G4 by Claude Code). Open: **G8** structured observations in
-   the single-image analyzer (Low; needs plan mode, it touches the rule layer) and **G9** the 60 ms linear zoom
-   transform in `ImageViewer`/`CompareStage`.
+6. **Master-prompt audit** (`docs/reviews/codex-master-prompt-audit.md`): G1–G7, G9 and G10 are done
+   (G1–G3, G5–G7 by Codex CLI, reviewed and fixed on merge; G4 and G9 by Claude Code: zoom and pan now follow the
+   pointer directly, with no transform transition). Open: **G8** structured observations in the single-image analyzer
+   (Low; needs plan mode, it touches the rule layer).
 7. P2: website screenshot analysis, PPTX analysis, Supabase sync, team review, visual regression.

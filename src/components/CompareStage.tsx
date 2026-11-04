@@ -75,7 +75,7 @@ function Layered({
         </span>
       ) : null}
       <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
-        <div style={{ position: "relative", width: box.w, height: box.h, transform: zp.transform, transition: "transform 60ms linear" }}>
+        <div style={{ position: "relative", width: box.w, height: box.h, transform: zp.transform }}>
           {mode === "diff" ? (
             <canvas
               ref={diffCanvas}

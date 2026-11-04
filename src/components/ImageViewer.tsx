@@ -56,7 +56,6 @@ export function ImageViewer({
             style={{
               transform: zp.transform,
               transformOrigin: "center",
-              transition: "transform 60ms linear",
               maxWidth: "100%",
               maxHeight: "100%",
               display: "grid",
