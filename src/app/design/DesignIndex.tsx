@@ -38,7 +38,6 @@ function Preview({ doc, urls, fontsVersion }: { doc: DesignDoc; urls?: Map<strin
         "<svg ",
         '<svg preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block" ',
       ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [doc, urls, fontsVersion],
   );
   return <span className="design-card-preview" style={{ aspectRatio: `${doc.width} / ${doc.height}` }} aria-hidden="true" dangerouslySetInnerHTML={{ __html: svg }} />;

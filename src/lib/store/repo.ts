@@ -312,6 +312,9 @@ export async function createDesign(from: { name: string; width: number; height: 
   return saveDesign(doc);
 }
 
+/** Save a composed or copied document as a new design: fresh id and creation time, everything else kept. */
+export const saveNewDesign = (doc: DesignDoc) => saveDesign({ ...doc, id: newId("design"), createdAt: Date.now() });
+
 export async function deleteDesign(id: string): Promise<void> {
   await remove("designs", [id]);
   emit("designs");

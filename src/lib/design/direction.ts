@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { contrastRatio } from "../color/contrast";
+import { hexToRgb } from "../color/convert";
 import { FontRefSchema, HexSchema } from "./schema";
 import { TEMPLATE_CONCEPTS } from "./library";
 
@@ -54,3 +56,32 @@ export type Brief = z.infer<typeof BriefSchema>;
 
 /** How each concept was put together, for the "how this was made" note on each result. */
 export type ComposeMethod = { kind: "deterministic"; templateId: string } | { kind: "ai-directed"; templateId: string; model: string };
+
+/**
+ * Turn swatches measured from the user's references into a palette with roles. The colours and shares are measured;
+ * the roles are a rule (estimated), and the UI lets the user change them:
+ * the largest area is the ground; the colour with the best contrast against it is the ink; the most saturated
+ * remaining colour with Oklab chroma ≥ 0.08 is the accent; the rest support. Swatches under 2% are left out.
+ */
+export function paletteFromMeasured(swatches: Array<{ hex: string; share: number; chroma: number }>, max = 6): Swatch[] {
+  const list = swatches.filter((s) => s.share >= 0.02).slice(0, max);
+  if (!list.length) return [];
+  const [ground, ...rest] = [...list].sort((a, b) => b.share - a.share);
+  const g = hexToRgb(ground!.hex)!;
+  const byContrast = [...rest].sort((a, b) => contrastRatio(hexToRgb(b.hex)!, g) - contrastRatio(hexToRgb(a.hex)!, g));
+  const ink = byContrast[0];
+  const accent = rest.filter((s) => s !== ink && s.chroma >= 0.08).sort((a, b) => b.chroma - a.chroma)[0];
+  const out: Swatch[] = [{ hex: ground!.hex.toLowerCase(), role: "ground", origin: "measured", share: ground!.share }];
+  if (ink) out.push({ hex: ink.hex.toLowerCase(), role: "ink", origin: "measured", share: ink.share });
+  if (accent) out.push({ hex: accent.hex.toLowerCase(), role: "accent", origin: "measured", share: accent.share });
+  for (const s of rest) if (s !== ink && s !== accent) out.push({ hex: s.hex.toLowerCase(), role: "support", origin: "measured", share: s.share });
+  return out;
+}
+
+/** A starting direction when there are no references: the app's own paper, ink and proof red, marked manual. */
+export const DEFAULT_PALETTE: Swatch[] = [
+  { hex: "#f1ece2", role: "ground", origin: "manual" },
+  { hex: "#1f2421", role: "ink", origin: "manual" },
+  { hex: "#c65a42", role: "accent", origin: "manual" },
+  { hex: "#7d8c84", role: "support", origin: "manual" },
+];
