@@ -53,4 +53,4 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 `);
 await writeFile(path.join(output, "manifest.json"), JSON.stringify({ versions, files }, null, 2) + "\n");
-console.log(`Prepared local image runtime (${Math.round(Object.values(files).reduce((n, f) => n + f.bytes, 0) / 1024 / 1024)} MB). Models download only when a tool is started.`);
+process.stdout.write(`Prepared local image runtime (${Math.round(Object.values(files).reduce((n, f) => n + f.bytes, 0) / 1024 / 1024)} MB). Models download only when a tool is started.\n`);

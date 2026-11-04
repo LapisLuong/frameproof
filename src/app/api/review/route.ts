@@ -3,6 +3,7 @@ import sharp from "sharp";
 import { getProviderConfig, ProviderError, requestReview, type PreparedImage } from "@/lib/ai/provider";
 import { MeasuredContextSchema } from "@/lib/ai/schema";
 import { MAX_UPLOAD_BYTES, validateImageBytes } from "@/lib/image/validate";
+import { BodyReadError, readBodyBytes } from "@/lib/security/body";
 import { rejectUnsafeAiRequest } from "@/lib/security/request";
 
 export const runtime = "nodejs";
@@ -53,37 +54,14 @@ export async function POST(req: Request) {
 
   let form: FormData;
   try {
-    const reader = req.body?.getReader();
-    const chunks: Uint8Array[] = [];
-    let size = 0;
-    if (reader) {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          size += value.byteLength;
-          if (size > cap) {
-            await reader.cancel();
-            return NextResponse.json({ ok: false, error: "The request is larger than two 15 MB images." }, { status: 413 });
-          }
-          chunks.push(value);
-        }
-      } finally {
-        reader.releaseLock();
-      }
-    }
-    const bytes = new Uint8Array(size);
-    let offset = 0;
-    for (const chunk of chunks) {
-      bytes.set(chunk, offset);
-      offset += chunk.byteLength;
-    }
+    const bytes = await readBodyBytes(req, cap);
     form = await new Request(req.url, {
       method: "POST",
       headers: { "content-type": req.headers.get("content-type") ?? "" },
       body: bytes,
     }).formData();
-  } catch {
+  } catch (error) {
+    if (error instanceof BodyReadError) return NextResponse.json({ ok: false, error: error.status === 413 ? "The request is larger than two 15 MB images." : error.message }, { status: error.status });
     return NextResponse.json({ ok: false, error: "The request wasn't valid form data." }, { status: 400 });
   }
 
