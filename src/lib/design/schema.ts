@@ -21,6 +21,8 @@ export const CANVAS_MIN = 64;
 export const CANVAS_MAX = 6000;
 export const MAX_LAYERS = 200;
 export const MAX_TEXT = 4000;
+export const TEXT_SIZE_MAX = 1000;
+export const STROKE_MAX = 500;
 
 export const HexSchema = z
   .string()
@@ -33,7 +35,7 @@ export { BUILTIN_FONTS, BUILTIN_FONT_IDS, type BuiltinFontId } from "./fonts";
 
 export const FontRefSchema = z.union([z.enum(BUILTIN_FONT_IDS as [BuiltinFontId, ...BuiltinFontId[]]), z.string().regex(/^res_[\w-]{1,80}$/)]);
 export type FontRef = z.infer<typeof FontRefSchema>;
-export const isBuiltinFont = (f: FontRef): f is BuiltinFontId => f in BUILTIN_FONTS;
+export const isBuiltinFont = (f: FontRef): f is BuiltinFontId => Object.hasOwn(BUILTIN_FONTS, f);
 
 /* ---------- layers ---------- */
 
@@ -58,7 +60,7 @@ export const TextLayerSchema = z.object({
   type: z.literal("text"),
   text: z.string().max(MAX_TEXT),
   font: FontRefSchema,
-  size: n(4, 1000),
+  size: n(4, TEXT_SIZE_MAX),
   weight: z.number().int().min(100).max(900).default(400),
   italic: z.boolean().default(false),
   /** Multiple of the font size. */
@@ -87,7 +89,7 @@ export const ShapeLayerSchema = z.object({
   shape: z.enum(["rect", "ellipse", "line"]),
   fill: HexSchema.nullable(),
   stroke: HexSchema.nullable().default(null),
-  strokeWidth: n(0, 500).default(0),
+  strokeWidth: n(0, STROKE_MAX).default(0),
   radius: n(0, CANVAS_MAX).default(0),
 });
 

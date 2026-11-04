@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CANVAS_MAX, CANVAS_MIN, HexSchema, LayerSchema, MAX_LAYERS, type DesignDoc, type Layer, DESIGN_SCHEMA, DESIGN_VERSION, DesignDocSchema } from "./schema";
+import { CANVAS_MAX, CANVAS_MIN, HexSchema, LayerSchema, MAX_LAYERS, STROKE_MAX, TEXT_SIZE_MAX, type DesignDoc, type Layer, DESIGN_SCHEMA, DESIGN_VERSION, DesignDocSchema } from "./schema";
 
 /**
  * Starter templates and reusable items: both are layer stacks we wrote ourselves (MIT, like the app), set in the
@@ -77,7 +77,18 @@ export function docFromTemplate(t: Template, id: string, now = Date.now()): Desi
  * its own size × 4), centred, with ids that don't collide with the document's.
  */
 export function placeItem(item: Item, doc: DesignDoc, makeId: (prefix: string) => string, fraction = 0.5): Layer[] {
-  const scale = Math.min(4, (doc.width * fraction) / item.width, (doc.height * fraction) / item.height);
+  // Scale to fit the frame, but never past what the schema allows for any scaled value (text size, stroke, radius,
+  // box), so a valid item always produces valid layers instead of throwing on insert.
+  const limit = (values: number[], max: number) => values.reduce((m, v) => (v > 0 ? Math.min(m, max / v) : m), Infinity);
+  const scale = Math.min(
+    4,
+    (doc.width * fraction) / item.width,
+    (doc.height * fraction) / item.height,
+    limit(item.layers.flatMap((l) => (l.type === "text" ? [l.size] : [])), TEXT_SIZE_MAX),
+    limit(item.layers.flatMap((l) => (l.type === "shape" ? [l.strokeWidth] : [])), STROKE_MAX),
+    limit(item.layers.flatMap((l) => (l.type === "text" ? [] : [l.radius])), CANVAS_MAX),
+    limit(item.layers.flatMap((l) => [l.w, l.h]), CANVAS_MAX * 2),
+  );
   const ox = (doc.width - item.width * scale) / 2;
   const oy = (doc.height - item.height * scale) / 2;
   const taken = new Set(doc.layers.map((l) => l.id));

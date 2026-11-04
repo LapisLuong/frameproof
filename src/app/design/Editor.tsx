@@ -1,0 +1,329 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDraftGuard } from "@/components/ConfirmDialog";
+import { AddPanel, type ResourceCard, type StarterKind } from "@/components/design/AddPanel";
+import { Canvas } from "@/components/design/Canvas";
+import { Inspector } from "@/components/design/Inspector";
+import { LayersPanel } from "@/components/design/LayersPanel";
+import { useHistory } from "@/components/design/useHistory";
+import { toast } from "@/components/Toast";
+import { useStore } from "@/hooks/useStore";
+import { loadDocFonts, registerUserFont } from "@/lib/design/browser";
+import { addLayer, duplicateLayer, hitTest, moveLayer, removeLayer, starterLayer, updateLayer } from "@/lib/design/edit";
+import { designBundle, designPng, designSvg, missingMessage } from "@/lib/design/exporters";
+import { ITEMS } from "@/lib/design/items";
+import { placeItem, type Item } from "@/lib/design/library";
+import type { Resource } from "@/lib/design/resource";
+import { referencedResources, type DesignDoc, type Layer } from "@/lib/design/schema";
+import { newId } from "@/lib/store/db";
+import { addResource, getDesign, listResources, saveDesign, sendDesignToReview } from "@/lib/store/repo";
+
+type Tab = "edit" | "layers" | "add";
+
+function downloadBlob(filename: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+const fileName = (doc: DesignDoc) => doc.name.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "").slice(0, 60) || "design";
+
+export function DesignEditor({ id, at }: { id: string; at: { x: number; y: number } | null }) {
+  const design = useStore(() => getDesign(id), ["designs"], [id]);
+  const resources = useStore(() => listResources(), ["resources"]);
+  if (design.status === "loading" || resources.status === "loading") return <div className="busy-line" aria-label="Loading the design" />;
+  if (design.status === "error" || resources.status === "error")
+    return (
+      <p className="notice" data-tone="error">
+        {design.status === "error" ? design.message : resources.status === "error" ? resources.message : ""}
+      </p>
+    );
+  if (!design.data)
+    return (
+      <div className="page">
+        <p className="notice" data-tone="error">
+          This design isn&rsquo;t in this browser. It may have been deleted, or made in another browser.
+        </p>
+        <p style={{ marginTop: "1rem" }}>
+          <Link className="link" href="/design">
+            Back to designs
+          </Link>
+        </p>
+      </div>
+    );
+  return <LoadedEditor key={id} initial={design.data} resources={resources.data} at={at} />;
+}
+
+function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resources: Resource[]; at: { x: number; y: number } | null }) {
+  const router = useRouter();
+  const h = useHistory<DesignDoc>(initial);
+  const doc = h.present;
+  const [selectedId, setSelectedId] = useState<string | null>(() => (at ? (hitTest(initial, at.x * initial.width, at.y * initial.height, { includeLocked: true })?.id ?? null) : null));
+  const [tab, setTab] = useState<Tab>("edit");
+  const [fontsVersion, setFontsVersion] = useState(0);
+  const [saveState, setSaveState] = useState<"saved" | "saving" | "unsaved" | "failed">("saved");
+  const [busy, setBusy] = useState<string | null>(null);
+  const saved = useRef<DesignDoc>(initial);
+  const projectId = useRef<string | null>(initial.projectId);
+  const [linked, setLinked] = useState(initial.projectId !== null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+
+  /* ---------- resources: object URLs and user fonts ---------- */
+  const urls = useMemo(() => new Map(resources.filter((r) => r.kind === "image").map((r) => [r.id, URL.createObjectURL(r.blob)])), [resources]);
+  useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls]);
+  const imageUrl = useCallback((rid: string) => urls.get(rid) ?? null, [urls]);
+  const fontKey = doc.layers.map((l) => (l.type === "text" ? `${l.font}/${l.weight}/${l.italic}` : "")).join("|");
+  useEffect(() => {
+    let live = true;
+    const used = new Set(referencedResources(doc));
+    Promise.all(resources.filter((r) => r.kind === "font" && used.has(r.id)).map((r) => registerUserFont(r.id, r.blob).catch(() => undefined)))
+      .then(() => loadDocFonts(doc))
+      .then(() => live && setFontsVersion((v) => v + 1));
+    return () => {
+      live = false;
+    };
+    // Reload faces only when the set of fonts in use changes, not on every move.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fontKey, resources]);
+
+  /* ---------- autosave ---------- */
+  useEffect(() => {
+    if (doc === saved.current) return;
+    setSaveState("unsaved");
+    const t = setTimeout(() => {
+      setSaveState("saving");
+      saveDesign({ ...doc, projectId: projectId.current })
+        .then(() => {
+          saved.current = doc;
+          setSaveState((s) => (s === "saving" ? "saved" : s));
+        })
+        .catch((e: unknown) => {
+          setSaveState("failed");
+          toast(e instanceof Error ? e.message : "The design couldn't be saved.");
+        });
+    }, 600);
+    return () => clearTimeout(t);
+  }, [doc]);
+  const guard = useDraftGuard(saveState !== "saved");
+
+  /* ---------- edits ---------- */
+  const selected = doc.layers.find((l) => l.id === selectedId) ?? null;
+  const patchLayer = useCallback((lid: string, patch: Partial<Layer>, key?: string) => h.commit((d) => updateLayer(d, lid, patch), key), [h]);
+  const add = (layers: Parameters<typeof addLayer>[1]) => {
+    try {
+      const res = addLayer(doc, layers);
+      h.commit(res.doc);
+      setSelectedId(res.ids[res.ids.length - 1] ?? null);
+      setTab("edit");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "The layer couldn't be added.");
+    }
+  };
+  const onStarter = (kind: StarterKind) => add(starterLayer(doc, kind, newId("l")));
+  const onItem = (item: Item) => add(placeItem(item, doc, newId));
+  const onImage = (rid: string) => {
+    if (selected?.type === "image") return patchLayer(selected.id, { resourceId: rid });
+    const r = resources.find((x) => x.id === rid);
+    const ratio = r?.width && r?.height ? r.width / r.height : 1;
+    const w = Math.round(doc.width * 0.6);
+    add({ ...starterLayer(doc, "image", newId("l")), name: r?.name.slice(0, 80) ?? "Image", resourceId: rid, w, h: Math.round(w / ratio) } as Parameters<typeof addLayer>[1]);
+  };
+  const del = (lid: string) => {
+    h.commit((d) => removeLayer(d, lid));
+    setSelectedId(null);
+  };
+  const dup = (lid: string) => {
+    const res = duplicateLayer(doc, lid, newId("l"));
+    if (res.id) {
+      h.commit(res.doc);
+      setSelectedId(res.id);
+    }
+  };
+  const nudge = (dx: number, dy: number) => {
+    if (selected && !selected.locked) patchLayer(selected.id, { x: selected.x + dx, y: selected.y + dy }, `${selected.id}:nudge`);
+  };
+
+  /* ---------- keyboard ---------- */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      const typing = t.closest("input, textarea, select, [contenteditable]");
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key.toLowerCase() === "z") {
+        if (typing) return;
+        e.preventDefault();
+        if (e.shiftKey) h.redo();
+        else h.undo();
+        return;
+      }
+      if (mod && e.key.toLowerCase() === "y" && !typing) {
+        e.preventDefault();
+        h.redo();
+        return;
+      }
+      if (typing || !selected) return;
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        del(selected.id);
+      } else if (mod && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        dup(selected.id);
+      } else if (e.key === "Escape") setSelectedId(null);
+      else if (e.key.startsWith("Arrow")) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        nudge(e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0, e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  /* ---------- export and review ---------- */
+  const run = async (label: string, fn: () => Promise<void>) => {
+    setBusy(label);
+    try {
+      await fn();
+    } catch (e) {
+      toast(missingMessage(e, resources));
+    } finally {
+      setBusy(null);
+    }
+  };
+  const exportPng = () => run("png", async () => downloadBlob(`${fileName(doc)}.png`, await designPng(doc, resources, 1)));
+  const exportSvgFile = () => run("svg", async () => downloadBlob(`${fileName(doc)}.svg`, new Blob([await designSvg(doc, resources)], { type: "image/svg+xml" })));
+  const exportJson = () => run("json", async () => downloadBlob(`${fileName(doc)}.frameproof.json`, new Blob([await designBundle(doc, resources)], { type: "application/json" })));
+  const review = () =>
+    run("review", async () => {
+      const png = await designPng(doc, resources, 1);
+      const project = await sendDesignToReview({ ...doc, projectId: projectId.current }, png);
+      projectId.current = project.id;
+      setLinked(true);
+      saved.current = doc;
+      setSaveState("saved");
+      toast("Design sent to review as the current image.");
+      router.push(`/project?id=${encodeURIComponent(project.id)}`);
+    });
+
+  const userFonts = resources.filter((r) => r.kind === "font").map((r) => ({ id: r.id as `res_${string}`, label: r.name.replace(/\.(ttf|otf|woff2?)$/i, "") }));
+  const cards = (kind: "image" | "font"): ResourceCard[] => resources.filter((r) => r.kind === kind).map((r) => ({ id: r.id, name: r.name, url: urls.get(r.id) ?? null, licence: r.licence, kind }));
+  const missing = referencedResources(doc).filter((rid) => !resources.some((r) => r.id === rid));
+  const status = { saved: "Saved in this browser", saving: "Saving…", unsaved: "Unsaved changes", failed: "Not saved" }[saveState];
+
+  return (
+    <div className="design-editor" data-tab={tab}>
+      {guard.dialog}
+      <div className="design-bar">
+        <Link href="/design" className="btn btn-sm btn-quiet">
+          Designs
+        </Link>
+        <h1 className="t-heading design-title">{doc.name}</h1>
+        <span className="hint" role="status" data-testid="save-state">
+          {status}
+        </span>
+        <span className="spacer" />
+        <button type="button" className="btn btn-sm" onClick={h.undo} disabled={!h.canUndo}>
+          Undo
+        </button>
+        <button type="button" className="btn btn-sm" onClick={h.redo} disabled={!h.canRedo}>
+          Redo
+        </button>
+        <button type="button" className="btn btn-sm" onClick={exportPng} disabled={!!busy}>
+          {busy === "png" ? "Exporting…" : "Export PNG"}
+        </button>
+        <button type="button" className="btn btn-sm" onClick={exportSvgFile} disabled={!!busy}>
+          {busy === "svg" ? "Exporting…" : "Export SVG"}
+        </button>
+        <button type="button" className="btn btn-sm" onClick={exportJson} disabled={!!busy}>
+          {busy === "json" ? "Exporting…" : "Export design file"}
+        </button>
+        <button type="button" className="btn btn-sm btn-primary" onClick={review} disabled={!!busy}>
+          {busy === "review" ? "Sending…" : linked ? "Update review image" : "Review this design"}
+        </button>
+      </div>
+      {missing.length ? (
+        <p className="notice" data-tone="error">
+          {missing.length === 1 ? "One picture or font" : `${missing.length} pictures or fonts`} used here {missing.length === 1 ? "is" : "are"} no longer in your library. Pick another in the inspector, or
+          delete the layer, before exporting.
+        </p>
+      ) : null}
+
+      <nav className="modes design-tabs" aria-label="Editor panels">
+        {(["edit", "layers", "add"] as const).map((t) => (
+          <button key={t} type="button" aria-pressed={tab === t} onClick={() => setTab(t)}>
+            {{ layers: "Layers", edit: "Edit", add: "Add" }[t]}
+          </button>
+        ))}
+      </nav>
+
+      <div className="design-grid">
+        <div className="design-col design-col-left">
+          <div className="design-pane" data-pane="add">
+            <AddPanel
+              items={ITEMS}
+              images={cards("image")}
+              fonts={cards("font")}
+              onStarter={onStarter}
+              onItem={onItem}
+              onImage={onImage}
+              onAddResource={async (file, kind, meta) => {
+                const r = await addResource(file, kind, meta);
+                toast(`${r.name} added to your library.`);
+              }}
+              fontsVersion={fontsVersion}
+            />
+          </div>
+          <div className="design-pane" data-pane="layers">
+            <LayersPanel
+              doc={doc}
+              selectedId={selectedId}
+              onSelect={(lid) => setSelectedId(lid)}
+              onToggle={(lid, key) => {
+                const l = doc.layers.find((x) => x.id === lid);
+                if (l) patchLayer(lid, { [key]: !l[key] } as Partial<Layer>);
+              }}
+              onMove={(lid, move) => h.commit((d) => moveLayer(d, lid, move))}
+              onDuplicate={dup}
+              onDelete={del}
+            />
+          </div>
+        </div>
+        <div className="design-pane design-pane-canvas" data-pane="canvas">
+          <Canvas
+            doc={doc}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onLive={h.live}
+            onEnd={h.end}
+            imageUrl={imageUrl}
+            fontsVersion={fontsVersion}
+            onEditText={() => {
+              setTab("edit");
+              setTimeout(() => textRef.current?.focus(), 0);
+            }}
+          />
+          <p className="hint design-canvas-hint">Drag to move. Handles resize; the round handle rotates. Shift keeps proportions, Alt turns off snapping. Arrow keys nudge.</p>
+        </div>
+        <div className="design-col design-col-right">
+          <div className="design-pane" data-pane="edit">
+            <Inspector
+              doc={doc}
+              layer={selected}
+              onLayer={(patch, key) => selected && patchLayer(selected.id, patch, key)}
+              onDoc={(patch, key) => h.commit((d) => ({ ...d, ...patch }), key)}
+              userFonts={userFonts}
+              images={resources.filter((r) => r.kind === "image").map((r) => ({ id: r.id, label: r.name }))}
+              textRef={textRef}
+              onNudge={nudge}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

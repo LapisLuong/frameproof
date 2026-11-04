@@ -7,8 +7,9 @@
  */
 
 export const DB_NAME = "frameproof";
-export const DB_VERSION = 1;
-export const STORES = ["projects", "assets", "reviews", "references", "styles"] as const;
+/** v2 adds "designs" (poster documents) and "resources" (the user's images and fonts for designs). */
+export const DB_VERSION = 2;
+export const STORES = ["projects", "assets", "reviews", "references", "styles", "designs", "resources"] as const;
 export type StoreName = (typeof STORES)[number];
 
 let dbPromise: Promise<IDBDatabase> | null = null;
