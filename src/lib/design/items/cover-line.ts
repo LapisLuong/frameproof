@@ -9,6 +9,7 @@ export const item: ItemInput = {
     {
       "id": "cover-line",
       "name": "Cover Line",
+      "role": "subtitle",
       "type": "text",
       "text": "Một mùa ký ức",
       "x": 0,

@@ -9,6 +9,7 @@ export const item: ItemInput = {
     {
       "id": "lineup",
       "name": "Lineup",
+      "role": "info",
       "type": "text",
       "text": "MÂY / SÓNG / ĐÊM",
       "x": 0,

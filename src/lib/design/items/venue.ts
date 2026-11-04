@@ -9,6 +9,7 @@ export const item: ItemInput = {
     {
       "id": "venue",
       "name": "Venue",
+      "role": "info",
       "type": "text",
       "text": "Nhà hát Lớn\nHà Nội / Thiết kế: Studio",
       "x": 0,

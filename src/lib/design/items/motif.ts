@@ -9,6 +9,7 @@ export const item: ItemInput = {
     {
       "id": "disc0",
       "name": "Disc0",
+      "role": "motif",
       "type": "shape",
       "shape": "ellipse",
       "x": 0,
@@ -20,6 +21,7 @@ export const item: ItemInput = {
     {
       "id": "disc1",
       "name": "Disc1",
+      "role": "motif",
       "type": "shape",
       "shape": "ellipse",
       "x": 150,
@@ -31,6 +33,7 @@ export const item: ItemInput = {
     {
       "id": "disc2",
       "name": "Disc2",
+      "role": "motif",
       "type": "shape",
       "shape": "ellipse",
       "x": 300,
@@ -42,6 +45,7 @@ export const item: ItemInput = {
     {
       "id": "disc3",
       "name": "Disc3",
+      "role": "motif",
       "type": "shape",
       "shape": "ellipse",
       "x": 450,

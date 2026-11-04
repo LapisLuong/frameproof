@@ -11,6 +11,7 @@ export const template: TemplateInput = {
     {
       "id": "contrast-disc",
       "name": "Contrast Disc",
+      "role": "motif",
       "type": "shape",
       "shape": "ellipse",
       "x": 650,
@@ -22,6 +23,7 @@ export const template: TemplateInput = {
     {
       "id": "title",
       "name": "Title",
+      "role": "title",
       "type": "text",
       "text": "ĐÊM",
       "x": 70,
@@ -35,6 +37,7 @@ export const template: TemplateInput = {
     {
       "id": "band-one",
       "name": "Band One",
+      "role": "body",
       "type": "text",
       "text": "NHỊP / NHỊP",
       "x": 70,
@@ -49,6 +52,7 @@ export const template: TemplateInput = {
     {
       "id": "band-two",
       "name": "Band Two",
+      "role": "body",
       "type": "text",
       "text": "ÂM NHẠC",
       "x": 70,
@@ -62,6 +66,7 @@ export const template: TemplateInput = {
     {
       "id": "band-three",
       "name": "Band Three",
+      "role": "body",
       "type": "text",
       "text": "MÂY / SÓNG",
       "x": 70,
@@ -76,6 +81,7 @@ export const template: TemplateInput = {
     {
       "id": "strip",
       "name": "Strip",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 60,
@@ -87,6 +93,7 @@ export const template: TemplateInput = {
     {
       "id": "metadata",
       "name": "Metadata",
+      "role": "info",
       "type": "text",
       "text": "24.10.2026 / 20:00\nNhà hát Lớn / Hà Nội",
       "x": 95,

@@ -9,6 +9,7 @@ export const item: ItemInput = {
     {
       "id": "day",
       "name": "Day",
+      "role": "info",
       "type": "text",
       "text": "24",
       "x": 0,
@@ -22,6 +23,7 @@ export const item: ItemInput = {
     {
       "id": "month",
       "name": "Month",
+      "role": "info",
       "type": "text",
       "text": "Tháng Mười\n2026",
       "x": 220,

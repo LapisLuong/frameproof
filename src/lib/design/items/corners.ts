@@ -9,6 +9,7 @@ export const item: ItemInput = {
     {
       "id": "top",
       "name": "Top",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 0,
@@ -20,6 +21,7 @@ export const item: ItemInput = {
     {
       "id": "left",
       "name": "Left",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 0,
@@ -31,6 +33,7 @@ export const item: ItemInput = {
     {
       "id": "bottom",
       "name": "Bottom",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 530,
@@ -42,6 +45,7 @@ export const item: ItemInput = {
     {
       "id": "right",
       "name": "Right",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 596,

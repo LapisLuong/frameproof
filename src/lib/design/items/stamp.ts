@@ -9,6 +9,7 @@ export const item: ItemInput = {
     {
       "id": "circle",
       "name": "Circle",
+      "role": "motif",
       "type": "shape",
       "shape": "ellipse",
       "x": 210,
@@ -22,6 +23,7 @@ export const item: ItemInput = {
     {
       "id": "stamp",
       "name": "Stamp",
+      "role": "info",
       "type": "text",
       "text": "Hà Nội",
       "x": 220,

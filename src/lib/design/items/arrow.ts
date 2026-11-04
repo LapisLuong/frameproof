@@ -9,6 +9,7 @@ export const item: ItemInput = {
     {
       "id": "shaft",
       "name": "Shaft",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 30,
@@ -20,6 +21,7 @@ export const item: ItemInput = {
     {
       "id": "upper",
       "name": "Upper",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 410,
@@ -32,6 +34,7 @@ export const item: ItemInput = {
     {
       "id": "lower",
       "name": "Lower",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 410,

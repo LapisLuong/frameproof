@@ -9,6 +9,7 @@ export const item: ItemInput = {
     {
       "id": "numeral",
       "name": "Numeral",
+      "role": "info",
       "type": "text",
       "text": "02",
       "x": 0,

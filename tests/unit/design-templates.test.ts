@@ -7,7 +7,7 @@ import { approxMeasure } from "@/lib/design/layout";
 import { renderSvg, escapeXml } from "@/lib/design/render";
 
 it("parses the pack with unique ids, licences and lookups", () => {
-  expect(TEMPLATES).toHaveLength(6);
+  expect(TEMPLATES).toHaveLength(8);
   expect(ITEMS.length).toBeGreaterThanOrEqual(14);
   const ids = [...TEMPLATES, ...ITEMS].map((p) => p.id);
   expect(new Set(ids).size).toBe(ids.length);
@@ -37,11 +37,23 @@ it("renders valid Vietnamese documents with distinct colour signatures", () => {
     for (const l of doc.layers) if (l.type === "text" && !l.hidden) expect(svg).toContain(escapeXml(l.text.split(/\s/)[0]!));
     const first = t.layers[0]!; return t.background + (first.type === "text" ? first.color : first.type === "shape" ? first.fill : "slot");
   });
-  expect(new Set(pairs).size).toBe(6);
+  expect(new Set(pairs).size).toBe(8);
 });
 it("places every item with fresh ids inside a portrait document", () => {
   const doc = blankDoc("doc", "Test", 1080, 1350, 1); let serial = 0;
   for (const item of ITEMS) doc.layers.push(...placeItem(item, doc, () => `layer_${serial++}`));
   expect(new Set(doc.layers.map((l) => l.id)).size).toBe(doc.layers.length);
   for (const l of doc.layers) { expect(l.x).toBeGreaterThanOrEqual(0); expect(l.y).toBeGreaterThanOrEqual(0); expect(l.x + l.w).toBeLessThanOrEqual(doc.width); expect(l.y + l.h).toBeLessThanOrEqual(doc.height); }
+});
+
+it("annotates every layer and gives each template one title, information and photo roles", () => {
+  for (const pack of [...TEMPLATES, ...ITEMS]) for (const layer of pack.layers) {
+    expect(layer.role).toBeDefined();
+    if (layer.type === "image") expect(layer.role).toBe("photo");
+  }
+  for (const template of TEMPLATES) {
+    expect(template.layers.filter((l) => l.role === "title")).toHaveLength(1);
+    expect(template.layers.some((l) => l.role === "info")).toBe(true);
+  }
+  for (const family of ["music", "collage"]) expect(TEMPLATES.filter((t) => t.concept === family)).toHaveLength(2);
 });

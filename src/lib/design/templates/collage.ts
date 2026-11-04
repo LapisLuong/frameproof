@@ -11,6 +11,7 @@ export const template: TemplateInput = {
     {
       "id": "focal-disc",
       "name": "Focal Disc",
+      "role": "motif",
       "type": "shape",
       "shape": "ellipse",
       "x": 430,
@@ -22,6 +23,7 @@ export const template: TemplateInput = {
     {
       "id": "photo1",
       "name": "Photo slot 1",
+      "role": "photo",
       "type": "image",
       "resourceId": null,
       "x": 100,
@@ -33,6 +35,7 @@ export const template: TemplateInput = {
     {
       "id": "photo2",
       "name": "Photo slot 2",
+      "role": "photo",
       "type": "image",
       "resourceId": null,
       "x": 510,
@@ -44,6 +47,7 @@ export const template: TemplateInput = {
     {
       "id": "paper-strip",
       "name": "Paper Strip",
+      "role": "motif",
       "type": "shape",
       "shape": "rect",
       "x": 70,
@@ -56,6 +60,7 @@ export const template: TemplateInput = {
     {
       "id": "photo3",
       "name": "Photo slot 3",
+      "role": "photo",
       "type": "image",
       "resourceId": null,
       "x": 210,
@@ -67,6 +72,7 @@ export const template: TemplateInput = {
     {
       "id": "title",
       "name": "Title",
+      "role": "title",
       "type": "text",
       "text": "Mảnh",
       "x": 80,
@@ -82,6 +88,7 @@ export const template: TemplateInput = {
     {
       "id": "subtitle",
       "name": "Subtitle",
+      "role": "subtitle",
       "type": "text",
       "text": "Ký ức của thành phố",
       "x": 580,
@@ -95,6 +102,7 @@ export const template: TemplateInput = {
     {
       "id": "details",
       "name": "Details",
+      "role": "info",
       "type": "text",
       "text": "Ngày hội văn hoá / Hà Nội\n18–20 Tháng Mười · 2026",
       "x": 80,
