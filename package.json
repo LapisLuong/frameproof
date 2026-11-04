@@ -17,7 +17,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "check": "npm run typecheck && npm run lint && npm run test",
-    "samples": "node scripts/make-samples.mjs"
+    "samples": "node scripts/make-samples.mjs",
+    "record:ai": "node scripts/record-ai-fixture.mjs"
   },
   "dependencies": {
     "next": "16.4.5",

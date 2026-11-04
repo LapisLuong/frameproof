@@ -51,6 +51,7 @@ Open the folder in VS Code (`File → Open Folder…`). Recommended extensions: 
 | `npm run test:e2e`            | Playwright end-to-end tests (run `npx playwright install chromium` once)                                                      |
 | `npm run build:static`        | Static files for GitHub Pages in `out/` (no AI route). Set `NEXT_PUBLIC_BASE_PATH=/frameproof` when serving from a sub-folder |
 | `npm run samples`             | Regenerates the two sample posters in `public/samples/`                                                                       |
+| `npm run record:ai`           | With AI on and `npm run dev` running: records one real AI review of the sample as `tests/fixtures/ai-review.json`             |
 
 ### Hướng dẫn nhanh (tiếng Việt)
 
@@ -78,6 +79,9 @@ tier Google may use what you send to improve its products, so don't send client 
 - Images are re-validated, metadata-stripped and downscaled to 1280 px with sharp before being sent.
 - The model receives the brief and the _measured_ facts, and must answer with a strict JSON schema (Zod). Invalid output is retried once, then the review is marked "failed" — nothing is invented.
 - When AI is off, the UI says so and the API returns `503 not-configured`.
+- To keep a real answer as a test fixture, run `npm run record:ai` while `npm run dev` is running with a key. It drives the
+  app on the sample project, saves the validated answer (no key) to `tests/fixtures/ai-review.json` and a screenshot to
+  `qa/screenshots/08-ai-review-1440.png`; `tests/unit/ai-fixture.test.ts` then checks it without a key or a network call.
 - On Vercel, set the same variables under Project Settings → Environment Variables.
 
 ## Privacy and storage

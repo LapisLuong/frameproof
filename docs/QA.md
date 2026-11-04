@@ -92,7 +92,14 @@ the implementation discussion. Results as it reported them:
 2. ~~Independent code review~~ — done by Codex, 4 findings (0 high, 2 medium, 2 low), all verified and fixed on
    `fix/review-findings`; see `docs/reviews/codex-review.md` on that branch. Original scope:  `src/lib/image/validate.ts`, `src/lib/analysis/*`, `src/lib/color/*`,
    `src/app/api/review/route.ts`, `src/lib/ai/provider.ts` — concrete defects only, each verified with a failing test before fixing.
-3. **Run AI review against a real key** (free route: Gemini via its OpenAI-compatible endpoint, see `.env.example`) (Anthropic or OpenAI-compatible) and add a recorded-response test fixture.
+3. **Run AI review against a real key** — tooling ready, recording pending. `npm run record:ai` (`scripts/record-ai-fixture.mjs`)
+   drives the app on the sample project with the key held by the local server, saves the validated answer to
+   `tests/fixtures/ai-review.json` (refusing to write if a key from `.env.local` appears in it) and a screenshot;
+   `tests/unit/ai-fixture.test.ts` (skipped until the file exists) checks it is schema-valid as recorded, survives the
+   provider path plain and fenced, and becomes AI-observed notes only, with no evidence and no anchors. Dry-run
+   against a local fake OpenAI-compatible server on 4 Nov 2026: request 175 KB, one AI-observed note shown at
+   priority position, measured notes unchanged. Left: the user runs it once with a free Gemini key (README → AI
+   review); Claude reviews the file before it is committed.
 4. ~~Numbered anchors on the artwork~~ — done on `feat/finding-anchors`. Notes stay in one priority-ordered list and are
    labelled "On the artwork" or "Whole image" (separate groups put a low-priority note above high ones).
 5. Move analysis into a Web Worker for very large images; add a mobile E2E test for the Reference/Current toggle.
