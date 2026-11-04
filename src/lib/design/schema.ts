@@ -41,9 +41,17 @@ export const isBuiltinFont = (f: FontRef): f is BuiltinFontId => Object.hasOwn(B
 
 const n = (min: number, max: number) => z.number().finite().min(min).max(max);
 
+/**
+ * What a layer is for in the composition. Optional; templates and items set it so the concept composer knows where
+ * a brief's title, information lines and pictures go. It never affects rendering.
+ */
+export const LAYER_ROLES = ["title", "subtitle", "kicker", "info", "credit", "body", "number", "photo", "motif", "ground"] as const;
+export type LayerRole = (typeof LAYER_ROLES)[number];
+
 const LayerBase = {
   id: z.string().regex(/^[\w-]{1,64}$/),
   name: z.string().trim().min(1).max(80),
+  role: z.enum(LAYER_ROLES).optional(),
   x: n(-CANVAS_MAX, CANVAS_MAX * 2),
   y: n(-CANVAS_MAX, CANVAS_MAX * 2),
   w: n(1, CANVAS_MAX * 2),
