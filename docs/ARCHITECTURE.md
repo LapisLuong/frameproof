@@ -53,6 +53,15 @@ Project {reference, current} ──► runLocalReview
 | Open space | layout | estimated | quiet-cell share differs by > 15 points |
 | Centre of detail moved | hierarchy | measured | detail centroid moves > 12% of the frame |
 
+### Anchors
+
+A finding may carry `anchors`: points on the reference or current image, as fractions of width and height
+(`AnchorSchema` in `src/lib/review/types.ts`). Only a deterministic rule sets them, and only from a measured position;
+today that is the centre-of-detail rule. The AI schema has no location field, and Zod strips one if a model sends it,
+so an AI observation can never be drawn on the artwork as if it were measured. `anchors` is optional so reviews saved
+before it existed still load. Marks use the note's number (`noteNumber`), are shown only for open notes and only
+while the review was measured on the images currently in the project.
+
 ## Migration path
 
 - **Supabase:** `lib/store/repo.ts` is the only module the UI calls for persistence. A sync layer can implement the same functions against Supabase (Storage for blobs, Postgres for the rest) behind a feature flag.

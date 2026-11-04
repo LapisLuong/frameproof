@@ -4,6 +4,18 @@ export const CATEGORIES = ["typography", "layout", "color", "hierarchy", "consis
 export const LEVELS = ["high", "medium", "low"] as const;
 export const EVIDENCE = ["measured", "estimated", "ai-observed"] as const;
 
+/**
+ * A point on one of the two images, as fractions of its width and height. Only deterministic rules set anchors,
+ * and only from a measured position; AI observations never carry one.
+ */
+export const AnchorSchema = z.object({
+  image: z.enum(["reference", "current"]),
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  label: z.string().min(1).max(80),
+});
+export type Anchor = z.infer<typeof AnchorSchema>;
+
 export const ReviewIssueSchema = z.object({
   id: z.string().min(1),
   category: z.enum(CATEGORIES),
@@ -21,6 +33,8 @@ export const ReviewIssueSchema = z.object({
   evidenceType: z.enum(EVIDENCE),
   /** Numbers that back the finding, shown in mono. */
   evidence: z.array(z.object({ label: z.string(), value: z.string() })).default([]),
+  /** Where on the artwork the finding is. Absent for whole-image findings and for reviews saved before anchors. */
+  anchors: z.array(AnchorSchema).max(4).optional(),
   source: z.enum(["local", "ai"]),
   resolved: z.boolean(),
 });
@@ -66,4 +80,13 @@ export function sortIssues(issues: ReviewIssue[]): ReviewIssue[] {
         a.i - b.i,
     )
     .map((x) => x.issue);
+}
+
+/** Note number shown in the margin and on the artwork: 1-based position in the review's priority order. */
+export function noteNumber(issues: ReviewIssue[], issue: ReviewIssue): number {
+  return issues.indexOf(issue) + 1;
+}
+
+export function hasAnchors(issue: ReviewIssue): boolean {
+  return (issue.anchors?.length ?? 0) > 0;
 }

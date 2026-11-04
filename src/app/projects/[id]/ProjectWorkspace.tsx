@@ -3,17 +3,17 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { CompareStage } from "@/components/CompareStage";
+import { CompareStage, type StageMarks } from "@/components/CompareStage";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Dropzone } from "@/components/Dropzone";
 import { MeasurementTable, PaletteList } from "@/components/Measurements";
-import { ProofNotes } from "@/components/ProofNotes";
+import { ProofNotes, type NoteSelection } from "@/components/ProofNotes";
 import { toast } from "@/components/Toast";
 import { useAiStatus } from "@/hooks/useAiStatus";
 import { useStore } from "@/hooks/useStore";
 import { AiReviewSchema, toIssues, type MeasuredContext } from "@/lib/ai/schema";
 import { download, fileSlug, reviewToJson, reviewToMarkdown } from "@/lib/review/report";
-import type { ReviewIssue } from "@/lib/review/types";
+import { noteNumber, type ReviewIssue } from "@/lib/review/types";
 import {
   attachAiResult,
   deleteProject,
@@ -111,7 +111,32 @@ function ImageSlot({ role, asset, projectId }: { role: "reference" | "current"; 
   );
 }
 
-function ReviewControls({ data, review, onSelect }: { data: Data; review: Review | null; onSelect: (id: string) => void }) {
+/** Marks for unresolved notes that carry a measured location, numbered like the margin notes. */
+function marksFor(review: Review | null, fresh: boolean): StageMarks {
+  const out: StageMarks = { reference: [], current: [] };
+  if (!review || !fresh) return out;
+  for (const issue of review.issues) {
+    if (issue.resolved) continue;
+    for (const a of issue.anchors ?? []) {
+      out[a.image].push({ id: issue.id, n: noteNumber(review.issues, issue), x: a.x, y: a.y, label: a.label, title: issue.title });
+    }
+  }
+  return out;
+}
+
+function ReviewControls({
+  data,
+  review,
+  onSelect,
+  selection,
+  onShowOnArtwork,
+}: {
+  data: Data;
+  review: Review | null;
+  onSelect: (id: string) => void;
+  selection: NoteSelection;
+  onShowOnArtwork: (issue: ReviewIssue) => void;
+}) {
   const ai = useAiStatus();
   const [busy, setBusy] = useState<"local" | "ai" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -290,7 +315,13 @@ function ReviewControls({ data, review, onSelect }: { data: Data; review: Review
             ) : null}
           </div>
 
-          <ProofNotes issues={review.issues} onToggle={toggle} busyId={togglingId} />
+          <ProofNotes
+            issues={review.issues}
+            onToggle={toggle}
+            busyId={togglingId}
+            selection={selection}
+            onShowOnArtwork={stale ? undefined : onShowOnArtwork}
+          />
 
           <div className="field">
             <label htmlFor="rev-notes">Your notes on this review</label>
@@ -384,6 +415,8 @@ export function ProjectWorkspace({ id }: { id: string }) {
   const params = useSearchParams();
   const data = useStore(() => load(id), ["projects", "assets", "reviews"], [id]);
   const [selected, setSelected] = useState<string | null>(params.get("review"));
+  const [noteSelection, setNoteSelection] = useState<NoteSelection>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const autoRan = useRef(false);
 
   // First time both images are present and there's no review yet, run one automatically.
@@ -434,6 +467,8 @@ export function ProjectWorkspace({ id }: { id: string }) {
 
   const d = data.data;
   const review = d.reviews.find((r) => r.id === selected) ?? d.reviews[0] ?? null;
+  const fresh = !!(review && d.reference && d.current && review.referenceAssetId === d.reference.id && review.currentAssetId === d.current.id);
+  const marks = marksFor(review, fresh);
 
   return (
     <div className="page">
@@ -475,8 +510,14 @@ export function ProjectWorkspace({ id }: { id: string }) {
 
       <div className="spread spread-review">
         {d.reference && d.current ? (
-          <div className="area-stage">
-            <CompareStage reference={d.reference} current={d.current} />
+          <div className="area-stage" ref={stageRef}>
+            <CompareStage
+              reference={d.reference}
+              current={d.current}
+              marks={marks}
+              selectedId={noteSelection?.id ?? null}
+              onSelect={(noteId) => setNoteSelection({ id: noteId, from: "mark" })}
+            />
           </div>
         ) : null}
         <div className="area-details" style={{ display: "grid", gap: "2rem", minWidth: 0 }}>
@@ -512,7 +553,20 @@ export function ProjectWorkspace({ id }: { id: string }) {
         </div>
         <aside className="margin area-margin" aria-label="Review">
           {/* keyed by review so the notes field resets when another version is selected */}
-          <ReviewControls key={review?.id ?? "none"} data={d} review={review} onSelect={setSelected} />
+          <ReviewControls
+            key={review?.id ?? "none"}
+            data={d}
+            review={review}
+            onSelect={setSelected}
+            selection={noteSelection}
+            onShowOnArtwork={(issue) => {
+              setNoteSelection({ id: issue.id, from: "note" });
+              const stage = stageRef.current;
+              if (!stage) return;
+              const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+              stage.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
+            }}
+          />
         </aside>
       </div>
     </div>
