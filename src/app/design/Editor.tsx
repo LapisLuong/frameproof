@@ -13,7 +13,8 @@ import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
 import { loadDocFonts, registerUserFont } from "@/lib/design/browser";
 import { addLayer, duplicateLayer, hitTest, moveLayer, removeLayer, starterLayer, updateLayer } from "@/lib/design/edit";
-import { designBundle, designPng, designSvg, missingMessage } from "@/lib/design/exporters";
+import { BUILTIN_ART, getBuiltinArt, isBuiltinArt } from "@/lib/design/art";
+import { artUrl, designBundle, designPng, designSvg, missingMessage } from "@/lib/design/exporters";
 import { ITEMS } from "@/lib/design/items";
 import { placeItem, type Item } from "@/lib/design/library";
 import type { Resource } from "@/lib/design/resource";
@@ -76,7 +77,7 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
   /* ---------- resources: object URLs and user fonts ---------- */
   const urls = useMemo(() => new Map(resources.filter((r) => r.kind === "image").map((r) => [r.id, URL.createObjectURL(r.blob)])), [resources]);
   useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls]);
-  const imageUrl = useCallback((rid: string) => urls.get(rid) ?? null, [urls]);
+  const imageUrl = useCallback((rid: string) => urls.get(rid) ?? (getBuiltinArt(rid) ? artUrl(getBuiltinArt(rid)!) : null), [urls]);
   const fontKey = doc.layers.map((l) => (l.type === "text" ? `${l.font}/${l.weight}/${l.italic}` : "")).join("|");
   useEffect(() => {
     let live = true;
@@ -128,7 +129,7 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
   const onItem = (item: Item) => add(placeItem(item, doc, newId));
   const onImage = (rid: string) => {
     if (selected?.type === "image") return patchLayer(selected.id, { resourceId: rid });
-    const r = resources.find((x) => x.id === rid);
+    const r = resources.find((x) => x.id === rid) ?? getBuiltinArt(rid);
     const ratio = r?.width && r?.height ? r.width / r.height : 1;
     const w = Math.round(doc.width * 0.6);
     add({ ...starterLayer(doc, "image", newId("l")), name: r?.name.slice(0, 80) ?? "Image", resourceId: rid, w, h: Math.round(w / ratio) } as Parameters<typeof addLayer>[1]);
@@ -212,7 +213,7 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
 
   const userFonts = resources.filter((r) => r.kind === "font").map((r) => ({ id: r.id as `res_${string}`, label: r.name.replace(/\.(ttf|otf|woff2?)$/i, "") }));
   const cards = (kind: "image" | "font"): ResourceCard[] => resources.filter((r) => r.kind === kind).map((r) => ({ id: r.id, name: r.name, url: urls.get(r.id) ?? null, licence: r.licence, kind }));
-  const missing = referencedResources(doc).filter((rid) => !resources.some((r) => r.id === rid));
+  const missing = referencedResources(doc).filter((rid) => !isBuiltinArt(rid) && !resources.some((r) => r.id === rid));
   const status = { saved: "Saved in this browser", saving: "Saving…", unsaved: "Unsaved changes", failed: "Not saved" }[saveState];
 
   return (
@@ -267,6 +268,7 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
             <AddPanel
               items={ITEMS}
               images={cards("image")}
+              art={BUILTIN_ART.map((a) => ({ id: a.id, name: a.name, url: artUrl(a), licence: { id: "CC0-1.0", author: a.author, source: a.source }, kind: "image" as const, credit: `${a.author}, ${a.title}, ${a.date}` }))}
               fonts={cards("font")}
               onStarter={onStarter}
               onItem={onItem}
@@ -317,7 +319,7 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
               onLayer={(patch, key) => selected && patchLayer(selected.id, patch, key)}
               onDoc={(patch, key) => h.commit((d) => ({ ...d, ...patch }), key)}
               userFonts={userFonts}
-              images={resources.filter((r) => r.kind === "image").map((r) => ({ id: r.id, label: r.name }))}
+              images={[...resources.filter((r) => r.kind === "image").map((r) => ({ id: r.id, label: r.name })), ...BUILTIN_ART.map((a) => ({ id: a.id, label: `${a.name} (${a.author.split(",")[0]}, public domain)` }))]}
               textRef={textRef}
               onNudge={nudge}
             />

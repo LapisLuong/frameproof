@@ -3,6 +3,29 @@
 Branch `feat/poster-editor`. FrameProof gains a layer editor for posters and covers, so a designer can build the
 "current" design inside the app and review it against a reference with the existing tools.
 
+## Main acceptance flow (user, 2026-11-05)
+
+References → brief and assets → art direction (palette, fonts, concept families) → **three editable layer concepts**
+→ fine edit → export. The app composes the concepts itself from real ids (templates, items, built-in art, the user's
+images and fonts); it doesn't only offer a picker.
+
+- **Direction.** Palette is measured from the user's references (k-means in `src/lib/analysis`, labelled measured)
+  and editable per swatch or as a whole palette in HSL; edits apply to linked colours across the design. Fonts and
+  layout can't be read from pixels, so they are the user's choice or, when AI is configured, an AI suggestion,
+  labelled as such (`src/lib/design/direction.ts`, every value carries its origin).
+- **Compose.** Deterministic by default (`src/lib/design/compose.ts`): pick templates by concept family, place the
+  brief into layers by `role`, fill photo slots with the user's images or built-in CC0 art, recolour through the
+  palette by colour role, swap fonts. Labelled "Composed from template X" — never called AI or "trained".
+- **AI direction (optional, server-only).** `/api/direction` asks a vision model to choose among existing ids only
+  (palette suggestion, font ids, template ids, image order); answers are Zod-validated and id-checked, and the same
+  deterministic composer builds the layers. Without a key the UI says so and offers the deterministic result.
+- **Image tools (P3).** Background removal (BEN2, MIT, browser) and masked inpainting (LaMa, Apache-2.0, browser):
+  results are new resources linked to their source, with preview / accept / cancel; text removal needs a painted
+  mask (no OCR implied); editable text is edited, not inpainted. Real inference tests, never a mock passed off as
+  working, never a colour-key presented as AI.
+- **Motion.** Modern state transitions (gallery → editor, panels, layer list) at 120–240 ms, all off under
+  `prefers-reduced-motion`; direct manipulation (drag, resize, rotate) is never tweened.
+
 ## Scope
 
 In:
@@ -19,8 +42,9 @@ In:
   can select the layer it is about when the note has a location.
 
 Out (on purpose):
-- **No image generation**, now or in the backlog. Templates contain only text, shapes and empty image slots; collage
-  layouts use the user's own pictures.
+- **No image generation**, now or in the backlog. Templates contain text, shapes, image slots and, in a few covers,
+  public-domain museum artworks (The Met Open Access, CC0, provenance kept); collage layouts use the user's pictures.
+  Inpainting (P3) reconstructs masked pixels of the user's own image on request; it never invents a new picture.
 - No import from Figma or Canva links. A link is stored as a link (Library rule 8). Figma templates each need their
   own licence check and can't become editable documents from a URL; Canva autofill needs a real integration.
 - No groups, masks, effects or multi-page documents in v1.
@@ -82,6 +106,9 @@ text taller than its box is never clipped and the editor says so.
 | Export: SVG (embedded fonts), PNG, portable JSON bundle | Codex CLI | `src/lib/design/export.ts`, `tests/unit/design-export.test.ts` |
 | Resource file validation (font and image magic bytes, limits) | Codex CLI | `src/lib/design/resource-validate.ts`, `tests/unit/resource-validate.test.ts` |
 | Poster font pack (OFL, from github.com/google/fonts): manifest, licences, Vietnamese coverage | Codex desktop | delivered to `work/poster-fonts`; Claude integrates into `fonts.ts` |
+| Palette tools (HSL, linked colours, roles), layer roles on the pack, AI direction route | Codex CLI | `src/lib/design/palette.ts`, `src/lib/ai/direction.ts`, `src/app/api/direction/route.ts`, tests |
+| Deterministic composer, compose flow UI, palette panel, Desk gallery, motion, LaMa inpaint | Claude Code | `src/lib/design/compose.ts`, `src/app/compose/*`, `src/lib/design/inpaint*` |
+| BEN2 background-removal runtime prototype, resource packs, acceptance | Codex desktop | isolated prototype → handed to Claude to integrate |
 | Independent review, licence check, acceptance | Codex desktop | `docs/reviews/*` |
 
 Nobody edits another owner's files; changes go through a note to the owner.

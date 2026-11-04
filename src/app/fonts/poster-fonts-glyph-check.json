@@ -40,5 +40,59 @@
     "file": "PlayfairDisplay[wght].ttf",
     "vietnameseCodepointsChecked": 134,
     "missing": 0
+  },
+  {
+    "family": "oswald",
+    "file": "Oswald[wght].ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "barlowcondensed",
+    "file": "BarlowCondensed-Bold.ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "barlowcondensed",
+    "file": "BarlowCondensed-BoldItalic.ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "barlowcondensed",
+    "file": "BarlowCondensed-Italic.ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "barlowcondensed",
+    "file": "BarlowCondensed-Regular.ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "bungee",
+    "file": "Bungee-Regular.ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "spacegrotesk",
+    "file": "SpaceGrotesk[wght].ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "unbounded",
+    "file": "Unbounded[wght].ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
+  },
+  {
+    "family": "dancingscript",
+    "file": "DancingScript[wght].ttf",
+    "vietnameseCodepointsChecked": 134,
+    "missing": 0
   }
 ]

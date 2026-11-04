@@ -64,6 +64,24 @@ const playfair = localFont({
   preload: false,
 });
 
+const oswald = localFont({ src: "./fonts/Oswald-Variable.ttf", weight: "200 700", variable: "--font-oswald", display: "swap", preload: false });
+const barlowCondensed = localFont({
+  src: [
+    { path: "./fonts/BarlowCondensed-Regular.ttf", weight: "400", style: "normal" },
+    { path: "./fonts/BarlowCondensed-Italic.ttf", weight: "400", style: "italic" },
+    { path: "./fonts/BarlowCondensed-Bold.ttf", weight: "700", style: "normal" },
+    { path: "./fonts/BarlowCondensed-BoldItalic.ttf", weight: "700", style: "italic" },
+  ],
+  variable: "--font-barlow-condensed",
+  display: "swap",
+  preload: false,
+});
+const bungee = localFont({ src: "./fonts/Bungee-Regular.ttf", weight: "400", variable: "--font-bungee", display: "swap", preload: false });
+const spaceGrotesk = localFont({ src: "./fonts/SpaceGrotesk-Variable.ttf", weight: "300 700", variable: "--font-space-grotesk", display: "swap", preload: false });
+const unbounded = localFont({ src: "./fonts/Unbounded-Variable.ttf", weight: "200 900", variable: "--font-unbounded", display: "swap", preload: false });
+const dancingScript = localFont({ src: "./fonts/DancingScript-Variable.ttf", weight: "400 700", variable: "--font-dancing-script", display: "swap", preload: false });
+const artworkFonts = [anton, archivo, fraunces, playfair, oswald, barlowCondensed, bungee, spaceGrotesk, unbounded, dancingScript];
+
 export const metadata: Metadata = {
   title: { default: "FrameProof", template: "%s — FrameProof" },
   description: "A creative direction and visual quality workspace. Design with intention.",
@@ -73,7 +91,7 @@ export const viewport: Viewport = { themeColor: "#f6f4ef" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${beVietnam.variable} ${lora.variable} ${plexMono.variable} ${anton.variable} ${archivo.variable} ${fraunces.variable} ${playfair.variable}`}>
+    <html lang="en" className={`${beVietnam.variable} ${lora.variable} ${plexMono.variable} ${artworkFonts.map((f) => f.variable).join(" ")}`}>
       <body>
         <a href="#main" className="skip-link">
           Skip to content

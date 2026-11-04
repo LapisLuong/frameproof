@@ -4,14 +4,16 @@ import { useMemo, useState } from "react";
 import { cssFamily, measureText } from "@/lib/design/browser";
 import type { Item, Licence } from "@/lib/design/library";
 import { renderSvg } from "@/lib/design/render";
-import { DESIGN_SCHEMA, DESIGN_VERSION, type DesignDoc } from "@/lib/design/schema";
+import { BUILTIN_FONT_IDS, BUILTIN_FONTS, DESIGN_SCHEMA, DESIGN_VERSION, type DesignDoc } from "@/lib/design/schema";
 
 export type StarterKind = "text" | "rect" | "ellipse" | "line" | "image";
-export type ResourceCard = { id: string; name: string; url: string | null; licence: Licence; kind: "image" | "font" };
+export type ResourceCard = { id: string; name: string; url: string | null; licence: Licence; kind: "image" | "font"; credit?: string };
 
 type Props = {
   items: Item[];
   images: ResourceCard[];
+  /** Built-in public-domain artworks. */
+  art: ResourceCard[];
   fonts: ResourceCard[];
   onStarter: (kind: StarterKind) => void;
   onItem: (item: Item) => void;
@@ -118,7 +120,7 @@ function AddResourceForm({ kind, onAdd }: { kind: "image" | "font"; onAdd: Props
   );
 }
 
-export function AddPanel({ items, images, fonts, onStarter, onItem, onImage, onAddResource, fontsVersion }: Props) {
+export function AddPanel({ items, images, art, fonts, onStarter, onItem, onImage, onAddResource, fontsVersion }: Props) {
   const groups = useMemo(() => {
     const m = new Map<Item["kind"], Item[]>();
     for (const it of items) m.set(it.kind, [...(m.get(it.kind) ?? []), it]);
@@ -164,6 +166,22 @@ export function AddPanel({ items, images, fonts, onStarter, onItem, onImage, onA
         </div>
       ))}
 
+      <h3 className="t-meta design-sub">Public-domain art</h3>
+      <p className="hint">Museum works from The Met Open Access (CC0). Credit travels with every export.</p>
+      <ul className="design-items">
+        {art.map((r) => (
+          <li key={r.id}>
+            <button type="button" className="design-item" onClick={() => onImage(r.id)} aria-label={`Place artwork: ${r.name}`} title={r.credit}>
+              <span className="design-item-preview">
+                {/* eslint-disable-next-line @next/next/no-img-element -- static public-domain file, sized by CSS */}
+                {r.url ? <img src={r.url} alt="" loading="lazy" /> : null}
+              </span>
+              <span className="t-small">{r.name}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
       <h3 className="t-meta design-sub">Your images</h3>
       {images.length ? (
         <ul className="design-items">
@@ -182,6 +200,14 @@ export function AddPanel({ items, images, fonts, onStarter, onItem, onImage, onA
       )}
       <AddResourceForm kind="image" onAdd={onAddResource} />
 
+      <h3 className="t-meta design-sub">Fonts</h3>
+      <ul className="design-font-list design-font-specimens">
+        {BUILTIN_FONT_IDS.map((f) => (
+          <li key={f} style={{ fontFamily: `var(${BUILTIN_FONTS[f].cssVar}), ${BUILTIN_FONTS[f].fallback}` }}>
+            {BUILTIN_FONTS[f].label} <span>Triển lãm · Đêm nhạc</span>
+          </li>
+        ))}
+      </ul>
       <h3 className="t-meta design-sub">Your fonts</h3>
       {fonts.length ? (
         <ul className="design-font-list">
@@ -192,7 +218,7 @@ export function AddPanel({ items, images, fonts, onStarter, onItem, onImage, onA
           ))}
         </ul>
       ) : (
-        <p className="hint">Seven OFL families are built in. Add a font file you&rsquo;re licensed to use.</p>
+        <p className="hint">{BUILTIN_FONT_IDS.length} OFL families are built in, all with Vietnamese. Add a font file you&rsquo;re licensed to use.</p>
       )}
       <AddResourceForm kind="font" onAdd={onAddResource} />
     </section>

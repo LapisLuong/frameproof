@@ -1,0 +1,140 @@
+[
+  {
+    "id": "met-360446",
+    "file": "met-360446.jpg",
+    "name": "Botanical Study",
+    "author": "Mary Delany",
+    "date": "ca. 1772–82",
+    "source": "https://www.metmuseum.org/art/collection/search/360446",
+    "imageSource": "https://images.metmuseum.org/CRDImages/dp/original/DP801159.jpg",
+    "licence": "CC0-1.0",
+    "licencePolicy": "https://www.metmuseum.org/policies/image-resources",
+    "isPublicDomain": true,
+    "sha256": "518c12434769b5fb7439c6ff6ca8d6e48833d1b275493db4b8454491d5ff9aa0",
+    "bytes": 353460,
+    "original": {
+      "file": "360446.jpg",
+      "width": 2971,
+      "height": 3337,
+      "bytes": 1761105,
+      "sha256": "518c12434769b5fb7439c6ff6ca8d6e48833d1b275493db4b8454491d5ff9aa0"
+    },
+    "width": 1781,
+    "height": 2000
+  },
+  {
+    "id": "met-283063",
+    "file": "met-283063.jpg",
+    "name": "[Botanical Specimen]",
+    "author": "William Henry Fox Talbot",
+    "date": "ca. 1835",
+    "source": "https://www.metmuseum.org/art/collection/search/283063",
+    "imageSource": "https://images.metmuseum.org/CRDImages/ph/original/DP339367.jpg",
+    "licence": "CC0-1.0",
+    "licencePolicy": "https://www.metmuseum.org/policies/image-resources",
+    "isPublicDomain": true,
+    "sha256": "452a527008dd00dc9ac191cd6ea18e78d419bd56f1a9a0fb54227bd8a6250d10",
+    "bytes": 123403,
+    "original": {
+      "file": "283063.jpg",
+      "width": 1311,
+      "height": 2004,
+      "bytes": 299003,
+      "sha256": "452a527008dd00dc9ac191cd6ea18e78d419bd56f1a9a0fb54227bd8a6250d10"
+    },
+    "width": 1308,
+    "height": 2000
+  },
+  {
+    "id": "met-362545",
+    "file": "met-362545.jpg",
+    "name": "Botanical Studies (recto); Botanical Studies (verso)",
+    "author": "Anonymous, French, 19th century",
+    "date": "ca. 1820",
+    "source": "https://www.metmuseum.org/art/collection/search/362545",
+    "imageSource": "https://images.metmuseum.org/CRDImages/dp/original/DP823471.jpg",
+    "licence": "CC0-1.0",
+    "licencePolicy": "https://www.metmuseum.org/policies/image-resources",
+    "isPublicDomain": true,
+    "sha256": "28027f0e0a14f5fd8b00e14acbd695bedeb16001896db7c66e20c06879828948",
+    "bytes": 187427,
+    "original": {
+      "file": "362545.jpg",
+      "width": 2407,
+      "height": 3702,
+      "bytes": 1568313,
+      "sha256": "28027f0e0a14f5fd8b00e14acbd695bedeb16001896db7c66e20c06879828948"
+    },
+    "width": 1300,
+    "height": 2000
+  },
+  {
+    "id": "met-39799",
+    "file": "met-39799.jpg",
+    "name": "Under the Wave off Kanagawa (Kanagawa oki nami ura), or The Great Wave, from the series Thirty-six Views of Mount Fuji (Fugaku sanjūrokkei)",
+    "author": "Katsushika Hokusai",
+    "date": "ca. 1830–32",
+    "source": "https://www.metmuseum.org/art/collection/search/39799",
+    "imageSource": "https://images.metmuseum.org/CRDImages/as/original/DP141042.jpg",
+    "licence": "CC0-1.0",
+    "licencePolicy": "https://www.metmuseum.org/policies/image-resources",
+    "isPublicDomain": true,
+    "sha256": "b410eeec0473c4e63eef12434a5a7c4613401c6e18670718d7727f36a441495c",
+    "bytes": 521527,
+    "original": {
+      "file": "39799.jpg",
+      "width": 3867,
+      "height": 2644,
+      "bytes": 1077827,
+      "sha256": "b410eeec0473c4e63eef12434a5a7c4613401c6e18670718d7727f36a441495c"
+    },
+    "width": 2000,
+    "height": 1367
+  },
+  {
+    "id": "met-436528",
+    "file": "met-436528.jpg",
+    "name": "Irises",
+    "author": "Vincent van Gogh",
+    "date": "1890",
+    "source": "https://www.metmuseum.org/art/collection/search/436528",
+    "imageSource": "https://images.metmuseum.org/CRDImages/ep/original/DP346474.jpg",
+    "licence": "CC0-1.0",
+    "licencePolicy": "https://www.metmuseum.org/policies/image-resources",
+    "isPublicDomain": true,
+    "sha256": "6b851d821d565e61817250b272417c79721724f8dba2deaffe9b4c9ca4c35685",
+    "bytes": 788090,
+    "original": {
+      "file": "436528.jpg",
+      "width": 4000,
+      "height": 3172,
+      "bytes": 5228776,
+      "sha256": "6b851d821d565e61817250b272417c79721724f8dba2deaffe9b4c9ca4c35685"
+    },
+    "width": 2000,
+    "height": 1586
+  },
+  {
+    "id": "met-384889",
+    "file": "met-384889.jpg",
+    "name": "Design for wallpaper featuring flowers and latticework",
+    "author": "Jules-Edmond-Charles Lachaise",
+    "date": "1830–97",
+    "source": "https://www.metmuseum.org/art/collection/search/384889",
+    "imageSource": "https://images.metmuseum.org/CRDImages/dp/original/DP811320.jpg",
+    "licence": "CC0-1.0",
+    "licencePolicy": "https://www.metmuseum.org/policies/image-resources",
+    "isPublicDomain": true,
+    "sha256": "e79f7a31651cdfba974c96335c44b71173c54db3b615b829a8e813f277f95a20",
+    "bytes": 517986,
+    "original": {
+      "file": "384889.jpg",
+      "width": 3284,
+      "height": 3344,
+      "bytes": 1914906,
+      "sha256": "e79f7a31651cdfba974c96335c44b71173c54db3b615b829a8e813f277f95a20"
+    },
+    "width": 1964,
+    "height": 2000
+  }
+]

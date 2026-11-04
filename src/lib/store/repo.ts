@@ -13,6 +13,7 @@ import { blankDoc, DesignDocSchema, referencedResources, type DesignDoc } from "
 import { docFromTemplate, type Licence, type Template } from "../design/library";
 import { MAX_FONT_BYTES, ResourceMetaSchema, type Resource, type ResourceKind, type ResourceMeta } from "../design/resource";
 import { validateFontFile } from "../design/resource-validate";
+import { isBuiltinArt } from "../design/art";
 import { MIME_BY_KIND, validateImageFile } from "../image/validate";
 
 /* ---------- change notifications (so open views refresh after a save) ---------- */
@@ -366,6 +367,8 @@ export async function addResource(file: Blob, kind: ResourceKind, meta: { name: 
 /** Store resources that came with an imported bundle, keeping their ids so the document's references still match. */
 export async function importResources(items: Array<{ meta: ResourceMeta; bytes: Uint8Array }>): Promise<void> {
   for (const { meta, bytes } of items) {
+    // Built-in artworks ship with the app; a copy inside a design file isn't stored again.
+    if (isBuiltinArt(meta.id)) continue;
     await put("resources", { ...meta, blob: new Blob([bytes as BlobPart], { type: meta.mime }) } satisfies Resource);
   }
   if (items.length) emit("resources");

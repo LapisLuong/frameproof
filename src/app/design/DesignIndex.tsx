@@ -7,7 +7,9 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
 import { cssFamily, loadDocFonts, measureText } from "@/lib/design/browser";
+import { getBuiltinArt } from "@/lib/design/art";
 import { MissingResourcesError, parseBundle } from "@/lib/design/export";
+import { artUrl } from "@/lib/design/exporters";
 import { docFromTemplate, type Template } from "@/lib/design/library";
 import { renderSvg } from "@/lib/design/render";
 import { FORMATS, type DesignDoc } from "@/lib/design/schema";
@@ -32,7 +34,7 @@ function Preview({ doc, urls, fontsVersion }: { doc: DesignDoc; urls?: Map<strin
     () =>
       fontsVersion === 0
         ? ""
-        : renderSvg(doc, { measure: measureText, fontFamily: cssFamily, image: (id) => urls?.get(id) ?? null, placeholders: true, idPrefix: `pv-${doc.id}` }).replace(
+        : renderSvg(doc, { measure: measureText, fontFamily: cssFamily, image: (id) => urls?.get(id) ?? (getBuiltinArt(id) ? artUrl(getBuiltinArt(id)!) : null), placeholders: true, idPrefix: `pv-${doc.id}` }).replace(
         "<svg ",
         '<svg preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block" ',
       ),

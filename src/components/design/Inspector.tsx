@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { nearestWeight } from "@/lib/design/fonts";
+import { hasItalic, nearestWeight } from "@/lib/design/fonts";
 import { BUILTIN_FONT_IDS, BUILTIN_FONTS, FORMATS, isBuiltinFont, type DesignDoc, type FontRef, type Layer, type TextLayer } from "@/lib/design/schema";
 
 export type FontOption = { id: FontRef; label: string };
@@ -141,14 +141,17 @@ function TextFields({ layer, onLayer, userFonts, textRef }: { layer: TextLayer; 
           const patch: Partial<TextLayer> = { font };
           if (isBuiltinFont(font)) {
             patch.weight = nearestWeight(font, layer.weight);
-            if (!BUILTIN_FONTS[font].italic) patch.italic = false;
+            if (!hasItalic(font, patch.weight)) patch.italic = false;
           }
           onLayer(patch, `${layer.id}:font`);
         }}
       />
       <div className="design-row">
         <NumberField label="Size" suffix="px" value={layer.size} min={4} max={1000} onChange={(v) => onLayer({ size: v }, `${layer.id}:size`)} />
-        <Select label="Weight" value={String(layer.weight)} options={weights.map((w) => ({ value: String(w), label: String(w) }))} onChange={(v) => onLayer({ weight: Number(v) }, `${layer.id}:weight`)} />
+        <Select label="Weight" value={String(layer.weight)} options={weights.map((w) => ({ value: String(w), label: String(w) }))} onChange={(v) => {
+            const weight = Number(v);
+            onLayer(isBuiltinFont(layer.font) && !hasItalic(layer.font, weight) ? { weight, italic: false } : { weight }, `${layer.id}:weight`);
+          }} />
       </div>
       <div className="design-row">
         <NumberField label="Line height" value={layer.lineHeight} min={0.6} max={4} step={0.05} onChange={(v) => onLayer({ lineHeight: v }, `${layer.id}:lh`)} />
@@ -158,7 +161,7 @@ function TextFields({ layer, onLayer, userFonts, textRef }: { layer: TextLayer; 
         <Select label="Align" value={layer.align} options={[{ value: "left", label: "Left" }, { value: "center", label: "Centre" }, { value: "right", label: "Right" }]} onChange={(v) => onLayer({ align: v }, `${layer.id}:align`)} />
         <Select label="Vertical" value={layer.valign} options={[{ value: "top", label: "Top" }, { value: "middle", label: "Middle" }, { value: "bottom", label: "Bottom" }]} onChange={(v) => onLayer({ valign: v }, `${layer.id}:valign`)} />
       </div>
-      {!builtin || builtin.italic ? (
+      {!isBuiltinFont(layer.font) || hasItalic(layer.font, layer.weight) ? (
         <label className="design-check">
           <input type="checkbox" checked={layer.italic} onChange={(e) => onLayer({ italic: e.target.checked }, `${layer.id}:italic`)} /> Italic
         </label>

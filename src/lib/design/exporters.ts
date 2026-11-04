@@ -4,6 +4,7 @@ import { withBase } from "../base-path";
 import { measureText } from "./browser";
 import { createBundle, exportSvg, MissingResourcesError, rasterizeSvg, type ExportDeps } from "./export";
 import { referencedResources, type DesignDoc } from "./schema";
+import { artLicence, getBuiltinArt, type BuiltinArt } from "./art";
 import type { Resource } from "./resource";
 
 /**
@@ -25,13 +26,23 @@ function loadBuiltinFont(file: string): Promise<Uint8Array> {
   return p;
 }
 
+export const artUrl = (a: BuiltinArt) => withBase(`/art/${a.file}`);
+
+async function artResource(a: BuiltinArt): Promise<Resource> {
+  const res = await fetch(artUrl(a));
+  if (!res.ok) throw new Error(`The artwork “${a.name}” couldn't be loaded for export.`);
+  const blob = new Blob([await res.arrayBuffer()], { type: "image/jpeg" });
+  return { id: a.id, kind: "image", name: a.name, mime: "image/jpeg", bytes: blob.size, width: a.width, height: a.height, licence: artLicence(a), tags: ["public domain"], createdAt: 0, updatedAt: 0, blob };
+}
+
 function deps(resources: Resource[]): ExportDeps {
   const byId = new Map(resources.map((r) => [r.id, r]));
   return {
     measure: measureText,
     loadBuiltinFont,
     loadResource: async (id) => {
-      const r = byId.get(id);
+      const art = getBuiltinArt(id);
+      const r = art ? await artResource(art) : byId.get(id);
       return r ? { mime: r.mime, bytes: new Uint8Array(await r.blob.arrayBuffer()) } : null;
     },
   };
@@ -59,9 +70,8 @@ export async function designPng(doc: DesignDoc, resources: Resource[], scale = 1
 }
 
 export async function designBundle(doc: DesignDoc, resources: Resource[]): Promise<string> {
-  const used = new Set(referencedResources(doc));
-  return createBundle(
-    doc,
-    resources.filter((r) => used.has(r.id)),
-  );
+  const used = referencedResources(doc);
+  // Built-in artworks travel inside the file too, so it opens anywhere, with their CC0 licence and source.
+  const art = await Promise.all(used.flatMap((id) => (getBuiltinArt(id) ? [artResource(getBuiltinArt(id)!)] : [])));
+  return createBundle(doc, [...resources.filter((r) => used.includes(r.id)), ...art]);
 }

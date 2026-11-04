@@ -5,7 +5,8 @@ Copies in `public/fonts` are byte-identical and exist so exported SVGs can embed
 
 Interface and artwork: Lora, Be Vietnam Pro, IBM Plex Mono (github.com/google/fonts).
 
-Artwork only (poster pack, checked by Codex desktop on 2026-11-04: source URL, git blob id and SHA-256 in
+Artwork only (poster pack, ten families: Anton, Archivo, Fraunces, Playfair Display, Oswald, Barlow Condensed, Bungee,
+Space Grotesk, Unbounded, Dancing Script; checked by Codex desktop on 2026-11-04: source URL, git blob id and SHA-256 in
 `poster-fonts-manifest.json`; all 134 Vietnamese code points present in every file, `poster-fonts-glyph-check.json`).
 Files were renamed only to drop the axis brackets; bytes are unchanged (SHA-256 below re-checked on copy).
 
@@ -18,5 +19,14 @@ Files were renamed only to drop the axis brackets; bytes are unchanged (SHA-256 
 | Fraunces-Italic-Variable.ttf | ofl/fraunces/Fraunces-Italic[SOFT,WONK,opsz,wght].ttf | b24448c43702fac4ee856781d461a0dfba8d8e594b6e8e190234b75fed2c0e01 |
 | PlayfairDisplay-Variable.ttf | ofl/playfairdisplay/PlayfairDisplay[wght].ttf | c40f2293766a503bc70cce9e512ef844a4ccb7cbcde792fe2ea31d191917d8d6 |
 | PlayfairDisplay-Italic-Variable.ttf | ofl/playfairdisplay/PlayfairDisplay-Italic[wght].ttf | a5e26dc5e2e77fb2803a0bf02fd4f81ee136ec8dea863ccdb0c59a263b21378b |
+| Oswald-Variable.ttf | ofl/oswald/Oswald[wght].ttf | 5b38c246e255a12f5712d640d56bcced0472466fc68983d2d0410ec0457c2817 |
+| BarlowCondensed-Bold.ttf | ofl/barlowcondensed/BarlowCondensed-Bold.ttf | e476562ec9c1e16cf16475895b511f08c804f438cc9a9f80a44ea50a0eeb5b65 |
+| BarlowCondensed-BoldItalic.ttf | ofl/barlowcondensed/BarlowCondensed-BoldItalic.ttf | d8694f65cd70c3e5e600ead37657aab0adb5f63b275d0c1f6f4a7046de222145 |
+| BarlowCondensed-Italic.ttf | ofl/barlowcondensed/BarlowCondensed-Italic.ttf | 063615da0a64f318397de2afac330dfbfbbf4cdb562a9987cb72bfdcbd37ba7c |
+| BarlowCondensed-Regular.ttf | ofl/barlowcondensed/BarlowCondensed-Regular.ttf | 583cec5da3b84bc4dc7c9c72e2a565c94d34e431518b19d7e250b7830ad5f996 |
+| Bungee-Regular.ttf | ofl/bungee/Bungee-Regular.ttf | c4f5361ce120af3e6b9156d0bf379fa19cda2ea0cd18ac01fd99596c6bf66e3f |
+| SpaceGrotesk-Variable.ttf | ofl/spacegrotesk/SpaceGrotesk[wght].ttf | acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72 |
+| Unbounded-Variable.ttf | ofl/unbounded/Unbounded[wght].ttf | 323b511be380c8d474ef030686b71aedde501f8d9cd46da558b7c40454372c3f |
+| DancingScript-Variable.ttf | ofl/dancingscript/DancingScript[wght].ttf | 21808625578fe8d8cd10cb684be546dca077b27cd03a53a2f1ec11dc743c924c |
 
 Bodoni Moda was considered and left out: its metadata doesn't declare Vietnamese support.
