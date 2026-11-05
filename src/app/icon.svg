@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="lapis">
+  <title id="lapis">Lápis</title>
+  <rect width="128" height="128" rx="27" fill="#f8f9ef"/>
+  <g fill="none" stroke="#193542" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M63 26C55 47 44 77 37 99M33 98C49 95 68 95 86 96"/>
+    <path d="m77 51 12-9"/>
+  </g>
+</svg>

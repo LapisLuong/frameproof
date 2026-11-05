@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { ConfirmDialog, useDraftGuard, withDraftGuard } from "@/components/ConfirmDialog";
 import { Thumb } from "@/components/Thumb";
+import { StylePresetShelf } from "@/components/styles/StylePresetShelf";
 import { textToTokens } from "@/lib/store/validation";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
@@ -401,7 +402,8 @@ export function Styles() {
           {error ?? (data.status === "error" ? data.message : "")}
         </p>
       ) : null}
-      <div className="spread" style={{ gridTemplateColumns: "minmax(0,1fr) 18rem" }}>
+      {!selected ? <StylePresetShelf /> : null}
+      <div className="spread">
         <div style={{ minWidth: 0 }}>
           {selected && data.status === "ready" ? (
             <Editor key={selected.id} style={selected} refs={data.data.refs} assets={data.data.assets} />

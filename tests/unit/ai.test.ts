@@ -144,7 +144,7 @@ it("cancels an oversized stream before reading further chunks", async () => {
   );
   const request = new Request("http://localhost/api/review", {
     method: "POST",
-    headers: { "content-length": "1" },
+    headers: { "content-length": "1", "content-type": "multipart/form-data; boundary=test" },
     body,
     duplex: "half",
   } as RequestInit);
@@ -155,6 +155,6 @@ it("cancels an oversized stream before reading further chunks", async () => {
 
 it.each(["NaN", "Infinity", "-1", "1.5"])("rejects invalid declared length %s", async (length) => {
   configureAi();
-  const request = new Request("http://localhost/api/review", { method: "POST", headers: { "content-length": length }, body: "x" });
+  const request = new Request("http://localhost/api/review", { method: "POST", headers: { "content-length": length, "content-type": "multipart/form-data; boundary=test" }, body: "x" });
   expect((await POST(request)).status).toBe(413);
 });

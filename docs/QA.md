@@ -1,6 +1,6 @@
 # QA report
 
-Last verified: 4 Nov 2026, on Linux (Node 22, Chromium 1243) and macOS arm64 (Node 24/26); live demo accepted by Codex desktop on b1ebfbe.
+Last verified: 5 Nov 2026 (poster designer, below); 4 Nov 2026 for review/analyzer, on Linux (Node 22, Chromium 1243) and macOS arm64 (Node 24/26); live demo accepted by Codex desktop on b1ebfbe.
 
 ## Automated checks
 
@@ -62,6 +62,50 @@ the implementation discussion. Results as it reported them:
 | 0b69d45 | `/frameproof` preview | Pass, 5 robustness items: Discard keeps the base path (it found the doubled `/frameproof/frameproof/` bug first), invalid tokens keep the draft, `QuotaExceededError` is reported and the draft kept, a `palette: null` record doesn't crash and stays in IndexedDB, an earlier review shows its own 1080 px image after a 1240 px replacement, JSON export carries unsaved notes |
 | b1ebfbe | `/frameproof` preview | Pass after 2 G8 edge cases it found were fixed (no detail position for an image with no edges; "no opaque pixels" for a fully transparent one) |
 | b1ebfbe | live, https://lapisluong.github.io/frameproof/ | **Pass**: sample, notes persistence, JSON export, direct URL, analyzer reload, no overflow at 1440/1024/390, no page errors; solid and transparent images give the no-edges / no-opaque observations in the UI and in all four Markdown and JSON exports. GitHub run 41819307929: check and deploy succeeded |
+
+## Poster designer (`feat/poster-editor`, 5 Nov 2026)
+
+Release verification: typecheck, lint, 256 unit tests (4 optional recording fixtures skipped), production build,
+and 33 Playwright tests passed. Visual QA captured Library, Styles, Analyzer and the editor at 1440, 1024 and
+390 px. The resource shelves had no horizontal overflow or page errors. A fresh browser can open and reload a
+layered infographic, analyze a real bundled poster, and start a concept with the selected style.
+
+Verified on a clean worktree of the branch: typecheck, lint, 255 unit tests (+4 recording fixtures skipped), build,
+29 / 29 Playwright tests, `build:static`, and `qa-screens.mjs` with no page errors at 1440, 1024 and 390 px
+(`08`–`12` cover Designs, the editor, the brief composer, campaign formats, the avatar frame and "Fill an area").
+
+Checked by hand in the browser, with real models, on both the dev server and the production build (`next start`):
+
+- **Remove background (BEN2)**: 2000 × 1367 RGBA result, about 50–60 s on this Mac including the first download;
+  accept → new picture with `derivedFrom`; undo; reload keeps it. The runtime's cache holds only files from the
+  pinned revision `c552aa8…` (a stale `resolve/main/config.json` from an older worker was deleted and did not come
+  back on a fresh run).
+- **Fill an area (LaMa)**: brush and typed-rectangle masks, 14 s per run, the painted mountain removed cleanly;
+  accept, reload, still linked to its source.
+- **Avatar frame**: the exported PNG is 1080 × 1080 with alpha 0 in the centre and corners and 255 on the ring and
+  label (also asserted by e2e).
+
+E2E without models (a stand-in worker): confirmation before any download, progress, cancel back to the same state,
+accept as one undo step, no request to any outside host, the mask sent at the picture's own size, the keyboard-only
+rectangle, and a failed IndexedDB write keeping the result for "Retry save" without a second model run.
+
+Limitations, stated rather than hidden:
+
+- Model downloads (about 209 MB and 198 MB) come from Hugging Face on first use, and the browser decides how long
+  to keep them. Inference takes tens of seconds on a laptop CPU (WASM, one thread). Pictures over 4 MP can't be
+  filled; the dialog says so.
+- BEN2 edges on fine detail (hair, spray) are the model's; the dialog asks the user to check edges. Filled areas are
+  reconstructions and are labelled as such.
+- Painting needs a pointer. The typed rectangle is the keyboard alternative; there's no keyboard freehand.
+- Campaign formats are rules, not a designer: the split layouts can make type small (noted per variant), and
+  several info or photo layers aren't distributed per format yet. The story bands and the avatar circle are
+  approximations, not any platform's published spec.
+- The frame's label is a straight pill in the lower band. There's no text on a curve, and a long title is shrunk
+  (with a note) rather than rewritten.
+- The logo must be marked by the user; FrameProof doesn't detect logos. Colours inside a logo picture aren't
+  affected by palette edits (that's by design, and the palette panel says so).
+- `/library`, `/styles` and `/analyze` sample content is being added on a separate track (Codex agents) and isn't
+  covered by this round.
 
 ## Known limitations
 

@@ -6,6 +6,7 @@ import { useAiStatus } from "@/hooks/useAiStatus";
 
 const NAV = [
   { href: "/", label: "Desk" },
+  { href: "/design", label: "Design" },
   { href: "/analyze", label: "Analyzer" },
   { href: "/library", label: "Library" },
   { href: "/styles", label: "Styles" },

@@ -78,5 +78,99 @@ await page.getByRole("heading", { name: "Palette" }).waitFor();
 await page.waitForTimeout(300);
 await page.screenshot({ path: `${out}/07-styles-1440.png`, fullPage: true });
 
+// Designer: Designs page, editor opened from a finished starter, and the brief composer with three concepts.
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.goto(`${base}/`);
+await page.getByTestId("desk-starters").getByRole("button").nth(1).click();
+await page.waitForURL(/\/design\/?\?id=/);
+await page.getByTestId("design-canvas").waitFor();
+const editorUrl = page.url();
+await page.goto(`${base}/compose`);
+await page.getByLabel("Title", { exact: true }).fill("Dạ hành khúc");
+await page.getByLabel("Subtitle (optional)", { exact: true }).fill("Coming soon");
+await page.getByLabel("Information, one line each", { exact: true }).fill("Đêm 14 · 12 · 2026\nNhà hát Lớn Hà Nội");
+await page.getByRole("button", { name: "The Great Wave" }).click();
+await page.getByRole("button", { name: "Compose three concepts" }).click();
+await page.getByTestId("concepts").waitFor();
+for (const w of [1440, 1024, 390]) {
+  await page.setViewportSize({ width: w, height: w === 390 ? 844 : 900 });
+  for (const [name, url] of [["08-designs", `${base}/design`], ["09-editor", editorUrl]]) {
+    await page.goto(url);
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: `${out}/${name}-${w}.png`, fullPage: true });
+  }
+}
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.goto(`${base}/compose`);
+await page.getByLabel("Title", { exact: true }).fill("Dạ hành khúc");
+await page.getByLabel("Subtitle (optional)", { exact: true }).fill("Coming soon");
+await page.getByRole("button", { name: "The Great Wave" }).click();
+await page.getByRole("button", { name: "Compose three concepts" }).click();
+await page.getByTestId("concepts").waitFor();
+await page.waitForTimeout(900);
+await page.screenshot({ path: `${out}/10-compose-1440.png`, fullPage: true });
+await page.setViewportSize({ width: 390, height: 844 });
+await page.waitForTimeout(400);
+await page.screenshot({ path: `${out}/10-compose-390.png`, fullPage: true });
+
+// Picture tools: the "Fill an area" dialog (brush and typed rectangle) at each width. No model is loaded for this step.
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.goto(`${base}/`);
+await page.getByTestId("desk-starters").getByRole("button").first().click();
+await page.waitForURL(/\/design\/?\?id=/);
+const pictureUrl = page.url();
+for (const w of [1440, 1024, 390]) {
+  await page.setViewportSize({ width: w, height: w === 390 ? 844 : 900 });
+  await page.goto(pictureUrl);
+  await page.getByTestId("design-canvas").waitFor();
+  // On a phone the panels are tabs: pick the layer under Layers, then the tools are under Edit.
+  const narrow = w < 768;
+  if (narrow) await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.getByRole("button", { name: /^Portrait slot/ }).first().click();
+  if (narrow) await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("button", { name: "Fill an area…" }).click();
+  await page.getByRole("button", { name: "Fill painted area" }).waitFor();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${out}/12-fill-area-${w}.png` });
+  await page.keyboard.press("Escape");
+}
+
+// Campaign formats from the editor's design: banner and avatar.
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.goto(editorUrl);
+await page.getByRole("button", { name: "Campaign formats" }).click();
+await page.waitForURL(/\/campaign\/?\?id=/);
+for (const [fmt, file] of [["Banner 3:1", "11-campaign-banner"], ["Avatar 1:1 (circle-safe)", "11-campaign-avatar"], ["Avatar frame (transparent centre)", "11-campaign-frame"]]) {
+  await page.getByRole("button", { name: fmt }).click();
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: `${out}/${file}-1440.png`, fullPage: true });
+}
+await page.setViewportSize({ width: 390, height: 844 });
+await page.waitForTimeout(400);
+await page.screenshot({ path: `${out}/11-campaign-frame-390.png`, fullPage: true });
+await page.getByRole("button", { name: "Avatar 1:1 (circle-safe)" }).click();
+await page.waitForTimeout(500);
+await page.screenshot({ path: `${out}/11-campaign-avatar-390.png`, fullPage: true });
+
+// Fresh visitors can try the three resource shelves without uploading anything.
+for (const w of [1440, 1024, 390]) {
+  await page.setViewportSize({ width: w, height: w === 390 ? 844 : 900 });
+  for (const [route, testId] of [["library", "builtin-library"], ["styles", null], ["analyze", "analysis-samples"]]) {
+    await page.goto(`${base}/${route}`);
+    const shelf = testId ? page.getByTestId(testId) : page.getByRole("region", { name: "Ready art styles" });
+    await shelf.waitFor();
+    if (route === "library") await shelf.locator("svg").first().waitFor();
+    for (const image of await shelf.locator("img").all()) {
+      await image.scrollIntoViewIfNeeded();
+      await image.evaluate((img) => img.decode());
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
+    if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) errors.push(`Horizontal overflow: /${route} at ${w}px`);
+    await page.screenshot({ path: `${out}/13-${route}-${w}.png`, fullPage: true });
+  }
+}
+
 await browser.close();
 process.stdout.write(errors.length ? `ERRORS:\n${errors.join("\n")}\n` : "no page errors\n");
+if (errors.length) process.exitCode = 1;

@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { ReviewIssueSchema } from "../review/types";
+import { DesignDocSchema } from "../design/schema";
+import { ResourceMetaSchema } from "../design/resource";
 import { REFERENCE_CATEGORIES, type Project, type StyleToken } from "./models";
 const n = z.number().finite();
 const time = n.nonnegative();
@@ -97,6 +99,8 @@ export const recordSchemas = {
       z.object({ state: z.literal("failed"), provider: z.string(), message: z.string() }),
     ]),
   }),
+  designs: DesignDocSchema,
+  resources: ResourceMetaSchema.extend({ blob: z.instanceof(Blob) }),
 };
 export function validateRecords<K extends keyof typeof recordSchemas>(store: K, records: unknown[]) {
   const valid: z.infer<(typeof recordSchemas)[K]>[] = [];

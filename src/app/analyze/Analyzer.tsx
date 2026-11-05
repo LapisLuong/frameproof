@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dropzone } from "@/components/Dropzone";
 import { ImageViewer } from "@/components/ImageViewer";
 import { ContrastPicker, MeasurementTable, PaletteList } from "@/components/Measurements";
@@ -16,6 +16,14 @@ import { observationsToMarkdown, observeImage, type Observation } from "@/lib/re
 import { download, fileSlug, mdEscape } from "@/lib/review/report";
 import { getAsset, listAssets, saveAsset, saveStyle } from "@/lib/store/repo";
 import type { Asset, StyleSystem } from "@/lib/store/models";
+import { BUILTIN_ART } from "@/lib/design/art";
+import { withBase } from "@/lib/base-path";
+
+const ANALYSIS_SAMPLES = [
+  { id: "reference", name: "Night Market · reference poster", file: "/samples/reference-poster.png", credit: "FrameProof original · MIT", source: "https://github.com/LapisLuong/frameproof", note: "Typography, blocks of colour and open space." },
+  { id: "current", name: "Night Market · revision poster", file: "/samples/current-poster.png", credit: "FrameProof original · MIT", source: "https://github.com/LapisLuong/frameproof", note: "Compare the palette and distribution of detail with the reference." },
+  ...BUILTIN_ART.map((a) => ({ id: a.id, name: a.name, file: `/art/${a.file}`, credit: `${a.author} · The Met · CC0`, source: a.source, note: `${a.width} × ${a.height} px · ${a.date}` })),
+];
 
 function analysisMarkdown(a: Asset): string {
   const x: ImageAnalysis = a.analysis;
@@ -207,17 +215,60 @@ export function Analyzer() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const loading = useRef(false);
+  const sampleRequest = useRef<AbortController | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      sampleRequest.current?.abort();
+    };
+  }, []);
+
   const onFile = async (f: File) => {
+    if (loading.current) return;
+    loading.current = true;
     setBusy(true);
     setError(null);
     try {
       const a = await saveAsset(f, f.name, null);
-      router.push(`/analyze?asset=${a.id}`);
-      toast("Analysis saved");
+      if (mounted.current) {
+        router.push(`/analyze?asset=${a.id}`);
+        toast("Analysis saved");
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "The image couldn't be analysed.");
+      if (mounted.current) setError(e instanceof Error ? e.message : "The image couldn't be analysed.");
     } finally {
-      setBusy(false);
+      loading.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  };
+
+  const analyzeSample = async (sample: (typeof ANALYSIS_SAMPLES)[number]) => {
+    if (loading.current) return;
+    loading.current = true;
+    const controller = new AbortController();
+    sampleRequest.current = controller;
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch(withBase(sample.file), { signal: controller.signal });
+      if (!response.ok) throw new Error("This sample couldn't be loaded. Try another image.");
+      const blob = await response.blob();
+      if (controller.signal.aborted) return;
+      // The same validation, decoding and deterministic analysis used for uploads; no prefilled numbers.
+      const a = await saveAsset(blob, sample.name, null, { sample: true });
+      if (!controller.signal.aborted && mounted.current) {
+        router.push(`/analyze?asset=${a.id}`);
+        toast("Sample analysed and saved");
+      }
+    } catch (e) {
+      if (!controller.signal.aborted && mounted.current) setError(e instanceof Error ? e.message : "The sample couldn't be analysed.");
+    } finally {
+      if (sampleRequest.current === controller) sampleRequest.current = null;
+      loading.current = false;
+      if (mounted.current) setBusy(false);
     }
   };
 
@@ -286,6 +337,30 @@ export function Analyzer() {
           )}
         </section>
       </div>
+      <section aria-labelledby="sample-analysis-h" style={{ marginTop: "3rem", borderTop: "1px solid var(--color-rule)", paddingTop: "1.5rem" }} data-testid="analysis-samples">
+        <h2 id="sample-analysis-h" className="t-heading">Explore with a sample</h2>
+        <p className="t-meta" style={{ marginTop: "0.5rem", maxWidth: "48rem" }}>
+          Start with a poster or a public-domain artwork. Choose an image to measure its actual colours, contrast and detail in this browser, then save its palette as a style.
+          Fonts, meaning and design quality aren&apos;t measured from pixels.
+        </p>
+        <ul style={{ listStyle: "none", padding: 0, margin: "1.5rem 0 0", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 13rem), 1fr))", gap: "1.5rem" }}>
+          {ANALYSIS_SAMPLES.map((sample) => (
+            <li key={sample.id} style={{ minWidth: 0, display: "grid", alignContent: "start", gap: "0.5rem" }}>
+              <button type="button" className="btn btn-quiet" disabled={busy} onClick={() => void analyzeSample(sample)} aria-label={`Analyze sample: ${sample.name}`} style={{ padding: 0, display: "block", width: "100%" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- self-hosted, lazy sample thumbnail */}
+                <img src={withBase(sample.file)} alt={sample.name} loading="lazy" decoding="async" style={{ display: "block", width: "100%", height: "14rem", objectFit: "contain", background: "var(--color-paper)", border: "1px solid var(--color-rule)" }} />
+              </button>
+              <h3 className="t-subhead">{sample.name}</h3>
+              <p className="t-small t-meta">{sample.note}</p>
+              <p className="t-small t-meta">{sample.credit}</p>
+              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+                <button type="button" className="btn btn-sm" disabled={busy} onClick={() => void analyzeSample(sample)}>Analyze this image</button>
+                <a href={sample.source} target="_blank" rel="noopener noreferrer" className="t-small">Source and licence</a>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

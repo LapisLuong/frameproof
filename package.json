@@ -8,6 +8,10 @@
     "node": ">=20.9.0"
   },
   "scripts": {
+    "prepare:image-tools": "node scripts/prepare-image-tools.mjs",
+    "predev": "npm run prepare:image-tools",
+    "prebuild": "npm run prepare:image-tools",
+    "prebuild:static": "npm run prepare:image-tools",
     "dev": "next dev",
     "build": "next build",
     "build:static": "node scripts/build-static.mjs",
@@ -21,7 +25,9 @@
     "record:ai": "node scripts/record-ai-fixture.mjs"
   },
   "dependencies": {
+    "@huggingface/transformers": "4.3.2",
     "next": "16.4.5",
+    "onnxruntime-web": "1.31.0-dev.20260914-8d85527a0",
     "radix-ui": "1.8.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
