@@ -58,6 +58,19 @@ describe("AI configuration", () => {
       fetchMock.mockRestore();
     }
   });
+  it("stops reading an oversized provider response without exposing its content", async () => {
+    const config = getProviderConfig(env({ AI_PROVIDER: "openai", OPENAI_API_KEY: "test-key", AI_MODEL: "test-vision" }));
+    if (!config.configured) throw new Error(config.reason);
+    const cancel = vi.fn();
+    const body = new ReadableStream({ start: (controller) => controller.enqueue(new Uint8Array(1024 * 1024 + 1)), cancel });
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(body));
+    try {
+      await expect(config.provider.complete("system", "brief", [img], new AbortController().signal)).rejects.toMatchObject({ message: "The AI provider's response was too large.", retryable: false });
+      expect(cancel).toHaveBeenCalledOnce();
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
   it("is off without a provider, and explains why", () => {
     expect(getProviderConfig(env({}))).toMatchObject({ configured: false });
     expect(getProviderConfig(env({ AI_PROVIDER: "anthropic" }))).toMatchObject({ configured: false, reason: expect.stringContaining("ANTHROPIC_API_KEY") });

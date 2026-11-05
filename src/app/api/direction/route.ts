@@ -5,7 +5,7 @@ import { AllowedSchema, requestDirection } from "@/lib/ai/direction";
 import { BriefSchema } from "@/lib/design/direction";
 import { MAX_UPLOAD_BYTES, validateImageBytes } from "@/lib/image/validate";
 import { BodyReadError, readBodyBytes } from "@/lib/security/body";
-import { rejectUnsafeAiRequest } from "@/lib/security/request";
+import { localAiOrigin, rejectUnsafeAiRequest } from "@/lib/security/request";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
 /** Long side of the copy sent to the model. Smaller is cheaper; 1280 keeps headline text legible. */
 const MODEL_SIDE = 1280;
 
-export async function GET() {
+export async function GET(req: Request) {
+  if (!localAiOrigin(req)) return NextResponse.json({ configured: false, reason: "AI is only available from FrameProof on this computer." });
   const cfg = getProviderConfig();
   return NextResponse.json(
     cfg.configured ? { configured: true, provider: cfg.provider.id, model: cfg.provider.model } : { configured: false, reason: cfg.reason },

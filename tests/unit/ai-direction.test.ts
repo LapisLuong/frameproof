@@ -67,7 +67,7 @@ const directionForm = () => { const form = new FormData(); form.set("brief", JSO
 it("reports unconfigured status and returns 503 without reading a request body", async () => {
   const mock = vi.spyOn(providerModule, "getProviderConfig").mockReturnValue({ configured: false, reason: "No key" });
   try {
-    expect(await (await GET()).json()).toEqual({ configured: false, reason: "No key" });
+    expect(await (await GET(new Request("http://localhost/api/direction"))).json()).toEqual({ configured: false, reason: "No key" });
     const response = await POST(new Request("http://localhost/api/direction", { method: "POST", headers: { "content-type": "multipart/form-data; boundary=test" } }));
     expect(response.status).toBe(503); expect((await response.json()).code).toBe("not-configured");
   } finally { mock.mockRestore(); }

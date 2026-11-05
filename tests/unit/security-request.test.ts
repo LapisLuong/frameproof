@@ -6,6 +6,17 @@ const multipart = { "content-type": "multipart/form-data; boundary=frameproof" }
 const request = (headers: Record<string, string>) => new Request(url, { method: "POST", headers });
 
 describe("AI browser request isolation", () => {
+  it("rejects a rebound domain even when its Origin matches the request URL", () => {
+    const origin = "http://rebound.example:3100";
+    for (const target of [origin + "/api/direction", url]) {
+      const req = new Request(target, { method: "POST", headers: { ...multipart, host: "rebound.example:3100", origin, "sec-fetch-site": "same-origin" } });
+      expect(rejectUnsafeAiRequest(req)?.status).toBe(403);
+    }
+  });
+  it("accepts a loopback IP alias on a normalized Next request URL", () => {
+    const req = request({ ...multipart, host: "127.0.0.1:3100", origin: "http://127.0.0.1:3100", "sec-fetch-site": "same-origin" });
+    expect(rejectUnsafeAiRequest(req)).toBeNull();
+  });
   it("accepts the app and headerless local scripts", () => {
     expect(rejectUnsafeAiRequest(request({ ...multipart, origin: "http://localhost:3100", "sec-fetch-site": "same-origin" }))).toBeNull();
     expect(rejectUnsafeAiRequest(request(multipart))).toBeNull();

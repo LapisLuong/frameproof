@@ -1,5 +1,8 @@
 // Server-only: imported exclusively by src/app/api/review/route.ts. Never import from client code.
 import { AiReviewSchema, extractJson, SYSTEM_PROMPT, userPrompt, type AiReview, type MeasuredContext } from "./schema";
+import { BodyReadError, readBodyBytes } from "../security/body";
+
+const MAX_PROVIDER_RESPONSE = 1024 * 1024;
 
 export type PreparedImage = { base64: string; mime: "image/jpeg" | "image/png" };
 
@@ -33,6 +36,7 @@ async function postJson(url: string, headers: Record<string, string>, body: unkn
     throw new ProviderError("Couldn't reach the AI provider. Check the network and the base URL.", undefined, true);
   }
   if (!res.ok) {
+    void res.body?.cancel().catch(() => {});
     const retryable = res.status === 429 || res.status >= 500;
     const hint =
       res.status === 401 || res.status === 403
@@ -44,7 +48,19 @@ async function postJson(url: string, headers: Record<string, string>, body: unkn
             : `The provider answered ${res.status}.`;
     throw new ProviderError(hint, res.status, retryable);
   }
-  return res.json();
+  // Cap the decoded stream too: a provider can omit Content-Length or send a small compressed body.
+  try {
+    const bytes = await readBodyBytes({ body: res.body, signal }, MAX_PROVIDER_RESPONSE);
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch (error) {
+    if (error instanceof BodyReadError) {
+      if (error.status === 413) throw new ProviderError("The AI provider's response was too large.");
+      throw new ProviderError("The model took too long to answer.", undefined, true);
+    }
+    if (signal.aborted) throw new ProviderError("The model took too long to answer.", undefined, true);
+    if (error instanceof SyntaxError) throw new ProviderError("The AI provider returned invalid JSON.", undefined, true);
+    throw new ProviderError("Couldn't read the AI provider's response.", undefined, true);
+  }
 }
 
 class AnthropicProvider implements VisionProvider {
