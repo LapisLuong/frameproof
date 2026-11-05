@@ -142,14 +142,14 @@ Limitations, stated rather than hidden:
    `tests/unit/ai-fixture.test.ts` (skipped until the file exists) checks it is schema-valid as recorded, survives the
    provider path plain and fenced, and becomes AI-observed notes only, with no evidence and no anchors. Dry-run
    against a local fake OpenAI-compatible server on 4 Nov 2026: request 175 KB, one AI-observed note shown at
-   priority position, measured notes unchanged. Left: the user runs it once with a free Gemini key (README → AI
-   review); Claude reviews the file before it is committed.
+   priority position, measured notes unchanged. A real provider fixture still needs to be recorded and reviewed
+   before it is committed (README → AI review).
 4. ~~Numbered anchors on the artwork~~ — done on `feat/finding-anchors`. Notes stay in one priority-ordered list and are
    labelled "On the artwork" or "Whole image" (separate groups put a low-priority note above high ones).
 5. Move analysis into a Web Worker for very large images; add a mobile E2E test for the Reference/Current toggle.
 6. **Master-prompt audit** (`docs/reviews/codex-master-prompt-audit.md`): all ten gaps (G1–G10) are done
-   (G1–G3, G5–G7 by Codex CLI, reviewed and fixed on merge; G4 and G9 by Claude Code: zoom and pan now follow the
-   pointer directly, with no transform transition). G8: the analyzer lists "What the pixels show" — structured,
+   (G4 and G9: zoom and pan now follow the pointer directly, with no transform transition).
+   G8: the analyzer lists "What the pixels show" — structured,
    deterministic observations from `src/lib/review/observations.ts`, using the review engine's thresholds, included in
    the Markdown and JSON exports; no new measurement and no judgement of quality.
 7. P2: website screenshot analysis, PPTX analysis, Supabase sync, team review, visual regression.

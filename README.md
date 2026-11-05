@@ -67,7 +67,9 @@ FrameProof is fully usable without AI. To add a vision model's second opinion:
 ```bash
 cp .env.example .env.local
 # AI_PROVIDER=anthropic and ANTHROPIC_API_KEY=...   (model defaults to claude-sonnet-5-5; override with AI_MODEL)
-# or AI_PROVIDER=openai, OPENAI_API_KEY=..., AI_MODEL=<a vision model id>, optional OPENAI_BASE_URL
+# or AI_PROVIDER=openai, OPENAI_API_KEY=..., AI_MODEL=<a vision model id>
+# With a private key, bind the app to this computer only:
+npm run dev -- --hostname 127.0.0.1
 ```
 
 No paid key? Google's Gemini API has a free tier and an OpenAI-compatible endpoint. Create a key at
@@ -75,14 +77,15 @@ https://aistudio.google.com/apikey and use the Gemini block in `.env.example` (`
 `OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/`, a vision-capable `AI_MODEL`). On the free
 tier Google may use what you send to improve its products, so don't send client work you can't share.
 
-- Calls happen only in `src/app/api/review/route.ts` (Node runtime). Keys are never sent to the browser.
+- Review and direction calls run on the server. Put a scoped [OpenAI project key](https://developers.openai.com/api/docs/guides/api-keys) in `.env.local`; never use a `NEXT_PUBLIC_` variable for a key. Leave `OPENAI_BASE_URL` unset for OpenAI.
+- For another compatible service, use a key issued by that service and an HTTPS endpoint. HTTP is allowed only on loopback for local testing. Provider requests do not follow redirects.
 - Images are re-validated, metadata-stripped and downscaled to 1280 px with sharp before being sent.
 - The model receives the brief and the _measured_ facts, and must answer with a strict JSON schema (Zod). Invalid output is retried once, then the review is marked "failed" — nothing is invented.
 - When AI is off, the UI says so and the API returns `503 not-configured`.
 - To keep a real answer as a test fixture, run `npm run record:ai` while `npm run dev` is running with a key. It drives the
   app on the sample project, saves the validated answer (no key) to `tests/fixtures/ai-review.json` and a screenshot to
   `qa/screenshots/08-ai-review-1440.png`; `tests/unit/ai-fixture.test.ts` then checks it without a key or a network call.
-- On Vercel, set the same variables under Project Settings → Environment Variables.
+- GitHub Pages has no AI server. Before enabling a paid key on a hosted Node deployment, protect both AI routes with authenticated access and per-user usage limits. Browser origin checks are not authentication.
 
 ## Privacy and storage
 

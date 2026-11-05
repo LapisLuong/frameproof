@@ -26,9 +26,10 @@ export class ProviderError extends Error {
 async function postJson(url: string, headers: Record<string, string>, body: unknown, signal: AbortSignal): Promise<unknown> {
   let res: Response;
   try {
-    res = await fetch(url, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body), signal });
+    // Never forward a credential or the uploaded design to a redirect destination.
+    res = await fetch(url, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body), signal, redirect: "error" });
   } catch (e) {
-    if ((e as Error).name === "AbortError") throw new ProviderError("The model took too long to answer.", undefined, true);
+    if (signal.aborted || (e as Error).name === "AbortError") throw new ProviderError("The model took too long to answer.", undefined, true);
     throw new ProviderError("Couldn't reach the AI provider. Check the network and the base URL.", undefined, true);
   }
   if (!res.ok) {
@@ -120,6 +121,18 @@ class OpenAICompatibleProvider implements VisionProvider {
   }
 }
 
+function openAiBaseUrl(value: string | undefined): string | null {
+  try {
+    const url = new URL(value?.trim() || "https://api.openai.com/v1");
+    const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    if (url.protocol !== "https:" && !(loopback && url.protocol === "http:")) return null;
+    if (url.username || url.password || url.search || url.hash) return null;
+    return url.href.replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+}
+
 export function getProviderConfig(env: NodeJS.ProcessEnv = process.env): ProviderConfig {
   const name = (env.AI_PROVIDER ?? "").trim().toLowerCase();
   if (!name) return { configured: false, reason: "AI review is off. Set AI_PROVIDER and an API key in .env.local to turn it on." };
@@ -133,9 +146,11 @@ export function getProviderConfig(env: NodeJS.ProcessEnv = process.env): Provide
     const model = env.AI_MODEL?.trim();
     if (!key) return { configured: false, reason: "AI_PROVIDER is openai but OPENAI_API_KEY is empty." };
     if (!model) return { configured: false, reason: "AI_PROVIDER is openai but AI_MODEL is empty. Set it to a vision-capable model id." };
-    return { configured: true, provider: new OpenAICompatibleProvider(key, model, env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1") };
+    const base = openAiBaseUrl(env.OPENAI_BASE_URL);
+    if (!base) return { configured: false, reason: "OPENAI_BASE_URL must use HTTPS (HTTP is only allowed on loopback) and contain no credentials, query or fragment." };
+    return { configured: true, provider: new OpenAICompatibleProvider(key, model, base) };
   }
-  return { configured: false, reason: `AI_PROVIDER "${name}" isn't supported. Use anthropic or openai.` };
+  return { configured: false, reason: "AI_PROVIDER isn't supported. Use anthropic or openai." };
 }
 
 /**

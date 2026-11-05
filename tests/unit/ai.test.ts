@@ -39,6 +39,25 @@ function fake(replies: Array<string | Error>): VisionProvider & { calls: number 
 }
 
 describe("AI configuration", () => {
+  it.each(["http://api.example.com/v1", "https://user:key@api.example.com", "https://api.example.com/v1?key=secret", "file:///tmp/api"])(
+    "rejects an unsafe OpenAI-compatible endpoint without echoing it: %s",
+    (base) => {
+      const config = getProviderConfig(env({ AI_PROVIDER: "openai", OPENAI_API_KEY: "secret-key", AI_MODEL: "test-vision", OPENAI_BASE_URL: base }));
+      expect(config).toMatchObject({ configured: false, reason: expect.stringContaining("OPENAI_BASE_URL") });
+      expect(JSON.stringify(config)).not.toContain(base);
+    },
+  );
+  it("uses the configured endpoint without following redirects", async () => {
+    const config = getProviderConfig(env({ AI_PROVIDER: "openai", OPENAI_API_KEY: "test-key", AI_MODEL: "test-vision", OPENAI_BASE_URL: "http://127.0.0.1:3210/v1/" }));
+    if (!config.configured) throw new Error(config.reason);
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ choices: [{ message: { content: "{}" } }] }));
+    try {
+      await expect(config.provider.complete("system", "brief", [img], new AbortController().signal)).resolves.toBe("{}");
+      expect(fetchMock).toHaveBeenCalledWith("http://127.0.0.1:3210/v1/chat/completions", expect.objectContaining({ redirect: "error" }));
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
   it("is off without a provider, and explains why", () => {
     expect(getProviderConfig(env({}))).toMatchObject({ configured: false });
     expect(getProviderConfig(env({ AI_PROVIDER: "anthropic" }))).toMatchObject({ configured: false, reason: expect.stringContaining("ANTHROPIC_API_KEY") });
