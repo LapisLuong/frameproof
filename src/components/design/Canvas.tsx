@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { hitTest, resizeRotated, updateLayer, type Handle } from "@/lib/design/edit";
-import { renderSvg } from "@/lib/design/render";
+import { renderLayer } from "@/lib/design/render";
 import { cssFamily, measureText } from "@/lib/design/browser";
 import type { DesignDoc, Layer } from "@/lib/design/schema";
 
@@ -27,10 +27,23 @@ type Drag =
   | { kind: "resize"; id: string; handle: Handle; start: { x: number; y: number }; origin: Layer }
   | { kind: "rotate"; id: string; origin: Layer };
 
+type PointerSample = Pick<React.PointerEvent, "clientX" | "clientY" | "altKey" | "shiftKey" | "pointerId">;
+
+// Keep unchanged SVG nodes mounted during a gesture, including their image and filter elements.
+const CanvasLayer = memo(function CanvasLayer({ layer, index, image, fontsVersion }: {
+  layer: Layer; index: number; image: Props["imageUrl"]; fontsVersion: number;
+}) {
+  const markup = renderLayer(layer, { measure: measureText, fontFamily: cssFamily, image, placeholders: true, idPrefix: "edit" }, index);
+  return <g data-font-version={layer.type === "text" ? fontsVersion : undefined} dangerouslySetInnerHTML={{ __html: markup }} />;
+});
+
 export function Canvas({ doc, selectedId, onSelect, onLive, onEnd, imageUrl, onEditText, fontsVersion }: Props) {
   const wrap = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
+  const pointerId = useRef<number | null>(null);
+  const animation = useRef<number | null>(null);
+  const pending = useRef<PointerSample | null>(null);
   const [box, setBox] = useState({ w: 600, h: 600 });
   const [guides, setGuides] = useState<{ x: number | null; y: number | null }>({ x: null, y: null });
 
@@ -41,16 +54,13 @@ export function Canvas({ doc, selectedId, onSelect, onLive, onEnd, imageUrl, onE
       if (entry) setBox({ w: entry.contentRect.width, h: entry.contentRect.height });
     });
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (animation.current !== null) cancelAnimationFrame(animation.current);
+    };
   }, []);
 
   const scale = Math.max(0.02, Math.min((box.w - 32) / doc.width, (box.h - 32) / doc.height));
-  const svg = useMemo(
-    () => renderSvg(doc, { measure: measureText, fontFamily: cssFamily, image: imageUrl, placeholders: true, idPrefix: "edit" }),
-    // fontsVersion re-measures text once faces have loaded.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [doc, imageUrl, fontsVersion],
-  );
   const selected = doc.layers.find((l) => l.id === selectedId) ?? null;
 
   const toCanvas = (e: { clientX: number; clientY: number }) => {
@@ -59,10 +69,12 @@ export function Canvas({ doc, selectedId, onSelect, onLive, onEnd, imageUrl, onE
   };
 
   const begin = (e: React.PointerEvent, d: Drag) => {
+    if (drag.current) return;
     e.preventDefault();
     e.stopPropagation();
     (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
     drag.current = d;
+    pointerId.current = e.pointerId;
   };
 
   const onStageDown = (e: React.PointerEvent) => {
@@ -73,7 +85,7 @@ export function Canvas({ doc, selectedId, onSelect, onLive, onEnd, imageUrl, onE
     if (hit && !hit.locked) begin(e, { kind: "move", id: hit.id, start: p, origin: hit });
   };
 
-  const onMove = (e: React.PointerEvent) => {
+  const applyMove = (e: PointerSample) => {
     const d = drag.current;
     if (!d) return;
     const p = toCanvas(e);
@@ -130,9 +142,27 @@ export function Canvas({ doc, selectedId, onSelect, onLive, onEnd, imageUrl, onE
     }
   };
 
-  const onUp = () => {
-    if (!drag.current) return;
+  const onMove = (e: React.PointerEvent) => {
+    if (!drag.current || e.pointerId !== pointerId.current) return;
+    const { clientX, clientY, altKey, shiftKey, pointerId: id } = e;
+    pending.current = { clientX, clientY, altKey, shiftKey, pointerId: id };
+    if (animation.current !== null) return;
+    animation.current = requestAnimationFrame(() => {
+      animation.current = null;
+      const sample = pending.current;
+      pending.current = null;
+      if (sample) applyMove(sample);
+    });
+  };
+
+  const onUp = (e: React.PointerEvent) => {
+    if (!drag.current || e.pointerId !== pointerId.current) return;
+    if (animation.current !== null) cancelAnimationFrame(animation.current);
+    animation.current = null;
+    if (pending.current) applyMove(pending.current);
+    pending.current = null;
     drag.current = null;
+    pointerId.current = null;
     setGuides({ x: null, y: null });
     onEnd();
   };
@@ -148,8 +178,13 @@ export function Canvas({ doc, selectedId, onSelect, onLive, onEnd, imageUrl, onE
           style={{ width: doc.width, height: doc.height, transform: `scale(${scale})` }}
           aria-label={`${doc.name}, ${doc.width}×${doc.height} px`}
           role="img"
-          dangerouslySetInnerHTML={{ __html: svg }}
-        />
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width={doc.width} height={doc.height} viewBox={`0 0 ${doc.width} ${doc.height}`}>
+            <title>{doc.name}</title>
+            {doc.transparent ? null : <rect width={doc.width} height={doc.height} fill={doc.background} />}
+            {doc.layers.map((layer, index) => <CanvasLayer key={layer.id} layer={layer} index={index} image={imageUrl} fontsVersion={layer.type === "text" ? fontsVersion : 0} />)}
+          </svg>
+        </div>
         <div
           ref={stage}
           className="design-overlay"

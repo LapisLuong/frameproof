@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DesignPreview, useDesignFonts } from "@/components/design/DesignPreview";
+import { DesignPreview } from "@/components/design/DesignPreview";
 import { toast } from "@/components/Toast";
 import { withBase } from "@/lib/base-path";
 import { BUILTIN_FONTS, type BuiltinFontId } from "@/lib/design/fonts";
@@ -26,7 +26,6 @@ export function BuiltinShelf() {
   const needle = query.trim().toLowerCase();
   const matches = (...s: string[]) => !needle || s.join(" ").toLowerCase().includes(needle);
   const docs = useMemo(() => STARTERS.map((s) => starterDoc(s, `lib-${s.id}`, 0)), []);
-  const fontsVersion = useDesignFonts(tab === "Templates" ? docs : []);
   const start = async (fn: () => Promise<ReturnType<typeof DesignDocSchema.parse>>) => {
     setBusy(true);
     try { const saved = await saveNewDesign(await fn()); router.push(`/design?id=${encodeURIComponent(saved.id)}`); }
@@ -59,7 +58,7 @@ export function BuiltinShelf() {
     <p className="t-small" role="status">{count} {tab.toLowerCase()}{needle ? " match your search" : " available"}</p>
     {count === 0 ? <p className="notice">No matches in {tab.toLowerCase()}. Try another resource type or clear the search.</p> : null}
     {tab === "Templates" ? <ul style={grid} aria-label="Built-in templates">{templates.map(({ s, doc }) => <li key={s.id} style={card}>
-      <button type="button" className="design-card" disabled={busy} onClick={() => start(async () => starterDoc(s,"new"))} aria-label={`Open editable template: ${s.template.name}`}><DesignPreview doc={doc} fontsVersion={fontsVersion}/><span className="t-subhead">{s.template.name}</span></button>
+      <button type="button" className="design-card" disabled={busy} onClick={() => start(async () => starterDoc(s,"new"))} aria-label={`Open editable template: ${s.template.name}`}><DesignPreview doc={doc}/><span className="t-subhead">{s.template.name}</span></button>
       <p className="t-small">{s.template.idea}</p><span className="hint">{s.template.layers.length} editable layers · {s.template.licence.id}</span>
     </li>)}</ul> : null}
     {tab === "Artwork" ? <><ul style={grid} aria-label="Bundled artwork">{art.map((a) => <li key={a.id} style={card}>

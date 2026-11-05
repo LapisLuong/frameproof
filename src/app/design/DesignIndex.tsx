@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { DesignPreview, useDesignFonts } from "@/components/design/DesignPreview";
+import { DesignPreview } from "@/components/design/DesignPreview";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
 import { useObjectUrls } from "@/hooks/useObjectUrls";
@@ -31,7 +31,6 @@ export function DesignIndex() {
   const templateDocs = useMemo(() => TEMPLATES.map((t) => docFromTemplate(t, `preview-${t.id.slice(4)}`, 0)), []);
   const starterDocs = useMemo(() => STARTERS.map((st) => starterDoc(st, `preview-${st.id}`, 0)), []);
   const designs = data.status === "ready" ? data.data.designs : [];
-  const fontsVersion = useDesignFonts([...templateDocs, ...starterDocs, ...designs]);
   const urls = useObjectUrls(data.status === "ready" ? data.data.resources : undefined);
   const [format, setFormat] = useState<string>(FORMATS[0].id);
   const [busy, setBusy] = useState(false);
@@ -107,7 +106,7 @@ export function DesignIndex() {
           {STARTERS.map((st, i) => (
             <li key={st.id}>
               <button type="button" className="design-card" disabled={busy} onClick={() => start(() => saveNewDesign(starterDoc(st, "new")))} aria-label={`Edit starter: ${st.template.name}`}>
-                <DesignPreview doc={starterDocs[i]!} fontsVersion={fontsVersion} />
+                <DesignPreview doc={starterDocs[i]!} />
                 <span className="t-subhead">{st.template.name}</span>
                 <span className="hint">
                   {CONCEPT[st.template.concept]} · {st.template.width}×{st.template.height}
@@ -131,7 +130,7 @@ export function DesignIndex() {
           {TEMPLATES.map((t, i) => !t.layers.some((l) => l.type === "image") ? null : (
             <li key={t.id}>
               <button type="button" className="design-card" disabled={busy} onClick={() => start(() => createDesign({ template: t }))} aria-label={`Start from template: ${t.name}`}>
-                <DesignPreview doc={templateDocs[i]!} fontsVersion={fontsVersion} />
+                <DesignPreview doc={templateDocs[i]!} />
                 <span className="t-subhead">{t.name}</span>
                 <span className="hint">
                   {CONCEPT[t.concept]} · {t.width}×{t.height}
@@ -205,7 +204,7 @@ export function DesignIndex() {
             {designs.map((d) => (
               <li key={d.id} className="design-card-wrap">
                 <Link href={`/design?id=${encodeURIComponent(d.id)}`} className="design-card">
-                  <DesignPreview doc={d} urls={urls} fontsVersion={fontsVersion} />
+                  <DesignPreview doc={d} urls={urls} />
                   <span className="t-subhead">{d.name}</span>
                   <span className="hint">
                     {d.width}×{d.height} · edited {fmtDate(d.updatedAt)}
