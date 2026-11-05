@@ -10,7 +10,7 @@ import { approxMeasure, layoutText } from "@/lib/design/layout";
 import { renderSvg, escapeXml } from "@/lib/design/render";
 
 it("parses the pack with unique ids, licences and lookups", () => {
-  expect(TEMPLATES).toHaveLength(11);
+  expect(TEMPLATES).toHaveLength(15);
   expect(ITEMS.length).toBeGreaterThanOrEqual(14);
   const ids = [...TEMPLATES, ...ITEMS].map((p) => p.id);
   expect(new Set(ids).size).toBe(ids.length);

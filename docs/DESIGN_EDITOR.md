@@ -139,24 +139,22 @@ size, white means reconstruct. Pictures over 4 MP are refused with the reason, b
 preview says the filled area is the model's reconstruction. Cancel returns to the same mask. Only one model runs at
 a time per tab (`execution-slot`).
 
-## Ownership
+## Code map
 
-| Area | Owner | Files |
-|---|---|---|
-| Schema, fonts registry, layout, renderer, library contract, resource model | Claude Code | `src/lib/design/{schema,fonts,layout,render,library,resource}.ts`, `tests/unit/design.test.ts` |
-| Store v2 (documents, resources), repo functions | Claude Code | `src/lib/store/*` |
-| Editor UI `/design`, resources UI, review bridge, e2e | Claude Code | `src/app/design/*`, `src/components/design/*`, `tests/e2e/design*.spec.ts` |
-| Template pack and reusable items | Codex CLI | `src/lib/design/templates/*`, `src/lib/design/items/*`, `tests/unit/design-templates.test.ts` |
-| Export: SVG (embedded fonts), PNG, portable JSON bundle | Codex CLI | `src/lib/design/export.ts`, `tests/unit/design-export.test.ts` |
-| Resource file validation (font and image magic bytes, limits) | Codex CLI | `src/lib/design/resource-validate.ts`, `tests/unit/resource-validate.test.ts` |
-| Poster font pack (OFL, from github.com/google/fonts): manifest, licences, Vietnamese coverage | Codex desktop | delivered to `work/poster-fonts`; Claude integrates into `fonts.ts` |
-| Palette tools (HSL, linked colours, roles), layer roles on the pack, AI direction route | Codex CLI | `src/lib/design/palette.ts`, `src/lib/ai/direction.ts`, `src/app/api/direction/route.ts`, tests |
-| Deterministic composer, compose flow UI, palette panel, Desk gallery, campaign formats, image-tool UI, motion | Claude Code | `src/lib/design/{compose,campaign,doc-palette}.ts`, `src/app/{compose,campaign}/*`, `src/components/design/CutoutDialog.tsx` |
-| Image-tool runtimes (BEN2 cutout, LaMa inpaint), workers, runtime packaging | Codex desktop | `src/lib/image-tools/*` except `types.ts`, `scripts/prepare-image-tools.mjs`, `package.json` deps |
-| API request guard (Origin, Fetch Metadata, multipart) | Codex desktop | `src/lib/security/request.ts`, `tests/unit/security-request.test.ts` |
-| Independent review, licence check, acceptance | Codex desktop | `docs/reviews/*` |
+| Area | Files |
+|---|---|
+| Schema, fonts registry, layout, renderer, library contract, resource model | `src/lib/design/{schema,fonts,layout,render,library,resource}.ts`, `tests/unit/design.test.ts` |
+| Store v2 (documents, resources), repo functions | `src/lib/store/*` |
+| Editor UI `/design`, resources UI, review bridge, e2e | `src/app/design/*`, `src/components/design/*`, `tests/e2e/design*.spec.ts` |
+| Template pack and reusable items | `src/lib/design/templates/*`, `src/lib/design/items/*`, `tests/unit/design-templates.test.ts` |
+| Export: SVG (embedded fonts), PNG, portable JSON bundle | `src/lib/design/export.ts`, `tests/unit/design-export.test.ts` |
+| Resource file validation (font and image magic bytes, limits) | `src/lib/design/resource-validate.ts`, `tests/unit/resource-validate.test.ts` |
+| Poster font pack (OFL, from github.com/google/fonts): manifest, licences, Vietnamese coverage | `src/app/fonts/SOURCES.md`, `src/lib/design/fonts.ts` |
+| Palette tools (HSL, linked colours, roles), layer roles on the pack, AI direction route | `src/lib/design/palette.ts`, `src/lib/ai/direction.ts`, `src/app/api/direction/route.ts`, tests |
+| Deterministic composer, compose flow UI, palette panel, Desk gallery, campaign formats, image-tool UI, motion | `src/lib/design/{compose,campaign,doc-palette}.ts`, `src/app/{compose,campaign}/*`, `src/components/design/CutoutDialog.tsx` |
+| Image-tool runtimes (BEN2 cutout, LaMa inpaint), workers, runtime packaging | `src/lib/image-tools/*` except `types.ts`, `scripts/prepare-image-tools.mjs`, `package.json` deps |
+| API request guard (Origin, Fetch Metadata, multipart) | `src/lib/security/request.ts`, `tests/unit/security-request.test.ts` |
 
-Nobody edits another owner's files; changes go through a note to the owner.
 
 ## Status
 

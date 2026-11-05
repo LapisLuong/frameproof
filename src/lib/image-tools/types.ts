@@ -1,9 +1,8 @@
 /**
  * Contract for the in-browser image tools (background removal with BEN2, masked inpainting with LaMa).
  *
- * Ownership: the runtime modules (`cutout.ts`, `inpaint.ts`, their workers and real-inference tests) are built by
- * Codex desktop as isolated modules behind this interface; the lead owns the UI that calls them (preview, accept,
- * cancel, saving results as new linked resources). Neither side edits the other's files.
+ * The runtime modules and their workers implement this interface. The UI handles preview, cancellation,
+ * and saving results as new linked resources.
  *
  * Rules (docs/DESIGN_EDITOR.md, "Image tools"):
  * - Runs in the browser only. The user's pixels never leave the device; the only network traffic is downloading the

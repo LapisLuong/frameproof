@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Masthead } from "@/components/Masthead";
 import { ToastHost } from "@/components/Toast";
+import { ExportAccessProvider } from "@/components/ExportAccess";
+import { withBase } from "@/lib/base-path";
 import "./globals.css";
 
 const beVietnam = localFont({
@@ -95,6 +97,7 @@ const artworkFonts = [anton, archivo, fraunces, playfair, oswald, barlowCondense
 export const metadata: Metadata = {
   title: { default: "FrameProof", template: "%s — FrameProof" },
   description: "A creative direction and visual quality workspace. Design with intention.",
+  authors: [{ name: "Lápis" }],
 };
 
 export const viewport: Viewport = { themeColor: "#f6f4ef" };
@@ -107,9 +110,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to content
         </a>
         <Masthead />
-        <main id="main" tabIndex={-1}>
-          {children}
-        </main>
+        <ExportAccessProvider>
+          <main id="main" tabIndex={-1}>
+            {children}
+          </main>
+        </ExportAccessProvider>
+        <footer className="creator-credit">
+          {/* eslint-disable-next-line @next/next/no-img-element -- small, local signature */}
+          <img src={withBase("/brand/lapis-signature.png")} alt="" width="48" height="48" />
+          <small>Brand artwork © 2026 Lápis</small>
+        </footer>
         <ToastHost />
       </body>
     </html>

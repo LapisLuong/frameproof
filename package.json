@@ -12,7 +12,7 @@
     "predev": "npm run prepare:image-tools",
     "prebuild": "npm run prepare:image-tools",
     "prebuild:static": "npm run prepare:image-tools",
-    "dev": "next dev",
+    "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "build:static": "node scripts/build-static.mjs",
     "start": "next start",
@@ -27,6 +27,7 @@
   "dependencies": {
     "@huggingface/transformers": "4.3.2",
     "next": "16.4.5",
+    "next-auth": "5.0.0-beta.32",
     "onnxruntime-web": "1.31.0-dev.20260914-8d85527a0",
     "radix-ui": "1.8.1",
     "react": "19.3.1",

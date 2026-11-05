@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { useDraftGuard, withDraftGuard } from "@/components/ConfirmDialog";
 import { Thumb } from "@/components/Thumb";
-import { DesignPreview, useDesignFonts } from "@/components/design/DesignPreview";
+import { DesignPreview } from "@/components/design/DesignPreview";
 import { DESK_STARTERS, starterDoc } from "@/lib/design/starters";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
@@ -106,7 +106,6 @@ function NewProjectForm({ inputRef }: { inputRef: React.RefObject<HTMLInputEleme
 function DesignStart() {
   const router = useRouter();
   const docs = useMemo(() => DESK_STARTERS.slice(0, 6).map((st) => starterDoc(st, `desk-${st.id}`, 0)), []);
-  const fontsVersion = useDesignFonts(docs);
   const [busy, setBusy] = useState(false);
   const open = async (i: number) => {
     setBusy(true);
@@ -140,7 +139,7 @@ function DesignStart() {
         {docs.map((d, i) => (
           <li key={d.id}>
             <button type="button" className="design-card" disabled={busy} onClick={() => void open(i)} aria-label={`Edit starter: ${DESK_STARTERS[i]!.template.name}`}>
-              <DesignPreview doc={d} fontsVersion={fontsVersion} />
+              <DesignPreview doc={d} />
               <span className="t-small">{DESK_STARTERS[i]!.template.name}</span>
             </button>
           </li>

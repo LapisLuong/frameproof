@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useExportAccess } from "@/components/ExportAccess";
 import { useDraftGuard } from "@/components/ConfirmDialog";
 import { AddPanel, type ResourceCard, type StarterKind } from "@/components/design/AddPanel";
 import { Canvas } from "@/components/design/Canvas";
@@ -67,6 +68,7 @@ export function DesignEditor({ id, at }: { id: string; at: { x: number; y: numbe
 
 function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resources: Resource[]; at: { x: number; y: number } | null }) {
   const router = useRouter();
+  const withExportAccess = useExportAccess();
   const h = useHistory<DesignDoc>(initial);
   const doc = h.present;
   const [selectedId, setSelectedId] = useState<string | null>(() => (at ? (hitTest(initial, at.x * initial.width, at.y * initial.height, { includeLocked: true })?.id ?? null) : null));
@@ -260,9 +262,9 @@ function LoadedEditor({ initial, resources, at }: { initial: DesignDoc; resource
       setBusy(null);
     }
   };
-  const exportPng = () => run("png", async () => downloadBlob(`${fileName(doc)}.png`, await designPng(doc, resources, 1)));
-  const exportSvgFile = () => run("svg", async () => downloadBlob(`${fileName(doc)}.svg`, new Blob([await designSvg(doc, resources)], { type: "image/svg+xml" })));
-  const exportJson = () => run("json", async () => downloadBlob(`${fileName(doc)}.frameproof.json`, new Blob([await designBundle(doc, resources)], { type: "application/json" })));
+  const exportPng = () => run("png", () => withExportAccess(async () => downloadBlob(`${fileName(doc)}.png`, await designPng(doc, resources, 1))));
+  const exportSvgFile = () => run("svg", () => withExportAccess(async () => downloadBlob(`${fileName(doc)}.svg`, new Blob([await designSvg(doc, resources)], { type: "image/svg+xml" }))));
+  const exportJson = () => run("json", () => withExportAccess(async () => downloadBlob(`${fileName(doc)}.frameproof.json`, new Blob([await designBundle(doc, resources)], { type: "application/json" }))));
   // Save first, so the formats are recomposed from what's on screen, then open them.
   const campaign = () =>
     run("campaign", async () => {

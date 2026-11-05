@@ -60,6 +60,28 @@ Open the folder in VS Code (`File → Open Folder…`). Recommended extensions: 
 3. Bấm **Open the sample project** để xem một bản review hoàn chỉnh, hoặc tạo project mới, kéo thả ảnh tham chiếu và ảnh thiết kế hiện tại.
 4. Muốn bật AI review: sao chép `.env.example` thành `.env.local`, điền `AI_PROVIDER` và API key, rồi khởi động lại. Key chỉ nằm ở server, không bao giờ gửi xuống trình duyệt.
 
+## Public server: edit as a guest, sign in to download
+
+Deploy the normal Next.js build to a Node host with HTTPS (for example Vercel). GitHub Pages runs the
+static demo: editing works, but exports require the server edition. Use one canonical hostname so
+Google returns to the same origin as the browser's saved designs.
+
+1. Create a Web application OAuth client in Google Auth Platform. Add the exact callback
+   `https://YOUR-DOMAIN/api/auth/callback/google`. For local OAuth testing add
+   `http://localhost:3000/api/auth/callback/google` as a separate allowed callback.
+2. On the host, set `AUTH_URL=https://YOUR-DOMAIN`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`,
+   and an independent `AUTH_SECRET` generated with `openssl rand -base64 32`. For local testing set
+   the variables in `.env.local` and use exactly the local origin registered with Google.
+3. Open the site in a fresh browser, edit a starter, and click Export PNG. Sign in in the new tab,
+   return to the editor tab, and retry. To end the session, visit `/api/auth/signout` and confirm.
+
+The server checks the Google session each time the user exports a design, report, analysis or style.
+The file is created in the browser; the session check sends no design or image bytes. Public library
+assets and source links stay public. Since artwork is editable in the browser, the export gate is
+an app workflow restriction; it cannot prevent screenshots or extracting data from developer tools.
+Local development without Google credentials still permits export. Do not set
+`FRAMEPROOF_LOCAL_EXPORTS=1` on a public host; that flag is for a loopback-bound personal build only.
+
 ## AI review (optional)
 
 FrameProof is fully usable without AI. To add a vision model's second opinion:
@@ -67,7 +89,9 @@ FrameProof is fully usable without AI. To add a vision model's second opinion:
 ```bash
 cp .env.example .env.local
 # AI_PROVIDER=anthropic and ANTHROPIC_API_KEY=...   (model defaults to claude-sonnet-5-5; override with AI_MODEL)
-# or AI_PROVIDER=openai, OPENAI_API_KEY=..., AI_MODEL=<a vision model id>, optional OPENAI_BASE_URL
+# or AI_PROVIDER=openai, OPENAI_API_KEY=..., AI_MODEL=<a vision model id>
+# With a private key, bind the app to this computer only:
+npm run dev
 ```
 
 No paid key? Google's Gemini API has a free tier and an OpenAI-compatible endpoint. Create a key at
@@ -75,14 +99,15 @@ https://aistudio.google.com/apikey and use the Gemini block in `.env.example` (`
 `OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/`, a vision-capable `AI_MODEL`). On the free
 tier Google may use what you send to improve its products, so don't send client work you can't share.
 
-- Calls happen only in `src/app/api/review/route.ts` (Node runtime). Keys are never sent to the browser.
+- Review and direction calls run on the server. Put a scoped [OpenAI project key](https://developers.openai.com/api/docs/guides/api-keys) in `.env.local`; never use a `NEXT_PUBLIC_` variable for a key. Leave `OPENAI_BASE_URL` unset for OpenAI.
+- For another compatible service, use a key issued by that service and an HTTPS endpoint. HTTP is allowed only on loopback for local testing. Provider requests do not follow redirects.
 - Images are re-validated, metadata-stripped and downscaled to 1280 px with sharp before being sent.
 - The model receives the brief and the _measured_ facts, and must answer with a strict JSON schema (Zod). Invalid output is retried once, then the review is marked "failed" — nothing is invented.
 - When AI is off, the UI says so and the API returns `503 not-configured`.
 - To keep a real answer as a test fixture, run `npm run record:ai` while `npm run dev` is running with a key. It drives the
   app on the sample project, saves the validated answer (no key) to `tests/fixtures/ai-review.json` and a screenshot to
   `qa/screenshots/08-ai-review-1440.png`; `tests/unit/ai-fixture.test.ts` then checks it without a key or a network call.
-- On Vercel, set the same variables under Project Settings → Environment Variables.
+- The dev server listens on loopback by default. Both AI routes refuse non-loopback hosts and bound the size of provider replies. GitHub Pages has no AI server. A hosted paid AI deployment would need authenticated access and per-user usage limits before exposing these routes.
 
 ## Privacy and storage
 
@@ -109,7 +134,7 @@ tests/unit, tests/e2e  Vitest and Playwright
 docs/                  ART_DIRECTION.md, ARCHITECTURE.md, QA.md
 ```
 
-Working with a coding agent? Codex reads [AGENTS.md](AGENTS.md) and Claude Code reads [CLAUDE.md](CLAUDE.md) (which imports AGENTS.md): product rules, commands, code map and open work.
+See [AGENTS.md](AGENTS.md) for product rules, commands, the code map and open work. See [BRAND.md](BRAND.md) for the Lápis signature and app icons.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for data flow and decisions, [docs/ART_DIRECTION.md](docs/ART_DIRECTION.md) for the three directions and why "Galley proof" was chosen, and [docs/QA.md](docs/QA.md) for test results and known limitations.
 

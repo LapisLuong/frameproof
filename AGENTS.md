@@ -1,7 +1,6 @@
 # FrameProof — agent guide
 
-Read this before changing anything. It applies to every coding agent (Codex, Claude Code, others).
-`CLAUDE.md` imports this file; keep this one as the single source of truth.
+Read this before changing anything. It is the single source of truth for repository conventions.
 
 ## What this is
 
@@ -88,7 +87,7 @@ Pinned on purpose — don't upgrade blindly:
   personal email. Never commit `.env*` (except `.env.example`), API keys, or user data.
 - Don't force-push `main`.
 
-## Working as a pair (Claude Code + Codex)
+## Review process
 
 Suggested split that worked during the build: one agent implements, the other reviews independently without having
 seen the implementation discussion. The reviewer reports concrete defects only (file, failing input, fix), and the

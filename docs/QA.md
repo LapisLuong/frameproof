@@ -65,6 +65,18 @@ the implementation discussion. Results as it reported them:
 
 ## Poster designer (`feat/poster-editor`, 5 Nov 2026)
 
+Follow-up: 267 unit tests and 34 Playwright tests passed on the server build. At 390 px the
+Library initially rendered 1 of 15 previews instead of all 15; scrolling loaded the rest.
+A drag preserves the DOM node of untouched artwork and can be undone in one step. No page errors in the
+1440/1024/390 px screenshot pass. The Google export smoke test uses a real local Auth.js server with test
+credentials: guest editing works, no session and forged/expired cookies return 401, and a signed test
+session allows exporting in the same editor tab. The real Google consent and callback are not yet tested.
+
+Release verification: typecheck, lint, 256 unit tests (4 optional recording fixtures skipped), production build,
+and 33 Playwright tests passed. Visual QA captured Library, Styles, Analyzer and the editor at 1440, 1024 and
+390 px. The resource shelves had no horizontal overflow or page errors. A fresh browser can open and reload a
+layered infographic, analyze a real bundled poster, and start a concept with the selected style.
+
 Verified on a clean worktree of the branch: typecheck, lint, 255 unit tests (+4 recording fixtures skipped), build,
 29 / 29 Playwright tests, `build:static`, and `qa-screens.mjs` with no page errors at 1440, 1024 and 390 px
 (`08`–`12` cover Designs, the editor, the brief composer, campaign formats, the avatar frame and "Fill an area").
@@ -137,14 +149,14 @@ Limitations, stated rather than hidden:
    `tests/unit/ai-fixture.test.ts` (skipped until the file exists) checks it is schema-valid as recorded, survives the
    provider path plain and fenced, and becomes AI-observed notes only, with no evidence and no anchors. Dry-run
    against a local fake OpenAI-compatible server on 4 Nov 2026: request 175 KB, one AI-observed note shown at
-   priority position, measured notes unchanged. Left: the user runs it once with a free Gemini key (README → AI
-   review); Claude reviews the file before it is committed.
+   priority position, measured notes unchanged. A real provider fixture still needs to be recorded and reviewed
+   before it is committed (README → AI review).
 4. ~~Numbered anchors on the artwork~~ — done on `feat/finding-anchors`. Notes stay in one priority-ordered list and are
    labelled "On the artwork" or "Whole image" (separate groups put a low-priority note above high ones).
 5. Move analysis into a Web Worker for very large images; add a mobile E2E test for the Reference/Current toggle.
 6. **Master-prompt audit** (`docs/reviews/codex-master-prompt-audit.md`): all ten gaps (G1–G10) are done
-   (G1–G3, G5–G7 by Codex CLI, reviewed and fixed on merge; G4 and G9 by Claude Code: zoom and pan now follow the
-   pointer directly, with no transform transition). G8: the analyzer lists "What the pixels show" — structured,
+   (G4 and G9: zoom and pan now follow the pointer directly, with no transform transition).
+   G8: the analyzer lists "What the pixels show" — structured,
    deterministic observations from `src/lib/review/observations.ts`, using the review engine's thresholds, included in
    the Markdown and JSON exports; no new measurement and no judgement of quality.
 7. P2: website screenshot analysis, PPTX analysis, Supabase sync, team review, visual regression.

@@ -1,10 +1,13 @@
 "use client";
 
+import { useExportAccess } from "@/components/ExportAccess";
+
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { ConfirmDialog, useDraftGuard, withDraftGuard } from "@/components/ConfirmDialog";
 import { Thumb } from "@/components/Thumb";
+import { StylePresetShelf } from "@/components/styles/StylePresetShelf";
 import { textToTokens } from "@/lib/store/validation";
 import { toast } from "@/components/Toast";
 import { useStore } from "@/hooks/useStore";
@@ -53,6 +56,7 @@ function blank(): StyleSystem {
 
 function Editor({ style, refs, assets }: { style: StyleSystem; refs: InspirationRef[]; assets: Asset[] }) {
   const router = useRouter();
+  const withExportAccess = useExportAccess();
   const [s, setS] = useState(style);
   const [layout, setLayout] = useState(style.layoutPrinciples.join("\n"));
   const [spacing, setSpacing] = useState(tokensToText(style.spacing));
@@ -319,11 +323,9 @@ function Editor({ style, refs, assets }: { style: StyleSystem; refs: Inspiration
           type="button"
           className="btn btn-sm"
           onClick={() => {
-            try {
+            void withExportAccess(() => {
               download(`${fileSlug(s.name)}.tokens.json`, styleToJson(compose()), "application/json");
-            } catch (e) {
-              setError((e as Error).message);
-            }
+            }).catch((e) => setError((e as Error).message));
           }}
         >
           Export JSON
@@ -332,11 +334,9 @@ function Editor({ style, refs, assets }: { style: StyleSystem; refs: Inspiration
           type="button"
           className="btn btn-sm"
           onClick={() => {
-            try {
+            void withExportAccess(() => {
               download(`${fileSlug(s.name)}.css`, styleToCss(compose()), "text/css");
-            } catch (e) {
-              setError((e as Error).message);
-            }
+            }).catch((e) => setError((e as Error).message));
           }}
         >
           Export CSS variables
@@ -401,7 +401,8 @@ export function Styles() {
           {error ?? (data.status === "error" ? data.message : "")}
         </p>
       ) : null}
-      <div className="spread" style={{ gridTemplateColumns: "minmax(0,1fr) 18rem" }}>
+      {!selected ? <StylePresetShelf /> : null}
+      <div className="spread">
         <div style={{ minWidth: 0 }}>
           {selected && data.status === "ready" ? (
             <Editor key={selected.id} style={selected} refs={data.data.refs} assets={data.data.assets} />

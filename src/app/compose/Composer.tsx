@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { PaletteEditor } from "@/components/design/PaletteEditor";
 import { useDraftGuard } from "@/components/ConfirmDialog";
@@ -18,6 +18,7 @@ import { BUILTIN_FONT_IDS, BUILTIN_FONTS, type BuiltinFontId } from "@/lib/desig
 import { TEMPLATE_CONCEPTS, type Template } from "@/lib/design/library";
 import { renderSvg } from "@/lib/design/render";
 import { TEMPLATES } from "@/lib/design/templates";
+import { STYLE_PRESETS } from "@/lib/styles/presets";
 import { decodeAndAnalyze } from "@/lib/image/decode";
 import { newId } from "@/lib/store/db";
 import { addResource, listResources, saveNewDesign } from "@/lib/store/repo";
@@ -60,6 +61,8 @@ function ReferenceImage({ file, name }: { file: Blob; name: string }) {
 
 export function Composer() {
   const router = useRouter();
+  const search = useSearchParams();
+  const preset = STYLE_PRESETS.find((p) => p.id === search.get("stylePreset"));
   const ai = useAiStatus();
   const lib = useStore(() => listResources("image"), ["resources"]);
   const userImages = useMemo(() => (lib.status === "ready" ? lib.data : []), [lib]);
@@ -67,12 +70,12 @@ export function Composer() {
 
   const [refs, setRefs] = useState<Ref[]>([]);
   const [refError, setRefError] = useState<string | null>(null);
-  const [brief, setBrief] = useState<Brief>({ title: "", subtitle: "", lines: [], intent: "" });
+  const [brief, setBrief] = useState<Brief>({ title: "", subtitle: "", lines: [], intent: preset?.principles.join("\n") ?? "" });
   const [linesText, setLinesText] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
   const [useArt, setUseArt] = useState<string[]>([]);
-  const [palette, setPalette] = useState<Swatch[]>(DEFAULT_PALETTE);
-  const [fonts, setFonts] = useState<ArtDirection["fonts"]>({ display: "anton", text: "archivo", origin: "manual" });
+  const [palette, setPalette] = useState<Swatch[]>(() => preset ? preset.colours.map((hex, i) => ({ hex, role: COLOUR_ROLES[i]!, origin: "manual" })) : DEFAULT_PALETTE);
+  const [fonts, setFonts] = useState<ArtDirection["fonts"]>({ display: preset?.display ?? "anton", text: preset?.body ?? "archivo", origin: "manual" });
   const [concepts, setConcepts] = useState<ArtDirection["concepts"]>(["exhibition", "editorial-cover", "music", "collage"]);
   const [conceptsOrigin, setConceptsOrigin] = useState<ArtDirection["conceptsOrigin"]>("manual");
   const [aiResult, setAiResult] = useState<AiDirectionResult | null>(null);
@@ -189,6 +192,7 @@ export function Composer() {
       {guard.dialog}
       <header className="folio">
         <h1 className="t-title">Compose a concept</h1>
+        {preset ? <p className="notice">Starting with {preset.name}: its palette and fonts are selected below. You can change every choice.</p> : null}
         <p className="t-meta">References and a brief in; three editable designs out. Nothing is generated: concepts are built from templates, items, your pictures and public-domain art.</p>
       </header>
 

@@ -11,11 +11,19 @@ const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 const page = await ctx.newPage();
 const errors = [];
+async function loadPreviews() {
+  for (const preview of await page.locator(".design-card-preview").all()) {
+    await preview.scrollIntoViewIfNeeded();
+    await preview.locator("svg").waitFor();
+  }
+  await page.evaluate(() => window.scrollTo(0, 0));
+}
 page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
 page.on("console", (m) => m.type() === "error" && errors.push(`console: ${m.text()}`));
 
 await page.goto(`${base}/`);
 await page.getByRole("heading", { name: "Desk" }).waitFor();
+await loadPreviews();
 await page.screenshot({ path: `${out}/01-desk-empty-1440.png`, fullPage: true });
 
 await page.getByRole("button", { name: "Open the sample project" }).click();
@@ -33,6 +41,7 @@ for (const w of [1440, 1024, 390]) {
     await page.goto(url);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(400);
+    await loadPreviews();
     await page.screenshot({ path: `${out}/${name}-${w}.png`, fullPage: true });
   }
 }
@@ -67,6 +76,7 @@ await page.getByLabel("Tags", { exact: true }).fill("serif, warm, editorial");
 await page.getByTestId("upload-reference").setInputFiles("public/samples/reference-poster.png");
 await page.getByRole("button", { name: "Save reference" }).click();
 await page.getByTestId("reference-frame").first().waitFor();
+await loadPreviews();
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/06-library-1440.png`, fullPage: true });
 
@@ -98,6 +108,7 @@ for (const w of [1440, 1024, 390]) {
     await page.goto(url);
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(600);
+    await loadPreviews();
     await page.screenshot({ path: `${out}/${name}-${w}.png`, fullPage: true });
   }
 }
@@ -153,5 +164,24 @@ await page.getByRole("button", { name: "Avatar 1:1 (circle-safe)" }).click();
 await page.waitForTimeout(500);
 await page.screenshot({ path: `${out}/11-campaign-avatar-390.png`, fullPage: true });
 
+// Fresh visitors can try the three resource shelves without uploading anything.
+for (const w of [1440, 1024, 390]) {
+  await page.setViewportSize({ width: w, height: w === 390 ? 844 : 900 });
+  for (const [route, testId] of [["library", "builtin-library"], ["styles", null], ["analyze", "analysis-samples"]]) {
+    await page.goto(`${base}/${route}`);
+    const shelf = testId ? page.getByTestId(testId) : page.getByRole("region", { name: "Ready art styles" });
+    await shelf.waitFor();
+    if (route === "library") await loadPreviews();
+    for (const image of await shelf.locator("img").all()) {
+      await image.scrollIntoViewIfNeeded();
+      await image.evaluate((img) => img.decode());
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
+    if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) errors.push(`Horizontal overflow: /${route} at ${w}px`);
+    await page.screenshot({ path: `${out}/13-${route}-${w}.png`, fullPage: true });
+  }
+}
+
 await browser.close();
 process.stdout.write(errors.length ? `ERRORS:\n${errors.join("\n")}\n` : "no page errors\n");
+if (errors.length) process.exitCode = 1;

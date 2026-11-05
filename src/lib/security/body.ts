@@ -6,7 +6,7 @@ export class BodyReadError extends Error {
 }
 
 /** Bound both memory and wall time before multipart parsing. Headers alone are not trusted. */
-export async function readBodyBytes(req: Request, cap: number, timeoutMs = 30_000): Promise<Uint8Array<ArrayBuffer>> {
+export async function readBodyBytes(req: Pick<Request, "body" | "signal">, cap: number, timeoutMs = 30_000): Promise<Uint8Array<ArrayBuffer>> {
   const reader = req.body?.getReader();
   if (!reader) return new Uint8Array(0);
   let fail: (error: Error) => void = () => {};
