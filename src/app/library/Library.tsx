@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BuiltinShelf } from "@/components/library/BuiltinShelf";
 import { Dialog } from "radix-ui";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { ConfirmDialog, useDraftGuard } from "@/components/ConfirmDialog";
@@ -274,6 +275,8 @@ export function Library() {
         </button>
       </div>
 
+      <BuiltinShelf />
+      <h2 className="t-heading">Your saved references</h2>
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "end", marginBottom: "2rem" }}>
         <div className="field" style={{ flex: "1 1 16rem", maxWidth: "24rem" }}>
           <label htmlFor="lib-q">Search titles, tags and credits</label>

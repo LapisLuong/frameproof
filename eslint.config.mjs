@@ -12,5 +12,5 @@ export default defineConfig([
       "no-console": ["warn", { allow: ["warn", "error"] }],
     },
   },
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", ".linux-deps/**", "playwright-report/**", "test-results/**"]),
+  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", ".linux-deps/**", "playwright-report/**", "test-results/**", "public/image-tools/runtime/**"]),
 ]);

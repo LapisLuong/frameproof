@@ -1,13 +1,16 @@
 // Server-only: imported exclusively by src/app/api/review/route.ts. Never import from client code.
 import { AiReviewSchema, extractJson, SYSTEM_PROMPT, userPrompt, type AiReview, type MeasuredContext } from "./schema";
+import { BodyReadError, readBodyBytes } from "../security/body";
+
+const MAX_PROVIDER_RESPONSE = 1024 * 1024;
 
 export type PreparedImage = { base64: string; mime: "image/jpeg" | "image/png" };
 
 export interface VisionProvider {
   readonly id: "anthropic" | "openai";
   readonly model: string;
-  /** Returns raw text from the model. */
-  complete(system: string, user: string, images: [PreparedImage, PreparedImage], signal: AbortSignal): Promise<string>;
+  /** Returns raw text from the model. Callers supply 1–4 prepared images (review keeps its fixed pair). */
+  complete(system: string, user: string, images: PreparedImage[], signal: AbortSignal): Promise<string>;
 }
 
 export type ProviderConfig = { configured: false; reason: string } | { configured: true; provider: VisionProvider };
@@ -26,12 +29,14 @@ export class ProviderError extends Error {
 async function postJson(url: string, headers: Record<string, string>, body: unknown, signal: AbortSignal): Promise<unknown> {
   let res: Response;
   try {
-    res = await fetch(url, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body), signal });
+    // Never forward a credential or the uploaded design to a redirect destination.
+    res = await fetch(url, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body), signal, redirect: "error" });
   } catch (e) {
-    if ((e as Error).name === "AbortError") throw new ProviderError("The model took too long to answer.", undefined, true);
+    if (signal.aborted || (e as Error).name === "AbortError") throw new ProviderError("The model took too long to answer.", undefined, true);
     throw new ProviderError("Couldn't reach the AI provider. Check the network and the base URL.", undefined, true);
   }
   if (!res.ok) {
+    void res.body?.cancel().catch(() => {});
     const retryable = res.status === 429 || res.status >= 500;
     const hint =
       res.status === 401 || res.status === 403
@@ -43,7 +48,19 @@ async function postJson(url: string, headers: Record<string, string>, body: unkn
             : `The provider answered ${res.status}.`;
     throw new ProviderError(hint, res.status, retryable);
   }
-  return res.json();
+  // Cap the decoded stream too: a provider can omit Content-Length or send a small compressed body.
+  try {
+    const bytes = await readBodyBytes({ body: res.body, signal }, MAX_PROVIDER_RESPONSE);
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch (error) {
+    if (error instanceof BodyReadError) {
+      if (error.status === 413) throw new ProviderError("The AI provider's response was too large.");
+      throw new ProviderError("The model took too long to answer.", undefined, true);
+    }
+    if (signal.aborted) throw new ProviderError("The model took too long to answer.", undefined, true);
+    if (error instanceof SyntaxError) throw new ProviderError("The AI provider returned invalid JSON.", undefined, true);
+    throw new ProviderError("Couldn't read the AI provider's response.", undefined, true);
+  }
 }
 
 class AnthropicProvider implements VisionProvider {
@@ -52,7 +69,7 @@ class AnthropicProvider implements VisionProvider {
     private key: string,
     readonly model: string,
   ) {}
-  async complete(system: string, user: string, images: [PreparedImage, PreparedImage], signal: AbortSignal) {
+  async complete(system: string, user: string, images: PreparedImage[], signal: AbortSignal) {
     const data = (await postJson(
       "https://api.anthropic.com/v1/messages",
       { "x-api-key": this.key, "anthropic-version": "2023-06-01" },
@@ -64,10 +81,10 @@ class AnthropicProvider implements VisionProvider {
           {
             role: "user",
             content: [
-              { type: "text", text: "Image 1 — REFERENCE" },
-              { type: "image", source: { type: "base64", media_type: images[0].mime, data: images[0].base64 } },
-              { type: "text", text: "Image 2 — CURRENT" },
-              { type: "image", source: { type: "base64", media_type: images[1].mime, data: images[1].base64 } },
+              ...images.flatMap((image, i) => [
+                { type: "text", text: images.length === 2 ? (i === 0 ? "Image 1 — REFERENCE" : "Image 2 — CURRENT") : `Image ${i + 1}` },
+                { type: "image", source: { type: "base64", media_type: image.mime, data: image.base64 } },
+              ]),
               { type: "text", text: user },
             ],
           },
@@ -91,7 +108,7 @@ class OpenAICompatibleProvider implements VisionProvider {
     readonly model: string,
     private baseUrl: string,
   ) {}
-  async complete(system: string, user: string, images: [PreparedImage, PreparedImage], signal: AbortSignal) {
+  async complete(system: string, user: string, images: PreparedImage[], signal: AbortSignal) {
     const data = (await postJson(
       `${this.baseUrl.replace(/\/$/, "")}/chat/completions`,
       { authorization: `Bearer ${this.key}` },
@@ -103,10 +120,10 @@ class OpenAICompatibleProvider implements VisionProvider {
           {
             role: "user",
             content: [
-              { type: "text", text: "Image 1 — REFERENCE" },
-              { type: "image_url", image_url: { url: `data:${images[0].mime};base64,${images[0].base64}` } },
-              { type: "text", text: "Image 2 — CURRENT" },
-              { type: "image_url", image_url: { url: `data:${images[1].mime};base64,${images[1].base64}` } },
+              ...images.flatMap((image, i) => [
+                { type: "text", text: images.length === 2 ? (i === 0 ? "Image 1 — REFERENCE" : "Image 2 — CURRENT") : `Image ${i + 1}` },
+                { type: "image_url", image_url: { url: `data:${image.mime};base64,${image.base64}` } },
+              ]),
               { type: "text", text: user },
             ],
           },
@@ -117,6 +134,18 @@ class OpenAICompatibleProvider implements VisionProvider {
     const text = data.choices?.[0]?.message?.content;
     if (!text) throw new ProviderError("The model returned an empty answer.", undefined, true);
     return text;
+  }
+}
+
+function openAiBaseUrl(value: string | undefined): string | null {
+  try {
+    const url = new URL(value?.trim() || "https://api.openai.com/v1");
+    const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    if (url.protocol !== "https:" && !(loopback && url.protocol === "http:")) return null;
+    if (url.username || url.password || url.search || url.hash) return null;
+    return url.href.replace(/\/+$/, "");
+  } catch {
+    return null;
   }
 }
 
@@ -133,9 +162,11 @@ export function getProviderConfig(env: NodeJS.ProcessEnv = process.env): Provide
     const model = env.AI_MODEL?.trim();
     if (!key) return { configured: false, reason: "AI_PROVIDER is openai but OPENAI_API_KEY is empty." };
     if (!model) return { configured: false, reason: "AI_PROVIDER is openai but AI_MODEL is empty. Set it to a vision-capable model id." };
-    return { configured: true, provider: new OpenAICompatibleProvider(key, model, env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1") };
+    const base = openAiBaseUrl(env.OPENAI_BASE_URL);
+    if (!base) return { configured: false, reason: "OPENAI_BASE_URL must use HTTPS (HTTP is only allowed on loopback) and contain no credentials, query or fragment." };
+    return { configured: true, provider: new OpenAICompatibleProvider(key, model, base) };
   }
-  return { configured: false, reason: `AI_PROVIDER "${name}" isn't supported. Use anthropic or openai.` };
+  return { configured: false, reason: "AI_PROVIDER isn't supported. Use anthropic or openai." };
 }
 
 /**

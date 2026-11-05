@@ -1,5 +1,7 @@
 "use client";
 
+import { useExportAccess } from "@/components/ExportAccess";
+
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -258,14 +260,17 @@ function ReviewControls({
     }
   };
 
+  const withExportAccess = useExportAccess();
   const exportAs = (kind: "md" | "json") => {
     if (!review) return;
-    const name = `${fileSlug(data.project.name)}-review-${review.version}`;
-    // Export what's on screen, including notes typed but not saved yet.
-    const shown = { ...review, notes };
-    if (kind === "md") download(`${name}.md`, reviewToMarkdown(data.project, shown), "text/markdown;charset=utf-8");
-    else download(`${name}.json`, reviewToJson(data.project, shown), "application/json");
-    toast(kind === "md" ? "Revision brief exported" : "Review JSON exported");
+    void withExportAccess(() => {
+      const name = `${fileSlug(data.project.name)}-review-${review.version}`;
+      // Export what's on screen, including notes typed but not saved yet.
+      const shown = { ...review, notes };
+      if (kind === "md") download(`${name}.md`, reviewToMarkdown(data.project, shown), "text/markdown;charset=utf-8");
+      else download(`${name}.json`, reviewToJson(data.project, shown), "application/json");
+      toast(kind === "md" ? "Revision brief exported" : "Review JSON exported");
+    }).catch(() => toast("The review couldn't be downloaded."));
   };
 
   return (

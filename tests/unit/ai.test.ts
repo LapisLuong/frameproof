@@ -39,6 +39,38 @@ function fake(replies: Array<string | Error>): VisionProvider & { calls: number 
 }
 
 describe("AI configuration", () => {
+  it.each(["http://api.example.com/v1", "https://user:key@api.example.com", "https://api.example.com/v1?key=secret", "file:///tmp/api"])(
+    "rejects an unsafe OpenAI-compatible endpoint without echoing it: %s",
+    (base) => {
+      const config = getProviderConfig(env({ AI_PROVIDER: "openai", OPENAI_API_KEY: "secret-key", AI_MODEL: "test-vision", OPENAI_BASE_URL: base }));
+      expect(config).toMatchObject({ configured: false, reason: expect.stringContaining("OPENAI_BASE_URL") });
+      expect(JSON.stringify(config)).not.toContain(base);
+    },
+  );
+  it("uses the configured endpoint without following redirects", async () => {
+    const config = getProviderConfig(env({ AI_PROVIDER: "openai", OPENAI_API_KEY: "test-key", AI_MODEL: "test-vision", OPENAI_BASE_URL: "http://127.0.0.1:3210/v1/" }));
+    if (!config.configured) throw new Error(config.reason);
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ choices: [{ message: { content: "{}" } }] }));
+    try {
+      await expect(config.provider.complete("system", "brief", [img], new AbortController().signal)).resolves.toBe("{}");
+      expect(fetchMock).toHaveBeenCalledWith("http://127.0.0.1:3210/v1/chat/completions", expect.objectContaining({ redirect: "error" }));
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+  it("stops reading an oversized provider response without exposing its content", async () => {
+    const config = getProviderConfig(env({ AI_PROVIDER: "openai", OPENAI_API_KEY: "test-key", AI_MODEL: "test-vision" }));
+    if (!config.configured) throw new Error(config.reason);
+    const cancel = vi.fn();
+    const body = new ReadableStream({ start: (controller) => controller.enqueue(new Uint8Array(1024 * 1024 + 1)), cancel });
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(body));
+    try {
+      await expect(config.provider.complete("system", "brief", [img], new AbortController().signal)).rejects.toMatchObject({ message: "The AI provider's response was too large.", retryable: false });
+      expect(cancel).toHaveBeenCalledOnce();
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
   it("is off without a provider, and explains why", () => {
     expect(getProviderConfig(env({}))).toMatchObject({ configured: false });
     expect(getProviderConfig(env({ AI_PROVIDER: "anthropic" }))).toMatchObject({ configured: false, reason: expect.stringContaining("ANTHROPIC_API_KEY") });
@@ -144,7 +176,7 @@ it("cancels an oversized stream before reading further chunks", async () => {
   );
   const request = new Request("http://localhost/api/review", {
     method: "POST",
-    headers: { "content-length": "1" },
+    headers: { "content-length": "1", "content-type": "multipart/form-data; boundary=test" },
     body,
     duplex: "half",
   } as RequestInit);
@@ -155,6 +187,6 @@ it("cancels an oversized stream before reading further chunks", async () => {
 
 it.each(["NaN", "Infinity", "-1", "1.5"])("rejects invalid declared length %s", async (length) => {
   configureAi();
-  const request = new Request("http://localhost/api/review", { method: "POST", headers: { "content-length": length }, body: "x" });
+  const request = new Request("http://localhost/api/review", { method: "POST", headers: { "content-length": length, "content-type": "multipart/form-data; boundary=test" }, body: "x" });
   expect((await POST(request)).status).toBe(413);
 });

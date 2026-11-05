@@ -11,11 +11,13 @@ test-results/
 *.tsbuildinfo
 next-env.d.ts
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+.claude/
 .DS_Store
 qa/screenshots/tmp/
 qa/council/
 ._*
 .sync/
 .api-parked/
+public/image-tools/runtime/

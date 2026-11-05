@@ -12,9 +12,7 @@ The interface should be quieter than anything a user drops into it.
    an independent critic who did not build the work, "measure, never judge taste", and
    look-then-fix loops on real screenshots.
 2. Wrote three directions (below).
-3. Ran a review council: ChatGPT (Work mode, GPT-6.1) critiqued the directions as art director;
-   Gemini 3.1 Pro reviewed the computer-vision and security plan. Claude (lead) accepted, amended
-   or rejected each point. Notes at the end.
+3. Reviewed the art direction, computer-vision methods and security plan. Decisions are recorded below.
 4. Selected one direction and locked tokens in `src/app/globals.css`.
 
 ### References studied

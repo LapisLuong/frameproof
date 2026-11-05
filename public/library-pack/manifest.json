@@ -1,0 +1,136 @@
+{
+  "source": "The Met Open Access",
+  "licence": "CC0-1.0",
+  "records": [
+    {
+      "id": "met-436535",
+      "title": "Wheat Field with Cypresses",
+      "author": "Vincent van Gogh",
+      "date": "1889",
+      "source": "https://www.metmuseum.org/art/collection/search/436535",
+      "licence": "CC0-1.0",
+      "policy": "https://www.metmuseum.org/policies/image-resources",
+      "originalUrl": "https://images.metmuseum.org/CRDImages/ep/original/DP-42549-001.jpg",
+      "originalSha256": "b46d02a42fd3bb13b022cefc5beaa997b1d7a28cd7b53e4413d940aa0dc4014d",
+      "file": "met-436535.jpg",
+      "width": 1600,
+      "height": 1274,
+      "bytes": 789895
+    },
+    {
+      "id": "met-436532",
+      "title": "Self-Portrait with a Straw Hat (obverse: The Potato Peeler)",
+      "author": "Vincent van Gogh",
+      "date": "1887",
+      "source": "https://www.metmuseum.org/art/collection/search/436532",
+      "licence": "CC0-1.0",
+      "policy": "https://www.metmuseum.org/policies/image-resources",
+      "originalUrl": "https://images.metmuseum.org/CRDImages/ep/original/DT1502_cropped2.jpg",
+      "originalSha256": "3357aaac7a219e403f7610b8e8779e71c3609bbf6e4ef6ce7240e2256e58cdd7",
+      "file": "met-436532.jpg",
+      "width": 1286,
+      "height": 1600,
+      "bytes": 889059
+    },
+    {
+      "id": "met-436121",
+      "title": "A Woman Seated beside a Vase of Flowers (Madame Paul Valpinçon?)",
+      "author": "Edgar Degas",
+      "date": "1865",
+      "source": "https://www.metmuseum.org/art/collection/search/436121",
+      "licence": "CC0-1.0",
+      "policy": "https://www.metmuseum.org/policies/image-resources",
+      "originalUrl": "https://images.metmuseum.org/CRDImages/ep/original/DP-25460-001.jpg",
+      "originalSha256": "b61c9758c9d98cdd4def07ebbfa218c183e38511350b0eb2817586405c654a66",
+      "file": "met-436121.jpg",
+      "width": 1600,
+      "height": 1302,
+      "bytes": 435994
+    },
+    {
+      "id": "met-435882",
+      "title": "Still Life with Apples and a Pot of Primroses",
+      "author": "Paul Cézanne",
+      "date": "ca. 1890",
+      "source": "https://www.metmuseum.org/art/collection/search/435882",
+      "licence": "CC0-1.0",
+      "policy": "https://www.metmuseum.org/policies/image-resources",
+      "originalUrl": "https://images.metmuseum.org/CRDImages/ep/original/DT47.jpg",
+      "originalSha256": "8336c5eab1aa753a7a6c7ad2f713d1e19802236833943b22a8cc4d9fddd404bc",
+      "file": "met-435882.jpg",
+      "width": 1600,
+      "height": 1270,
+      "bytes": 429199
+    },
+    {
+      "id": "met-436965",
+      "title": "The Monet Family in Their Garden at Argenteuil",
+      "author": "Edouard Manet",
+      "date": "1874",
+      "source": "https://www.metmuseum.org/art/collection/search/436965",
+      "licence": "CC0-1.0",
+      "policy": "https://www.metmuseum.org/policies/image-resources",
+      "originalUrl": "https://images.metmuseum.org/CRDImages/ep/original/DP-25465-001.jpg",
+      "originalSha256": "2b67c5b58f91eaa5a03c7a442d3502e2fb9e210a188694728d7fb2fbd046520c",
+      "file": "met-436965.jpg",
+      "width": 1600,
+      "height": 1007,
+      "bytes": 360493
+    },
+    {
+      "id": "met-436896",
+      "title": "Portrait of a Woman with a Man at a Casement",
+      "author": "Fra Filippo Lippi",
+      "date": "ca. 1440",
+      "source": "https://www.metmuseum.org/art/collection/search/436896",
+      "licence": "CC0-1.0",
+      "policy": "https://www.metmuseum.org/policies/image-resources",
+      "originalUrl": "https://images.metmuseum.org/CRDImages/ep/original/DP159891.jpg",
+      "originalSha256": "58fe28e831e071053b5435c07c5aa20e0006d1ba93555e47bbb8a99bcf0cf11c",
+      "file": "met-436896.jpg",
+      "width": 1060,
+      "height": 1600,
+      "bytes": 418287
+    },
+    {
+      "id": "met-437881",
+      "title": "Young Woman with a Water Pitcher",
+      "author": "Johannes Vermeer",
+      "date": "ca. 1662",
+      "source": "https://www.metmuseum.org/art/collection/search/437881",
+      "licence": "CC0-1.0",
+      "policy": "https://www.metmuseum.org/policies/image-resources",
+      "originalUrl": "https://images.metmuseum.org/CRDImages/ep/original/DP353257.jpg",
+      "originalSha256": "d14901b9c2124bd767cc1a4ca6286092eeedc3067a627449bd94869489bcefce",
+      "file": "met-437881.jpg",
+      "width": 1422,
+      "height": 1600,
+      "bytes": 403183
+    },
+    {
+      "id": "met-437853",
+      "title": "Venice, from the Porch of Madonna della Salute",
+      "author": "Joseph Mallord William Turner",
+      "date": "ca. 1835",
+      "source": "https://www.metmuseum.org/art/collection/search/437853",
+      "licence": "CC0-1.0",
+      "policy": "https://www.metmuseum.org/policies/image-resources",
+      "originalUrl": "https://images.metmuseum.org/CRDImages/ep/original/DP169568.jpg",
+      "originalSha256": "05c6f7155da340471d9280e5be5ba9f01ba1589a83802f4fe9e396480a72e871",
+      "file": "met-437853.jpg",
+      "width": 1600,
+      "height": 1193,
+      "bytes": 466786
+    }
+  ],
+  "skipped": [
+    {
+      "id": 437133,
+      "reason": "not verified public domain or no image"
+    },
+    {
+      "id": 437127,
+      "reason": "not verified public domain or no image"
+    }
+  ]
+}
