@@ -1,5 +1,7 @@
 "use client";
 
+import { useExportAccess } from "@/components/ExportAccess";
+
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -54,6 +56,7 @@ function blank(): StyleSystem {
 
 function Editor({ style, refs, assets }: { style: StyleSystem; refs: InspirationRef[]; assets: Asset[] }) {
   const router = useRouter();
+  const withExportAccess = useExportAccess();
   const [s, setS] = useState(style);
   const [layout, setLayout] = useState(style.layoutPrinciples.join("\n"));
   const [spacing, setSpacing] = useState(tokensToText(style.spacing));
@@ -320,11 +323,9 @@ function Editor({ style, refs, assets }: { style: StyleSystem; refs: Inspiration
           type="button"
           className="btn btn-sm"
           onClick={() => {
-            try {
+            void withExportAccess(() => {
               download(`${fileSlug(s.name)}.tokens.json`, styleToJson(compose()), "application/json");
-            } catch (e) {
-              setError((e as Error).message);
-            }
+            }).catch((e) => setError((e as Error).message));
           }}
         >
           Export JSON
@@ -333,11 +334,9 @@ function Editor({ style, refs, assets }: { style: StyleSystem; refs: Inspiration
           type="button"
           className="btn btn-sm"
           onClick={() => {
-            try {
+            void withExportAccess(() => {
               download(`${fileSlug(s.name)}.css`, styleToCss(compose()), "text/css");
-            } catch (e) {
-              setError((e as Error).message);
-            }
+            }).catch((e) => setError((e as Error).message));
           }}
         >
           Export CSS variables

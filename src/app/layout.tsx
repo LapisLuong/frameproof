@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Masthead } from "@/components/Masthead";
 import { ToastHost } from "@/components/Toast";
+import { ExportAccessProvider } from "@/components/ExportAccess";
 import { withBase } from "@/lib/base-path";
 import "./globals.css";
 
@@ -109,9 +110,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to content
         </a>
         <Masthead />
-        <main id="main" tabIndex={-1}>
-          {children}
-        </main>
+        <ExportAccessProvider>
+          <main id="main" tabIndex={-1}>
+            {children}
+          </main>
+        </ExportAccessProvider>
         <footer className="creator-credit">
           {/* eslint-disable-next-line @next/next/no-img-element -- small, local signature */}
           <img src={withBase("/brand/lapis-signature.png")} alt="" width="48" height="48" />

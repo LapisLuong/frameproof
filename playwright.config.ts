@@ -18,6 +18,6 @@ export default defineConfig({
     port: PORT,
     reuseExistingServer: true,
     timeout: 120_000,
-    env: { AI_PROVIDER: "" },
+    env: { AI_PROVIDER: "", AUTH_URL: "", FRAMEPROOF_LOCAL_EXPORTS: "1" },
   },
 });

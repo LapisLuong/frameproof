@@ -60,6 +60,28 @@ Open the folder in VS Code (`File → Open Folder…`). Recommended extensions: 
 3. Bấm **Open the sample project** để xem một bản review hoàn chỉnh, hoặc tạo project mới, kéo thả ảnh tham chiếu và ảnh thiết kế hiện tại.
 4. Muốn bật AI review: sao chép `.env.example` thành `.env.local`, điền `AI_PROVIDER` và API key, rồi khởi động lại. Key chỉ nằm ở server, không bao giờ gửi xuống trình duyệt.
 
+## Public server: edit as a guest, sign in to download
+
+Deploy the normal Next.js build to a Node host with HTTPS (for example Vercel). GitHub Pages runs the
+static demo: editing works, but exports require the server edition. Use one canonical hostname so
+Google returns to the same origin as the browser's saved designs.
+
+1. Create a Web application OAuth client in Google Auth Platform. Add the exact callback
+   `https://YOUR-DOMAIN/api/auth/callback/google`. For local OAuth testing add
+   `http://localhost:3000/api/auth/callback/google` as a separate allowed callback.
+2. On the host, set `AUTH_URL=https://YOUR-DOMAIN`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`,
+   and an independent `AUTH_SECRET` generated with `openssl rand -base64 32`. For local testing set
+   the variables in `.env.local` and use exactly the local origin registered with Google.
+3. Open the site in a fresh browser, edit a starter, and click Export PNG. Sign in in the new tab,
+   return to the editor tab, and retry. To end the session, visit `/api/auth/signout` and confirm.
+
+The server checks the Google session each time the user exports a design, report, analysis or style.
+The file is created in the browser; the session check sends no design or image bytes. Public library
+assets and source links stay public. Since artwork is editable in the browser, the export gate is
+an app workflow restriction; it cannot prevent screenshots or extracting data from developer tools.
+Local development without Google credentials still permits export. Do not set
+`FRAMEPROOF_LOCAL_EXPORTS=1` on a public host; that flag is for a loopback-bound personal build only.
+
 ## AI review (optional)
 
 FrameProof is fully usable without AI. To add a vision model's second opinion:
@@ -69,7 +91,7 @@ cp .env.example .env.local
 # AI_PROVIDER=anthropic and ANTHROPIC_API_KEY=...   (model defaults to claude-sonnet-5-5; override with AI_MODEL)
 # or AI_PROVIDER=openai, OPENAI_API_KEY=..., AI_MODEL=<a vision model id>
 # With a private key, bind the app to this computer only:
-npm run dev -- --hostname 127.0.0.1
+npm run dev
 ```
 
 No paid key? Google's Gemini API has a free tier and an OpenAI-compatible endpoint. Create a key at
@@ -85,7 +107,7 @@ tier Google may use what you send to improve its products, so don't send client 
 - To keep a real answer as a test fixture, run `npm run record:ai` while `npm run dev` is running with a key. It drives the
   app on the sample project, saves the validated answer (no key) to `tests/fixtures/ai-review.json` and a screenshot to
   `qa/screenshots/08-ai-review-1440.png`; `tests/unit/ai-fixture.test.ts` then checks it without a key or a network call.
-- GitHub Pages has no AI server. Before enabling a paid key on a hosted Node deployment, protect both AI routes with authenticated access and per-user usage limits. Browser origin checks are not authentication.
+- The dev server listens on loopback by default. Both AI routes refuse non-loopback hosts and bound the size of provider replies. GitHub Pages has no AI server. A hosted paid AI deployment would need authenticated access and per-user usage limits before exposing these routes.
 
 ## Privacy and storage
 

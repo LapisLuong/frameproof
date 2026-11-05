@@ -65,6 +65,13 @@ the implementation discussion. Results as it reported them:
 
 ## Poster designer (`feat/poster-editor`, 5 Nov 2026)
 
+Follow-up: 267 unit tests and 34 Playwright tests passed on the server build. At 390 px the
+Library initially rendered 1 of 15 previews instead of all 15; scrolling loaded the rest.
+A drag preserves the DOM node of untouched artwork and can be undone in one step. No page errors in the
+1440/1024/390 px screenshot pass. The Google export smoke test uses a real local Auth.js server with test
+credentials: guest editing works, no session and forged/expired cookies return 401, and a signed test
+session allows exporting in the same editor tab. The real Google consent and callback are not yet tested.
+
 Release verification: typecheck, lint, 256 unit tests (4 optional recording fixtures skipped), production build,
 and 33 Playwright tests passed. Visual QA captured Library, Styles, Analyzer and the editor at 1440, 1024 and
 390 px. The resource shelves had no horizontal overflow or page errors. A fresh browser can open and reload a

@@ -1,5 +1,7 @@
 "use client";
 
+import { useExportAccess } from "@/components/ExportAccess";
+
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -125,6 +127,10 @@ function Observations({ items }: { items: Observation[] }) {
 
 function Result({ asset }: { asset: Asset }) {
   const router = useRouter();
+  const withExportAccess = useExportAccess();
+  const exportAnalysis = (downloadFile: () => void) => {
+    void withExportAccess(downloadFile).catch(() => toast("The analysis couldn't be downloaded."));
+  };
   const url = useObjectUrl(asset.blob);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -175,7 +181,7 @@ function Result({ asset }: { asset: Asset }) {
             <button
               type="button"
               className="btn btn-sm"
-              onClick={() => download(`${fileSlug(asset.name)}-analysis.md`, analysisMarkdown(asset), "text/markdown;charset=utf-8")}
+              onClick={() => exportAnalysis(() => download(`${fileSlug(asset.name)}-analysis.md`, analysisMarkdown(asset), "text/markdown;charset=utf-8"))}
             >
               Export analysis (.md)
             </button>
@@ -183,11 +189,11 @@ function Result({ asset }: { asset: Asset }) {
               type="button"
               className="btn btn-sm"
               onClick={() =>
-                download(
+                exportAnalysis(() => download(
                   `${fileSlug(asset.name)}-analysis.json`,
                   JSON.stringify({ schema: "frameproof.analysis/v1", name: asset.name, analysis: asset.analysis, observations }, null, 2),
                   "application/json",
-                )
+                ))
               }
             >
               Export JSON
